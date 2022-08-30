@@ -20,5 +20,6 @@ Suggests:
     testthat
 Collate: 
     'Context.R'
-    'Region.R'
+    'Divisions.R'
     'SurveillanceDesign.R'
+    'LagrangeSurvDesign.R'

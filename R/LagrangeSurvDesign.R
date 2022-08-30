@@ -1,9 +1,10 @@
-#' Surveillance design base class builder
+#' Lagrange surveillance design class builder
 #'
-#' Builds a base class to represent a surveillance design functionality for the
-#' effective allocation of surveillance resources across one or more divisions
-#' (parts, locations, categories, surveillance units, etc.) via methods that
-#' utilize surveillance and/or incursion management costs, benefits, detection
+#' Builds a generic class to represent a surveillance design functionality for
+#' the effective allocation of surveillance resources across one or more
+#' divisions (parts, locations, categories, surveillance units, etc.) via
+#' Lagrange-based methods for optimizing objective functions specified with
+#' surveillance and/or incursion management costs, benefits, detection
 #' sensitivities, and/or overall detection confidence.
 #'
 #' @param context A \code{Context} or inherited class object representing the
@@ -16,6 +17,11 @@
 #'   \code{region}. Values are assumed to be relative when their range is
 #'   outside of 0-1, or an attribute \code{relative = TRUE} is attached to the
 #'   parameter.
+#' @param lambda A vector of efficacy or detection rates for each \emph{part}
+#'   (subdivision, location, category, surveillance unit, etc.) such that the
+#'   probability of detecting an incursion when present at a part can be
+#'   expressed via \code{pr(detect|presence) = 1 - exp(-lambda*allocation)},
+#'   for a given allocation of surveillance resources.
 #' @param optimal The strategy used for finding an effective surveillance
 #'   resource allocation. One of (minimum) \code{"cost"}, (maximum)
 #'   \code{"benefit"}, or (maximum) \code{"detection"} sensitivity (up to
@@ -45,7 +51,8 @@
 #'   surveillance present at each location specified by the \code{region}.
 #'   Default is \code{NULL}.
 #' @param ... Additional parameters.
-#' @return A \code{SurveillanceDesign} class object (list) containing functions
+#' @return A \code{LagrangeSurvDesign} class object (list) containing inherited
+#'   and extended functions from the base \code{SurveillanceDesign} class for
 #'   for allocating resources, and calculating (unit and overall) detection
 #'   sensitivities:
 #'   \describe{
@@ -57,10 +64,31 @@
 #'     \item{\code{get_confidence()}}{Get the overall system sensitivity or
 #'       confidence of the allocated surveillance design.}
 #'   }
+#' @references
+#'   Cannon, R. M. (2009). Inspecting and monitoring on a restricted budget -
+#'   where best to look? \emph{Preventive Veterinary Medicine}, 92(1–2),
+#'   163-174. \doi{10.1016/j.prevetmed.2009.06.009}
+#'
+#'   Hauser, C. E., & McCarthy, M. A. (2009). Streamlining 'search and
+#'   destroy': cost-effective surveillance for invasive species management.
+#'   \emph{Ecology Letters}, 12(7), 683–692.
+#'   \doi{10.1111/j.1461-0248.2009.01323.x}
+#'
+#'   McCarthy, M. A., Thompson, C. J., Hauser, C., Burgman, M. A., Possingham,
+#'   H. P., Moir, M. L., Tiensin, T., & Gilbert, M. (2010). Resource allocation
+#'   for efficient environmental management. \emph{Ecology Letters}, 13(10),
+#'   1280–1289. \doi{10.1111/j.1461-0248.2010.01522.x}
+#'
+#'   Moore, A. L., McCarthy, M. A., & Lecomte, N. (2016). Optimizing ecological
+#'   survey effort over space and time.
+#'   \emph{Methods in Ecology and Evolution}, 7(8), 891–899.
+#'   \doi{10.1111/2041-210X.12564}
 #' @include Context.R
 #' @include Divisions.R
+#' @include SurveillanceDesign.R
 #' @export
-SurveillanceDesign <- function(context, divisions, establish_pr,
+LagrangeSurvDesign <- function(context, divisions,
+                               establish_pr, lambda,
                                optimal = c("cost", "benefit", "detection"),
                                mgmt_cost = NULL,
                                benefit = NULL,
@@ -70,12 +98,13 @@ SurveillanceDesign <- function(context, divisions, establish_pr,
                                confidence = NULL,
                                exist_sens = NULL,
                                class = character(), ...) {
-  UseMethod("SurveillanceDesign")
+  UseMethod("LagrangeSurvDesign")
 }
 
-#' @name SurveillanceDesign
+#' @name LagrangeSurvDesign
 #' @export
-SurveillanceDesign.Context <- function(context, divisions, establish_pr,
+LagrangeSurvDesign.Context <- function(context, divisions,
+                                       establish_pr, lambda,
                                        optimal = c("cost", "benefit",
                                                    "detection"),
                                        mgmt_cost = NULL,
@@ -87,75 +116,28 @@ SurveillanceDesign.Context <- function(context, divisions, establish_pr,
                                        exist_sens = NULL,
                                        class = character(), ...) {
 
-  # Check divisions
-  if (!inherits(divisions, "Divisions")) {
-    stop(paste("Divisions parameter must be a 'Divisions' or inherited class",
-               "object."), call. = FALSE)
-  }
+  # Build via base class
+  self <- SurveillanceDesign(context = context,
+                             divisions = divisions,
+                             establish_pr = establish_pr,
+                             optimal = optimal,
+                             mgmt_cost = mgmt_cost,
+                             benefit = benefit,
+                             alloc_units = alloc_units,
+                             fixed_cost = fixed_cost,
+                             budget = budget,
+                             confidence = confidence,
+                             exist_sens = exist_sens,
+                             class = "LagrangeSurvDesign", ...)
 
   # Number of division parts
   parts <- divisions$get_parts()
 
-  # Check establish_pr
-  if (!is.numeric(establish_pr) || any(establish_pr < 0) ||
-      length(establish_pr) != parts) {
-    stop(paste("The establishment probability must be numeric,  >= 0, and",
-               "match the number of division parts."), call. = FALSE)
+  # Check lambda
+  if (!is.numeric(lambda) || lambda < 0 || length(lambda) != parts) {
+    stop(paste("The lambda parameter must be numeric,  >= 0, and match the",
+               "number of division parts."), call. = FALSE)
   }
-  if ((!is.null(attr(establish_pr, "relative")) &&
-       as.logical(attr(establish_pr, "relative"))) || max(establish_pr) > 1) {
-    relative_establish_pr <- TRUE
-  } else {
-    relative_establish_pr <- FALSE
-  }
-
-  # Match optimal arguments
-  optimal <- match.arg(optimal)
-
-  # Check mgmt_cost, benefit, fixed_cost, budget, confidence, and exist_sens
-  if (!is.list(mgmt_cost) ||
-      !all(sapply(mgmt_cost, length) %in% c(1, parts))) {
-    stop(paste("The management cost parameter must be a list of numeric",
-               "vectors with values for each division part."), call. = FALSE)
-  }
-  if (!is.numeric(benefit) ||
-      !all(sapply(benefit, length) %in% c(1, parts))) {
-    stop(paste("The benefit parameter must be a numeric vector with values",
-               "for each division part."), call. = FALSE)
-  }
-  if (!is.numeric(fixed_cost) ||
-      !all(sapply(fixed_cost, length) %in% c(1, parts))) {
-    stop(paste("The fixed cost parameter must be a numeric vector with values",
-               "for each division part."), call. = FALSE)
-  }
-  if (!is.numeric(budget) || budget < 0) {
-    stop("The budget parameter must be numeric and >= 0.", call. = FALSE)
-  }
-  if (!is.numeric(confidence) || confidence < 0 || confidence > 1) {
-    stop("The confidence parameter must be numeric, >= 0 and <= 1.",
-         call. = FALSE)
-  }
-  if (!is.numeric(exist_sens) ||
-      !all(sapply(exist_sens, length) %in% c(1, parts))) {
-    stop(paste("The existing sensitivity parameter must be a numeric vector",
-               "with values for each division part."), call. = FALSE)
-  }
-
-  # Ensure relevant parameters are present for optimal strategy
-  if (optimal == "cost" && length(mgmt_cost) == 0) {
-    stop("The management cost parameter must be specified for optimal cost.",
-         call. = FALSE)
-  } else if (optimal == "benefit" && is.null(benefit)) {
-    stop("The benefit parameter must be specified for optimal benefit.",
-         call. = FALSE)
-  } else if (optimal == "detection" &&
-             (is.null(budget) || is.null(confidence))) {
-    stop(paste("Either the budget or confidence parameter must be specified",
-               "for optimal detection."), call. = FALSE)
-  }
-
-  # Create a class structure
-  self <- structure(list(), class = c(class, "SurveillanceDesign"))
 
   # Get the allocated surveillance resource values of the surveillance design
   self$get_allocation <- function() {
