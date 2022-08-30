@@ -1,17 +1,17 @@
-#' Lagrange surveillance design class builder
+#' Sampling surveillance design class builder
 #'
 #' Builds a generic class to represent a surveillance design functionality for
-#' the effective allocation of surveillance resources across one or more
-#' divisions (parts, locations, categories, etc.) via Lagrange-based methods
-#' for optimizing objective functions specified with surveillance and/or
-#' incursion management costs, benefits, detection sensitivities, and/or
-#' overall detection confidence.
+#' the effective allocation of surveillance sampling across one or more
+#' divisions (parts, locations, categories, etc.) via Lagrange-based or
+#' multilevel sampling methods specified with surveillance and/or incursion
+#' management costs, benefits, detection sensitivities, and/or overall
+#' detection confidence.
 #'
 #' @param context A \code{Context} or inherited class object representing the
 #'   context of a bio-security surveillance and area freedom design.
 #' @param divisions A \code{Divisions} or inherited class object representing
-#'   one or more divisions (parts, locations, categories, surveillance units,
-#'   etc.) for the surveillance design.
+#'   one or more divisions (parts, locations, categories, etc.) for the
+#'   surveillance design.
 #' @param establish_pr A vector of (relative) probability values to represent
 #'   the likelihood of pest establishment at each division part (location,
 #'   category, etc.) specified by \code{divisions}. Values are assumed to be
@@ -26,9 +26,9 @@
 #'   resource allocation. One of (minimum) \code{"cost"}, (maximum)
 #'   \code{"benefit"}, or (maximum) \code{"detection"} sensitivity (up to
 #'   \code{"confidence"} level when specified).
-#' @param mgmt_cost A list of vectors to represent management costs specific to
-#'   the method implemented in the inherited class. Each vector specifies costs
-#'   at each division part (location, category, etc.) specified by
+#' @param mgmt_cost A list of vectors to represent estimated management costs
+#'   for when the incursion is detected and undetected. Each vector specifies
+#'   costs at each division part (location, category, etc.) specified by
 #'   \code{divisions}. Default is an empty list. An attribute \code{units} may
 #'   be used to specify the cost units (e.g. "$" or "hours").
 #' @param benefit A vector of values quantifying the benefit of detection
@@ -48,8 +48,8 @@
 #' @param confidence The desired (minimum) system detection sensitivity or
 #'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
 #' @param exist_sens A vector of detection sensitivity values of existing
-#'   surveillance present at each division part (location, category,
-#'   etc.) specified by \code{divisions}. Default is \code{NULL}.
+#'   surveillance present at each division part (location, category, etc.)
+#'   specified by \code{divisions}. Default is \code{NULL}.
 #' @param ... Additional parameters.
 #' @return A \code{LagrangeSurvDesign} class object (list) containing inherited
 #'   and extended functions from the base \code{SurveillanceDesign} class for
@@ -59,7 +59,7 @@
 #'     \item{\code{get_allocation()}}{Get allocated surveillance resources via
 #'       specified strategy, utilizing costs, benefits, budget constraints,
 #'       and/or desired confidence level.}
-#'     \item{\code{get_sensitivity()}}{Get the division part detection
+#'     \item{\code{get_sensitivity()}}{Get the unit/location detection
 #'        sensitivities of the allocated surveillance design.}
 #'     \item{\code{get_confidence()}}{Get the overall system sensitivity or
 #'       confidence of the allocated surveillance design.}
@@ -69,23 +69,14 @@
 #'   where best to look? \emph{Preventive Veterinary Medicine}, 92(1–2),
 #'   163-174. \doi{10.1016/j.prevetmed.2009.06.009}
 #'
-#'   Hauser, C. E., & McCarthy, M. A. (2009). Streamlining 'search and
-#'   destroy': cost-effective surveillance for invasive species management.
-#'   \emph{Ecology Letters}, 12(7), 683–692.
-#'   \doi{10.1111/j.1461-0248.2009.01323.x}
-#'
-#'   McCarthy, M. A., Thompson, C. J., Hauser, C., Burgman, M. A., Possingham,
-#'   H. P., Moir, M. L., Tiensin, T., & Gilbert, M. (2010). Resource allocation
-#'   for efficient environmental management. \emph{Ecology Letters}, 13(10),
-#'   1280–1289. \doi{10.1111/j.1461-0248.2010.01522.x}
-#'
-#'   Moore, A. L., McCarthy, M. A., & Lecomte, N. (2016). Optimizing ecological
-#'   survey effort over space and time.
-#'   \emph{Methods in Ecology and Evolution}, 7(8), 891–899.
-#'   \doi{10.1111/2041-210X.12564}
-#' @include SurveillanceDesign.R
+#'   Kean, J. M., Burnip, G. M. & Pathan, A. (2015). Detection survey design
+#'   for decision making during biosecurity incursions. In F. Jarrad,
+#'   S. Low-Choy & K. Mengersen (eds.),
+#'   \emph{Biosecurity surveillance: Quantitative approaches} (pp. 238– 250).
+#'   Wallingford, UK: CABI.
+#' @include LagrangeSurvDesign.R
 #' @export
-LagrangeSurvDesign <- function(context, divisions,
+SamplingSurvDesign <- function(context, divisions,
                                establish_pr, lambda,
                                optimal = c("cost", "benefit", "detection"),
                                mgmt_cost = NULL,
@@ -96,12 +87,12 @@ LagrangeSurvDesign <- function(context, divisions,
                                confidence = NULL,
                                exist_sens = NULL,
                                class = character(), ...) {
-  UseMethod("LagrangeSurvDesign")
+  UseMethod("SamplingSurvDesign")
 }
 
-#' @name LagrangeSurvDesign
+#' @name SamplingSurvDesign
 #' @export
-LagrangeSurvDesign.Context <- function(context, divisions,
+SamplingSurvDesign.Context <- function(context, divisions,
                                        establish_pr, lambda,
                                        optimal = c("cost", "benefit",
                                                    "detection"),
@@ -115,9 +106,10 @@ LagrangeSurvDesign.Context <- function(context, divisions,
                                        class = character(), ...) {
 
   # Build via base class
-  self <- SurveillanceDesign(context = context,
+  self <- LagrangeSurvDesign(context = context,
                              divisions = divisions,
                              establish_pr = establish_pr,
+                             lambda = lambda,
                              optimal = optimal,
                              mgmt_cost = mgmt_cost,
                              benefit = benefit,
@@ -126,28 +118,19 @@ LagrangeSurvDesign.Context <- function(context, divisions,
                              budget = budget,
                              confidence = confidence,
                              exist_sens = exist_sens,
-                             class = "LagrangeSurvDesign", ...)
+                             class = "SamplingSurvDesign", ...)
 
-  # Number of division parts
-  parts <- divisions$get_parts()
-
-  # Check lambda
-  if (!is.numeric(lambda) || lambda < 0 || length(lambda) != parts) {
-    stop(paste("The lambda parameter must be numeric,  >= 0, and match the",
-               "number of division parts."), call. = FALSE)
-  }
-
-  # Get the allocated surveillance resource values of the design
+  # Get the allocated surveillance resource values of the surveillance design
   self$get_allocation <- function() {
     # overridden in inherited classes
   }
 
-  # Get the detection sensitivities for each division part of the design
+  # Get the unit/location detection sensitivities of the surveillance design
   self$get_sensitivity <- function() {
     # overridden in inherited classes
   }
 
-  # Get the overall system sensitivity/confidence of the design
+  # Get the overall system sensitivity/confidence of the surveillance design
   self$get_confidence <- function() {
     system_sens <- NULL
     return(system_sens)

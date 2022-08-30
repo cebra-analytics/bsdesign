@@ -2,48 +2,48 @@
 #'
 #' Builds a base class to represent a surveillance design functionality for the
 #' effective allocation of surveillance resources across one or more divisions
-#' (parts, locations, categories, surveillance units, etc.) via methods that
-#' utilize surveillance and/or incursion management costs, benefits, detection
-#' sensitivities, and/or overall detection confidence.
+#' (parts, locations, categories, etc.) via methods that utilize surveillance
+#' and/or incursion management costs, benefits, detection sensitivities,
+#' and/or overall detection confidence.
 #'
 #' @param context A \code{Context} or inherited class object representing the
 #'   context of a bio-security surveillance and area freedom design.
 #' @param divisions A \code{Divisions} or inherited class object representing
-#'   one or more divisions (parts, locations, categories, surveillance units,
-#'   etc.) for the surveillance design.
+#'   one or more divisions (parts, locations, categories, etc.) for the
+#'   surveillance design.
 #' @param establish_pr A vector of (relative) probability values to represent
-#'   the likelihood of pest establishment at each location specified by the
-#'   \code{region}. Values are assumed to be relative when their range is
-#'   outside of 0-1, or an attribute \code{relative = TRUE} is attached to the
-#'   parameter.
+#'   the likelihood of pest establishment at each division part (location,
+#'   category, etc.) specified by \code{divisions}.
+#'   Values are assumed to be relative when their maximum is greater than 1, or
+#'   an attribute \code{relative = TRUE} is attached to the parameter.
 #' @param optimal The strategy used for finding an effective surveillance
 #'   resource allocation. One of (minimum) \code{"cost"}, (maximum)
 #'   \code{"benefit"}, or (maximum) \code{"detection"} sensitivity (up to
 #'   \code{"confidence"} level when specified).
 #' @param mgmt_cost A list of vectors to represent management costs specific to
 #'   the method implemented in the inherited class. Each vector specifies costs
-#'   at each location specified by the \code{region}. Default is empty list
-#'   (in the base class). An attribute \code{units} may be used to specify the
-#'   cost units (e.g. "$" or "hours").
+#'   at each division part (location, category, etc.) specified by
+#'   \code{divisions}. Default is an empty list. An attribute \code{units} may
+#'   be used to specify the cost units (e.g. "$" or "hours").
 #' @param benefit A vector of values quantifying the benefit of detection
-#'   at each location specified by the \code{region}. Default is \code{NULL}.
-#'   An attribute \code{units} may be used to specify the benefit units (e.g.
-#'   "$" or "hours").
+#'   at each division part (location, category, etc.) specified by
+#'   \code{divisions}. Default is \code{NULL}. An attribute \code{units} may
+#'   be used to specify the benefit units (e.g. "$" or "hours").
 #' @param alloc_units The units for the allocated surveillance resources (e.g.
 #'   "$", "hours", or "traps") consistent with the \code{context}. This may be
 #'   different to those specified for \code{mgmt_cost} or \code{benefit}.
 #'   Default is \code{NULL}.
 #' @param fixed_cost A vector of fixed costs, such as travel costs, at each
-#'   location specified by the \code{region}. Default is \code{NULL}. Units are
-#'   specified in \code{alloc_units}.
+#'   division part (location, category, etc.) specified by \code{divisions}.
+#'   Default is \code{NULL}. Units are specified in \code{alloc_units}.
 #' @param budget The cost budget or constraint for the resource allocation in
 #'   the surveillance design. Default is \code{NULL}. Units are specified in
 #'   \code{alloc_units}.
 #' @param confidence The desired (minimum) system detection sensitivity or
 #'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
 #' @param exist_sens A vector of detection sensitivity values of existing
-#'   surveillance present at each location specified by the \code{region}.
-#'   Default is \code{NULL}.
+#'   surveillance present at each division part (location, category, etc.)
+#'   specified by \code{divisions}. Default is \code{NULL}.
 #' @param ... Additional parameters.
 #' @return A \code{SurveillanceDesign} class object (list) containing functions
 #'   for allocating resources, and calculating (unit and overall) detection
@@ -52,7 +52,7 @@
 #'     \item{\code{get_allocation()}}{Get allocated surveillance resources via
 #'       specified strategy, utilizing costs, benefits, budget constraints,
 #'       and/or desired confidence level.}
-#'     \item{\code{get_sensitivity()}}{Get the unit/location detection
+#'     \item{\code{get_sensitivity()}}{Get the division part detection
 #'        sensitivities of the allocated surveillance design.}
 #'     \item{\code{get_confidence()}}{Get the overall system sensitivity or
 #'       confidence of the allocated surveillance design.}
@@ -157,17 +157,17 @@ SurveillanceDesign.Context <- function(context, divisions, establish_pr,
   # Create a class structure
   self <- structure(list(), class = c(class, "SurveillanceDesign"))
 
-  # Get the allocated surveillance resource values of the surveillance design
+  # Get the allocated surveillance resource values of the design
   self$get_allocation <- function() {
     # overridden in inherited classes
   }
 
-  # Get the unit/location detection sensitivities of the surveillance design
+  # Get the detection sensitivities for each division part of the design
   self$get_sensitivity <- function() {
     # overridden in inherited classes
   }
 
-  # Get the overall system sensitivity/confidence of the surveillance design
+  # Get the overall system sensitivity/confidence of the design
   self$get_confidence <- function() {
     system_sens <- NULL
     return(system_sens)

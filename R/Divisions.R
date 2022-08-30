@@ -1,11 +1,10 @@
 #' Divisions class builder
 #'
 #' Builds a class to represent one or more divisions (parts, locations,
-#' categories, surveillance units, etc.) specified for a surveillance or area
-#' freedom design. It may be defined via a raster layer with active (non-NA)
-#' cells, via a data frame of locations or patches with spatial coordinates,
-#' or via a data frame without coordinates for none-spatial divisions, such as
-#' disease categories.
+#' categories, etc.) specified for a surveillance or area freedom design.
+#' It may be defined via a raster layer with active (non-NA) cells, via a data
+#' frame of locations or patches with spatial coordinates, or via a data frame
+#' without coordinates for none-spatial divisions, such as disease categories.
 #'
 #' @param x A \code{raster::RasterLayer} or \code{terra::SpatRaster} object
 #'   representing a grid-based spatial region (template). The spatial division
