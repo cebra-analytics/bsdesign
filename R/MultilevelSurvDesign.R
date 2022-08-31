@@ -59,7 +59,7 @@
 #'   S. Low-Choy & K. Mengersen (eds.),
 #'   \emph{Biosecurity surveillance: Quantitative approaches} (pp. 238– 250).
 #'   Wallingford, UK: CABI.
-#' @include LagrangeSurvDesign.R
+#' @include SurveillanceDesign.R
 #' @export
 MultilevelSurvDesign <- function(context,
                                  levels,

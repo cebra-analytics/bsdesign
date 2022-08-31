@@ -26,11 +26,12 @@
 #'   resource allocation. One of (minimum) \code{"cost"}, (maximum)
 #'   \code{"benefit"}, or (maximum) \code{"detection"} sensitivity (up to
 #'   \code{"confidence"} level when specified).
-#' @param mgmt_cost A list of vectors to represent management costs specific to
-#'   the method implemented in the inherited class. Each vector specifies costs
-#'   at each division part (location, category, etc.) specified by
-#'   \code{divisions}. Default is an empty list. An attribute \code{units} may
-#'   be used to specify the cost units (e.g. "$" or "hours").
+#' @param mgmt_cost A list of vectors to represent estimated management costs
+#'   for when the incursion is detected and undetected. Each vector specifies
+#'   costs at each division part (location, category, etc.) specified by
+#'   \code{divisions}. List elements should be named \code{detected} and
+#'   \code{undetected}. Default is an empty list. An attribute \code{units}
+#'   may be used to specify the cost units (e.g. "$" or "hours").
 #' @param benefit A vector of values quantifying the benefit of detection
 #'   at each division part (location, category, etc.) specified by
 #'   \code{divisions}. Default is \code{NULL}. An attribute \code{units} may
@@ -142,10 +143,165 @@ LagrangeSurvDesign.Context <- function(context,
                "number of division parts."), call. = FALSE)
   }
 
-  # Get the allocated surveillance resource values of the design
-  self$get_allocation <- function() {
-    # overridden in inherited classes
+  # Check and resolve empty optimal strategy parameters
+  if (optimal == "cost") {
+    if (!all(c("detected", "undetected") %in% names(mgmt_cost))) {
+      stop(paste("The management cost parameter must contain list elements",
+                 "'detected' and 'undetected'."), call. = FALSE)
+    } else {
+      benefit <- mgmt_cost$undetected - mgmt_cost$detected
+    }
+  } else if (optimal != "benefit") {
+    benefit <- rep(1, parts)
   }
+
+  # Resolve null empty costs and existing sensitivities
+  if (is.null(fixed_cost)) {
+    fixed_cost <- rep(0, parts)
+  }
+  if (is.null(exist_sens)) {
+    exist_sens <- rep(0, parts)
+  }
+
+  # Objective function
+  f_obj <- function(x_alloc) {
+    if (optimal == "detection") { # maximum detection
+      return(
+        (x_alloc >= fixed_cost)*
+          log(1 - (establish_pr*(1 - ((1 - exist_sens)*
+                                        exp(-1*lambda*
+                                              (x_alloc - fixed_cost)))))))
+    } else { # minimum cost or maximum benefit
+      return(
+        benefit*establish_pr*(1 - exist_sens)*
+           ((x_alloc < fixed_cost)*1 +
+              (x_alloc >= fixed_cost)*exp(-1*lambda*(x_alloc - fixed_cost))))
+    }
+  }
+
+  # Derivative of objective function
+  f_deriv <- function(x_alloc) {
+    if (optimal == "detection") { # maximum detection
+      return(
+        (x_alloc >= fixed_cost)*-1*establish_pr*(1 - exist_sens)*lambda*
+          exp(-1*lambda*(x_alloc - fixed_cost))/
+          (1 - establish_pr*(1 - ((1 - exist_sens)*
+                                    exp(-1*lambda*(x_alloc - fixed_cost))))))
+    } else { # minimum cost or maximum benefit
+      return(
+        (x_alloc >= fixed_cost)*-1*lambda*benefit*establish_pr*
+          (1 - exist_sens)*exp(-1*lambda*(x_alloc - fixed_cost)))
+    }
+  }
+
+  # Pseudo-inverse of derivative given marginal benefit alpha
+  f_pos <- function(alpha) {
+    values <- lambda*benefit*establish_pr*(1 - exist_sens)
+    idx <- which(values > 0)
+    values[-idx] <- 0
+    if (optimal == "detection") { # maximum detection
+      values[idx] <-
+        pmax(0, ((alpha > -1*lambda[idx])*
+                   (1/lambda[idx]*(log(-1*lambda[idx]/alpha- 1) -
+                                     log(1/establish_pr[idx] - 1) +
+                                     log(1 - exist_sens[idx])) +
+                      fixed_cost[idx])))
+    } else { # minimum cost or maximum benefit
+      values[idx] <-
+        ((alpha>= -1*values[idx])*
+           (-1/lambda[idx]*log(-1*alpha/(values[idx])) + fixed_cost[idx]))
+    }
+    return(values)
+  }
+
+  # Optimal allocation for an alpha value within budget or confidence level
+  allocate <- function(alpha) {
+
+    # Generate full allocation
+    x_alloc <- f_pos(alpha)
+
+    # Optimal within budget or target confidence
+    if (is.numeric(budget) || is.numeric(confidence)) {
+
+      # Order by f(f+(a))/f+(a)
+      rank_values <- f_obj(x_alloc)/x_alloc
+      rank_values[which(!is.finite(rank_values))] <- 0
+      idx <- order(rank_values, decreasing = TRUE)
+
+      # Determine allocation within budget
+      nonzero <- which(x_alloc[idx] > 0)
+
+      # Optimal within budget
+      if (is.numeric(budget)) {
+        cum_cost <- cumsum(x_alloc[idx][nonzero])
+        over_budget <- which(cum_cost > budget)
+        if (length(over_budget)) {
+          x_alloc[idx][over_budget[1]] <-
+            x_alloc[idx][over_budget[1]] - (cum_cost[over_budget[1]] - budget)
+          x_alloc[idx][over_budget[-1]] <- 0
+        }
+      }
+
+      # Optimal up to confidence-level
+      if (is.numeric(confidence)) {
+
+        # Unit sensitivity
+        new_sens <- 1 - (1 - exist_sens)*exp(-1*lambda*(x_alloc - fixed_cost))
+
+        # Calculate confidence
+        if (relative_establish_pr) {
+          cum_conf <-
+            ((1 - cumprod((1 - establish_pr*new_sens)[idx][nonzero]))/
+               (1 - prod(1 - establish_pr)))
+        } else {
+          cum_conf <- (cumsum((establish_pr*new_sens)[idx][nonzero])/
+                         sum(establish_pr))
+        }
+
+        # Select allocation up to confidence level
+        over_conf <- which(cum_conf > confidence)
+        if (length(over_conf)) {
+          x_alloc[idx][over_conf[-1]] <- 0
+        }
+      }
+    }
+
+    return(x_alloc)
+  }
+
+  # Get the allocated surveillance resource values of the design
+  x_alloc <- NULL
+  self$get_allocation <- function() {
+
+    if (is.null(x_alloc)) {
+
+      # Search for minimum objective via marginal benefit (alpha) values
+      alpha_min <- min(f_deriv(fixed_cost))
+      obj_range <- Inf
+      interval <- (0:10)/10*alpha_min
+      precision <- 10 # TODO automate ####
+      while(obj_range > 10^(-1*precision)) {
+        obj <- sapply(interval[-1], function(a) sum(f_obj(allocate(a))))
+        obj_range <- range(obj)[2] - range(obj)[1]
+        i <- which.min(obj)
+        best_a <- interval[i + 1]
+        interval <- (0:10)/10*(interval[i + 2] - interval[i]) + interval[i]
+      }
+
+      # Optimal allocation
+      x_alloc <- allocate(best_a)
+    }
+
+    return(x_alloc)
+  }
+
+  # # Union when p_i is establishment probability
+  # system_conf <- ((1 - prod(1 - establish_pr*(1 - (1 - exist_sens)*
+  #                                      exp(-1*lambda*(x_alloc - fixed_cost)))))/
+  #                   (1 - prod(1 - establish_pr))); system_conf
+  # # Approximation when p_i is relative establishment risk (or small)
+  # system_conf <- sum(establish_pr*(1 - (1 - exist_sens)*exp(-1*lambda*(x_alloc - fixed_cost))))/sum(establish_pr); system_conf
+  #
 
   # Get the detection sensitivities for each division part of the design
   self$get_sensitivity <- function() {

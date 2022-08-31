@@ -15,6 +15,7 @@ MultilevelSurvDesign(
   sample_area = NULL,
   sample_cost = 1,
   confidence = 0.95,
+  class = character(),
   ...
 )
 
@@ -28,6 +29,7 @@ MultilevelSurvDesign(
   sample_area = NULL,
   sample_cost = 1,
   confidence = 0.95,
+  class = character(),
   ...
 )
 }

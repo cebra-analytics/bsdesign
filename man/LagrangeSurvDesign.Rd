@@ -64,11 +64,12 @@ resource allocation. One of (minimum) \code{"cost"}, (maximum)
 \code{"benefit"}, or (maximum) \code{"detection"} sensitivity (up to
 \code{"confidence"} level when specified).}
 
-\item{mgmt_cost}{A list of vectors to represent management costs specific to
-the method implemented in the inherited class. Each vector specifies costs
-at each division part (location, category, etc.) specified by
-\code{divisions}. Default is an empty list. An attribute \code{units} may
-be used to specify the cost units (e.g. "$" or "hours").}
+\item{mgmt_cost}{A list of vectors to represent estimated management costs
+for when the incursion is detected and undetected. Each vector specifies
+costs at each division part (location, category, etc.) specified by
+\code{divisions}. List elements should be named \code{detected} and
+\code{undetected}. Default is an empty list. An attribute \code{units}
+may be used to specify the cost units (e.g. "$" or "hours").}
 
 \item{benefit}{A vector of values quantifying the benefit of detection
 at each division part (location, category, etc.) specified by
