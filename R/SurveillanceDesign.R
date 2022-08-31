@@ -61,7 +61,9 @@
 #' @include Context.R
 #' @include Divisions.R
 #' @export
-SurveillanceDesign <- function(context, divisions, establish_pr,
+SurveillanceDesign <- function(context,
+                               divisions,
+                               establish_pr,
                                optimal = c("cost", "benefit", "detection"),
                                mgmt_cost = NULL,
                                benefit = NULL,
@@ -76,7 +78,9 @@ SurveillanceDesign <- function(context, divisions, establish_pr,
 
 #' @name SurveillanceDesign
 #' @export
-SurveillanceDesign.Context <- function(context, divisions, establish_pr,
+SurveillanceDesign.Context <- function(context,
+                                       divisions,
+                                       establish_pr,
                                        optimal = c("cost", "benefit",
                                                    "detection"),
                                        mgmt_cost = NULL,

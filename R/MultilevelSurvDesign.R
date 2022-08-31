@@ -91,15 +91,7 @@ MultilevelSurvDesign.Context <- function(context,
   self <- SurveillanceDesign(context = context,
                              divisions = levels,
                              establish_pr = 1,
-                             lambda = lambda,
-                             optimal = optimal,
-                             mgmt_cost = mgmt_cost,
-                             benefit = benefit,
-                             alloc_units = alloc_units,
-                             fixed_cost = fixed_cost,
-                             budget = budget,
                              confidence = confidence,
-                             exist_sens = exist_sens,
                              class = "MultilevelSurvDesign", ...)
 
   # Get the allocated surveillance resource values of the surveillance design
