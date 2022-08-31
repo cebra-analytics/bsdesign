@@ -36,24 +36,25 @@
 #'   at each division part (location, category, etc.) specified by
 #'   \code{divisions}. Default is \code{NULL}. An attribute \code{units} may
 #'   be used to specify the benefit units (e.g. "$" or "hours").
-#' @param alloc_units The units for the allocated surveillance resource costs
-#'   (e.g. "$", "hours") consistent with the \code{context}. This may be
-#'   different to those specified for \code{mgmt_cost} or \code{benefit}.
-#'   Default is \code{NULL}.
+#' @param alloc_cost A vector of cost per unit of allocated surveillance
+#'   resources. Default is \code{NULL} for actual allocated resource. An
+#'   attribute \code{units} may be used to specify the units (e.g. "$" or
+#'   "hours"). This may be different to the units specified for
+#'   \code{mgmt_cost} or \code{benefit}.
 #' @param fixed_cost A vector of fixed costs, such as travel costs or time, at
 #'   each division part (location, category, etc.) specified by
-#'   \code{divisions}. Default is \code{NULL}. Units are specified in
-#'   \code{alloc_units}.
+#'   \code{divisions}. Default is \code{NULL}. Units should be consistent with
+#'   \code{alloc_cost}.
 #' @param budget The cost budget or constraint for the resource allocation in
-#'   the surveillance design. Default is \code{NULL}. Units are specified in
-#'   \code{alloc_units}.
+#'   the surveillance design. Default is \code{NULL}. Units should be
+#'   consistent with \code{alloc_cost}.
 #' @param confidence The desired (minimum) system detection sensitivity or
 #'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
 #' @param exist_sens A vector of detection sensitivity values of existing
 #'   surveillance present at each division part (location, category,
 #'   etc.) specified by \code{divisions}. Default is \code{NULL}.
 #' @param ... Additional parameters.
-#' @return A \code{LagrangeSurvDesign} class object (list) containing inherited
+#' @return A \code{SurveillanceDesign} class object (list) containing inherited
 #'   and extended functions from the base \code{SurveillanceDesign} class for
 #'   for allocating resources, and calculating (unit and overall) detection
 #'   sensitivities:
@@ -94,7 +95,7 @@ LagrangeSurvDesign <- function(context,
                                optimal = c("cost", "benefit", "detection"),
                                mgmt_cost = NULL,
                                benefit = NULL,
-                               alloc_units = NULL,
+                               alloc_cost = NULL, # TODO incorporate ####
                                fixed_cost = NULL,
                                budget = NULL,
                                confidence = NULL,
@@ -113,7 +114,7 @@ LagrangeSurvDesign.Context <- function(context,
                                                    "detection"),
                                        mgmt_cost = NULL,
                                        benefit = NULL,
-                                       alloc_units = NULL,
+                                       alloc_cost = NULL,
                                        fixed_cost = NULL,
                                        budget = NULL,
                                        confidence = NULL,
@@ -122,25 +123,98 @@ LagrangeSurvDesign.Context <- function(context,
 
   # Build via base class
   self <- SurveillanceDesign(context = context,
-                             divisions = divisions,
-                             establish_pr = establish_pr,
-                             optimal = optimal,
-                             mgmt_cost = mgmt_cost,
-                             benefit = benefit,
-                             alloc_units = alloc_units,
-                             fixed_cost = fixed_cost,
-                             budget = budget,
-                             confidence = confidence,
-                             exist_sens = exist_sens,
+                             divisions = divisions, # TODO subset ####
                              class = "LagrangeSurvDesign", ...)
 
   # Number of division parts
   parts <- divisions$get_parts()
 
+  # Check establish_pr
+  if (!is.numeric(establish_pr) || any(establish_pr < 0) ||
+      length(establish_pr) != parts) {
+    stop(paste("The establishment probability must be numeric,  >= 0, and",
+               "match the number of division parts."), call. = FALSE)
+  }
+  if ((!is.null(attr(establish_pr, "relative")) &&
+       as.logical(attr(establish_pr, "relative"))) || max(establish_pr) > 1) {
+    relative_establish_pr <- TRUE
+  } else {
+    relative_establish_pr <- FALSE
+  }
+
   # Check lambda
-  if (!is.numeric(lambda) || lambda < 0 || length(lambda) != parts) {
+  if (!is.numeric(lambda) || lambda < 0 || !length(lambda) %in% c(1, parts)) {
     stop(paste("The lambda parameter must be numeric,  >= 0, and match the",
                "number of division parts."), call. = FALSE)
+  } else if (length(alloc_cost) == 1) {
+    alloc_cost <- rep(alloc_cost, parts)
+  }
+
+  # Match optimal arguments
+  optimal <- match.arg(optimal)
+
+  # Check mgmt_cost, benefit, and confidence
+  if (!is.list(mgmt_cost) ||
+      !all(sapply(mgmt_cost, length) %in% c(1, parts))) {
+    stop(paste("The management cost parameter must be a list of numeric",
+               "vectors with values for each division part."), call. = FALSE)
+  }
+  if (!is.null(benefit) &&
+      (!is.numeric(benefit) ||
+       !all(sapply(benefit, length) %in% c(1, parts)))) {
+    stop(paste("The benefit parameter must be a numeric vector with values",
+               "for each division part."), call. = FALSE)
+  }
+  if (!is.null(confidence) &&
+      (!is.numeric(confidence) || confidence < 0 || confidence > 1)) {
+    stop("The confidence parameter must be numeric, >= 0 and <= 1.",
+         call. = FALSE)
+  }
+
+  # Ensure relevant parameters are present for optimal strategy
+  if (optimal == "cost" && length(mgmt_cost) == 0) {
+    stop("The management cost parameter must be specified for optimal cost.",
+         call. = FALSE)
+  } else if (optimal == "benefit" && is.null(benefit)) {
+    stop("The benefit parameter must be specified for optimal benefit.",
+         call. = FALSE)
+  } else if (optimal == "detection" &&
+             (is.null(budget) || is.null(confidence))) {
+    stop(paste("Either the budget or confidence parameter must be specified",
+               "for optimal detection."), call. = FALSE)
+  }
+
+  # Check and resolve alloc_cost, fixed_cost, budget, and exist_sens
+  if (!is.null(alloc_cost) &&
+      (!is.numeric(alloc_cost) ||
+       !all(sapply(alloc_cost, length) %in% c(1, parts)))) {
+    stop(paste("The fixed cost parameter must be a numeric vector with values",
+               "for each division part."), call. = FALSE)
+  } else if (length(alloc_cost) == 1) {
+    alloc_cost <- rep(alloc_cost, parts)
+  } else if (is.null(alloc_cost)) {
+    alloc_cost <- rep(1, parts)
+  }
+  if (!is.null(fixed_cost) &&
+      (!is.numeric(fixed_cost) ||
+       !all(sapply(fixed_cost, length) %in% c(1, parts)))) {
+    stop(paste("The fixed cost parameter must be a numeric vector with values",
+               "for each division part."), call. = FALSE)
+  } else if (length(fixed_cost) == 1) {
+    alloc_cost <- rep(fixed_cost, parts)
+  } else if (is.null(fixed_cost)) {
+    fixed_cost <- rep(0, parts)
+  }
+  if (!is.null(budget) && (!is.numeric(budget) || budget < 0)) {
+    stop("The budget parameter must be numeric and >= 0.", call. = FALSE)
+  }
+  if (!is.null(exist_sens) &&
+      (!is.numeric(exist_sens) ||
+       !all(sapply(exist_sens, length) %in% c(1, parts)))) {
+    stop(paste("The existing sensitivity parameter must be a numeric vector",
+               "with values for each division part."), call. = FALSE)
+  } else if (is.null(exist_sens)) {
+    exist_sens <- rep(0, parts)
   }
 
   # Check and resolve empty optimal strategy parameters
@@ -152,15 +226,7 @@ LagrangeSurvDesign.Context <- function(context,
       benefit <- mgmt_cost$undetected - mgmt_cost$detected
     }
   } else if (optimal != "benefit") {
-    benefit <- rep(1, parts)
-  }
-
-  # Resolve null empty costs and existing sensitivities
-  if (is.null(fixed_cost)) {
-    fixed_cost <- rep(0, parts)
-  }
-  if (is.null(exist_sens)) {
-    exist_sens <- rep(0, parts)
+    benefit <- 1
   }
 
   # Objective function
@@ -269,6 +335,9 @@ LagrangeSurvDesign.Context <- function(context,
     return(x_alloc)
   }
 
+  # Create a class structure
+  self <- structure(list(), class = c(class, "SurveillanceDesign"))
+
   # Get the allocated surveillance resource values of the design
   x_alloc <- NULL
   self$get_allocation <- function() {
@@ -276,16 +345,20 @@ LagrangeSurvDesign.Context <- function(context,
     if (is.null(x_alloc)) {
 
       # Search for minimum objective via marginal benefit (alpha) values
-      alpha_min <- min(f_deriv(fixed_cost))
-      obj_range <- Inf
-      interval <- (0:10)/10*alpha_min
-      precision <- 10 # TODO automate ####
-      while(obj_range > 10^(-1*precision)) {
-        obj <- sapply(interval[-1], function(a) sum(f_obj(allocate(a))))
-        obj_range <- range(obj)[2] - range(obj)[1]
-        i <- which.min(obj)
-        best_a <- interval[i + 1]
-        interval <- (0:10)/10*(interval[i + 2] - interval[i]) + interval[i]
+      if (is.numeric(budget) || is.numeric(confidence)) {
+        alpha_min <- min(f_deriv(fixed_cost))
+        obj_range <- Inf
+        interval <- (0:10)/10*alpha_min
+        precision <- 10 # TODO automate ####
+        while(obj_range > 10^(-1*precision)) {
+          obj <- sapply(interval[-1], function(a) sum(f_obj(allocate(a))))
+          obj_range <- range(obj)[2] - range(obj)[1]
+          i <- which.min(obj)
+          best_a <- interval[i + 1]
+          interval <- (0:10)/10*(interval[i + 2] - interval[i]) + interval[i]
+        }
+      } else { # no constraint
+        best_a <- -1
       }
 
       # Optimal allocation

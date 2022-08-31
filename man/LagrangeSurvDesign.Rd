@@ -13,7 +13,7 @@ LagrangeSurvDesign(
   optimal = c("cost", "benefit", "detection"),
   mgmt_cost = NULL,
   benefit = NULL,
-  alloc_units = NULL,
+  alloc_cost = NULL,
   fixed_cost = NULL,
   budget = NULL,
   confidence = NULL,
@@ -30,7 +30,7 @@ LagrangeSurvDesign(
   optimal = c("cost", "benefit", "detection"),
   mgmt_cost = NULL,
   benefit = NULL,
-  alloc_units = NULL,
+  alloc_cost = NULL,
   fixed_cost = NULL,
   budget = NULL,
   confidence = NULL,
@@ -76,19 +76,20 @@ at each division part (location, category, etc.) specified by
 \code{divisions}. Default is \code{NULL}. An attribute \code{units} may
 be used to specify the benefit units (e.g. "$" or "hours").}
 
-\item{alloc_units}{The units for the allocated surveillance resource costs
-(e.g. "$", "hours") consistent with the \code{context}. This may be
-different to those specified for \code{mgmt_cost} or \code{benefit}.
-Default is \code{NULL}.}
+\item{alloc_cost}{A vector of cost per unit of allocated surveillance
+resources. Default is \code{NULL} for actual allocated resource. An
+attribute \code{units} may be used to specify the units (e.g. "$" or
+"hours"). This may be different to the units specified for
+\code{mgmt_cost} or \code{benefit}.}
 
 \item{fixed_cost}{A vector of fixed costs, such as travel costs or time, at
 each division part (location, category, etc.) specified by
-\code{divisions}. Default is \code{NULL}. Units are specified in
-\code{alloc_units}.}
+\code{divisions}. Default is \code{NULL}. Units should be consistent with
+\code{alloc_cost}.}
 
 \item{budget}{The cost budget or constraint for the resource allocation in
-the surveillance design. Default is \code{NULL}. Units are specified in
-\code{alloc_units}.}
+the surveillance design. Default is \code{NULL}. Units should be
+consistent with \code{alloc_cost}.}
 
 \item{confidence}{The desired (minimum) system detection sensitivity or
 confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
@@ -100,7 +101,7 @@ etc.) specified by \code{divisions}. Default is \code{NULL}.}
 \item{...}{Additional parameters.}
 }
 \value{
-A \code{LagrangeSurvDesign} class object (list) containing inherited
+A \code{SurveillanceDesign} class object (list) containing inherited
 and extended functions from the base \code{SurveillanceDesign} class for
 for allocating resources, and calculating (unit and overall) detection
 sensitivities:

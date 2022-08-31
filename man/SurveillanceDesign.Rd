@@ -8,7 +8,7 @@
 SurveillanceDesign(
   context,
   divisions,
-  establish_pr,
+  establish_pr = NULL,
   optimal = c("cost", "benefit", "detection"),
   mgmt_cost = NULL,
   benefit = NULL,
@@ -24,7 +24,7 @@ SurveillanceDesign(
 \method{SurveillanceDesign}{Context}(
   context,
   divisions,
-  establish_pr,
+  establish_pr = NULL,
   optimal = c("cost", "benefit", "detection"),
   mgmt_cost = NULL,
   benefit = NULL,
@@ -47,7 +47,7 @@ surveillance design.}
 
 \item{establish_pr}{A vector of (relative) probability values to represent
 the likelihood of pest establishment at each division part (location,
-category, etc.) specified by \code{divisions}.
+category, etc.) specified by \code{divisions}. Default is \code{NULL}.
 Values are assumed to be relative when their maximum is greater than 1, or
 an attribute \code{relative = TRUE} is attached to the parameter.}
 

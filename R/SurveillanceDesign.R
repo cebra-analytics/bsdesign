@@ -13,7 +13,7 @@
 #'   surveillance design.
 #' @param establish_pr A vector of (relative) probability values to represent
 #'   the likelihood of pest establishment at each division part (location,
-#'   category, etc.) specified by \code{divisions}.
+#'   category, etc.) specified by \code{divisions}. Default is \code{NULL}.
 #'   Values are assumed to be relative when their maximum is greater than 1, or
 #'   an attribute \code{relative = TRUE} is attached to the parameter.
 #' @param optimal The strategy used for finding an effective surveillance
@@ -63,7 +63,7 @@
 #' @export
 SurveillanceDesign <- function(context,
                                divisions,
-                               establish_pr,
+                               establish_pr = NULL,
                                optimal = c("cost", "benefit", "detection"),
                                mgmt_cost = NULL,
                                benefit = NULL,
@@ -80,7 +80,7 @@ SurveillanceDesign <- function(context,
 #' @export
 SurveillanceDesign.Context <- function(context,
                                        divisions,
-                                       establish_pr,
+                                       establish_pr = NULL,
                                        optimal = c("cost", "benefit",
                                                    "detection"),
                                        mgmt_cost = NULL,
@@ -101,63 +101,67 @@ SurveillanceDesign.Context <- function(context,
   # Number of division parts
   parts <- divisions$get_parts()
 
-  # Check establish_pr
-  if (!is.numeric(establish_pr) || any(establish_pr < 0) ||
-      length(establish_pr) != parts) {
-    stop(paste("The establishment probability must be numeric,  >= 0, and",
-               "match the number of division parts."), call. = FALSE)
-  }
-  if ((!is.null(attr(establish_pr, "relative")) &&
-       as.logical(attr(establish_pr, "relative"))) || max(establish_pr) > 1) {
-    relative_establish_pr <- TRUE
-  } else {
-    relative_establish_pr <- FALSE
-  }
+  # # Check establish_pr
+  # if (!is.numeric(establish_pr) || any(establish_pr < 0) ||
+  #     length(establish_pr) != parts) {
+  #   stop(paste("The establishment probability must be numeric,  >= 0, and",
+  #              "match the number of division parts."), call. = FALSE)
+  # }
+  # if ((!is.null(attr(establish_pr, "relative")) &&
+  #      as.logical(attr(establish_pr, "relative"))) || max(establish_pr) > 1) {
+  #   relative_establish_pr <- TRUE
+  # } else {
+  #   relative_establish_pr <- FALSE
+  # }
 
   # Match optimal arguments
   optimal <- match.arg(optimal)
 
-  # Check mgmt_cost, benefit, fixed_cost, budget, confidence, and exist_sens
-  if (!is.list(mgmt_cost) ||
-      !all(sapply(mgmt_cost, length) %in% c(1, parts))) {
-    stop(paste("The management cost parameter must be a list of numeric",
-               "vectors with values for each division part."), call. = FALSE)
-  }
-  if (!is.numeric(benefit) ||
-      !all(sapply(benefit, length) %in% c(1, parts))) {
-    stop(paste("The benefit parameter must be a numeric vector with values",
-               "for each division part."), call. = FALSE)
-  }
-  if (!is.numeric(fixed_cost) ||
-      !all(sapply(fixed_cost, length) %in% c(1, parts))) {
-    stop(paste("The fixed cost parameter must be a numeric vector with values",
-               "for each division part."), call. = FALSE)
-  }
-  if (!is.numeric(budget) || budget < 0) {
-    stop("The budget parameter must be numeric and >= 0.", call. = FALSE)
-  }
-  if (!is.numeric(confidence) || confidence < 0 || confidence > 1) {
-    stop("The confidence parameter must be numeric, >= 0 and <= 1.",
-         call. = FALSE)
-  }
-  if (!is.numeric(exist_sens) ||
-      !all(sapply(exist_sens, length) %in% c(1, parts))) {
-    stop(paste("The existing sensitivity parameter must be a numeric vector",
-               "with values for each division part."), call. = FALSE)
-  }
+  # # Check mgmt_cost, benefit, fixed_cost, budget, confidence, and exist_sens
+  # if (!is.list(mgmt_cost) ||
+  #     !all(sapply(mgmt_cost, length) %in% c(1, parts))) {
+  #   stop(paste("The management cost parameter must be a list of numeric",
+  #              "vectors with values for each division part."), call. = FALSE)
+  # }
+  # if (!is.null(benefit) &&
+  #     (!is.numeric(benefit) ||
+  #      !all(sapply(benefit, length) %in% c(1, parts)))) {
+  #   stop(paste("The benefit parameter must be a numeric vector with values",
+  #              "for each division part."), call. = FALSE)
+  # }
+  # if (!is.null(fixed_cost) &&
+  #     (!is.numeric(fixed_cost) ||
+  #      !all(sapply(fixed_cost, length) %in% c(1, parts)))) {
+  #   stop(paste("The fixed cost parameter must be a numeric vector with values",
+  #              "for each division part."), call. = FALSE)
+  # }
+  # if (!is.null(budget) && (!is.numeric(budget) || budget < 0)) {
+  #   stop("The budget parameter must be numeric and >= 0.", call. = FALSE)
+  # }
+  # if (!is.null(confidence) &&
+  #     (!is.numeric(confidence) || confidence < 0 || confidence > 1)) {
+  #   stop("The confidence parameter must be numeric, >= 0 and <= 1.",
+  #        call. = FALSE)
+  # }
+  # if (!is.null(exist_sens) &&
+  #     (!is.numeric(exist_sens) ||
+  #      !all(sapply(exist_sens, length) %in% c(1, parts)))) {
+  #   stop(paste("The existing sensitivity parameter must be a numeric vector",
+  #              "with values for each division part."), call. = FALSE)
+  # }
 
-  # Ensure relevant parameters are present for optimal strategy
-  if (optimal == "cost" && length(mgmt_cost) == 0) {
-    stop("The management cost parameter must be specified for optimal cost.",
-         call. = FALSE)
-  } else if (optimal == "benefit" && is.null(benefit)) {
-    stop("The benefit parameter must be specified for optimal benefit.",
-         call. = FALSE)
-  } else if (optimal == "detection" &&
-             (is.null(budget) || is.null(confidence))) {
-    stop(paste("Either the budget or confidence parameter must be specified",
-               "for optimal detection."), call. = FALSE)
-  }
+  # # Ensure relevant parameters are present for optimal strategy
+  # if (optimal == "cost" && length(mgmt_cost) == 0) {
+  #   stop("The management cost parameter must be specified for optimal cost.",
+  #        call. = FALSE)
+  # } else if (optimal == "benefit" && is.null(benefit)) {
+  #   stop("The benefit parameter must be specified for optimal benefit.",
+  #        call. = FALSE)
+  # } else if (optimal == "detection" &&
+  #            (is.null(budget) || is.null(confidence))) {
+  #   stop(paste("Either the budget or confidence parameter must be specified",
+  #              "for optimal detection."), call. = FALSE)
+  # }
 
   # Create a class structure
   self <- structure(list(), class = c(class, "SurveillanceDesign"))
