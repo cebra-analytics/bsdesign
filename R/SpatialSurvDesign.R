@@ -35,13 +35,13 @@
 #'   at each spatial location specified by \code{divisions}. Default is
 #'   \code{NULL}. An attribute \code{units} may be used to specify the benefit
 #'   units (e.g. "$" or "hours").
-#' @param alloc_units The units for the allocated surveillance resources (e.g.
-#'   "$", "hours", or "traps") consistent with the \code{context}. This may be
+#' @param alloc_units The units for the allocated surveillance resource costs
+#'   (e.g. "$", "hours") consistent with the \code{context}. This may be
 #'   different to those specified for \code{mgmt_cost} or \code{benefit}.
 #'   Default is \code{NULL}.
-#' @param fixed_cost A vector of fixed costs, such as travel costs, for each
-#'   spatial location specified by \code{divisions}. Default is \code{NULL}.
-#'   Units are specified in \code{alloc_units}.
+#' @param fixed_cost A vector of fixed costs, such as travel costs or time, for
+#'   each spatial location specified by \code{divisions}. Default is
+#'   \code{NULL}. Units are specified in \code{alloc_units}.
 #' @param budget The cost budget or constraint for the resource allocation in
 #'   the surveillance design. Default is \code{NULL}. Units are specified in
 #'   \code{alloc_units}.
@@ -51,9 +51,9 @@
 #'   surveillance present at each spatial location specified by
 #'   \code{divisions}. Default is \code{NULL}.
 #' @param ... Additional parameters.
-#' @return A \code{LagrangeSurvDesign} class object (list) containing inherited
-#'   and extended functions from the base \code{SurveillanceDesign} class for
-#'   for allocating resources, and calculating (unit and overall) detection
+#' @return A \code{SpatialSurvDesign} class object (list) containing inherited
+#'   and extended functions from the base \code{LagrangeSurvDesign} class for
+#'   for allocating resources, and calculating (location and overall) detection
 #'   sensitivities:
 #'   \describe{
 #'     \item{\code{get_allocation()}}{Get allocated surveillance resources via
@@ -81,34 +81,38 @@
 #'   \doi{10.1111/2041-210X.12564}
 #' @include LagrangeSurvDesign.R
 #' @export
-SpatialSurvDesign <- function(context, divisions,
-                               establish_pr, lambda,
-                               optimal = c("cost", "benefit", "detection"),
-                               mgmt_cost = NULL,
-                               benefit = NULL,
-                               alloc_units = NULL,
-                               fixed_cost = NULL,
-                               budget = NULL,
-                               confidence = NULL,
-                               exist_sens = NULL,
-                               class = character(), ...) {
+SpatialSurvDesign <- function(context,
+                              divisions,
+                              establish_pr,
+                              lambda,
+                              optimal = c("cost", "benefit", "detection"),
+                              mgmt_cost = NULL,
+                              benefit = NULL,
+                              alloc_units = NULL,
+                              fixed_cost = NULL,
+                              budget = NULL,
+                              confidence = NULL,
+                              exist_sens = NULL,
+                              class = character(), ...) {
   UseMethod("SpatialSurvDesign")
 }
 
 #' @name SpatialSurvDesign
 #' @export
-SpatialSurvDesign.Context <- function(context, divisions,
-                                       establish_pr, lambda,
-                                       optimal = c("cost", "benefit",
-                                                   "detection"),
-                                       mgmt_cost = NULL,
-                                       benefit = NULL,
-                                       alloc_units = NULL,
-                                       fixed_cost = NULL,
-                                       budget = NULL,
-                                       confidence = NULL,
-                                       exist_sens = NULL,
-                                       class = character(), ...) {
+SpatialSurvDesign.Context <- function(context,
+                                      divisions,
+                                      establish_pr,
+                                      lambda,
+                                      optimal = c("cost", "benefit",
+                                                  "detection"),
+                                      mgmt_cost = NULL,
+                                      benefit = NULL,
+                                      alloc_units = NULL,
+                                      fixed_cost = NULL,
+                                      budget = NULL,
+                                      confidence = NULL,
+                                      exist_sens = NULL,
+                                      class = character(), ...) {
 
   # Build via base class
   self <- LagrangeSurvDesign(context = context,

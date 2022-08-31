@@ -10,8 +10,8 @@
 #' @param context A \code{Context} or inherited class object representing the
 #'   context of a bio-security surveillance and area freedom design.
 #' @param divisions A \code{Divisions} or inherited class object representing
-#'   one or more divisions (parts, locations, categories, surveillance units,
-#'   etc.) for the surveillance design.
+#'   one or more divisions (parts, locations, categories, etc.) for the
+#'   surveillance design.
 #' @param establish_pr A vector of (relative) probability values to represent
 #'   the likelihood of pest establishment at each division part (location,
 #'   category, etc.) specified by \code{divisions}. Values are assumed to be
@@ -35,13 +35,14 @@
 #'   at each division part (location, category, etc.) specified by
 #'   \code{divisions}. Default is \code{NULL}. An attribute \code{units} may
 #'   be used to specify the benefit units (e.g. "$" or "hours").
-#' @param alloc_units The units for the allocated surveillance resources (e.g.
-#'   "$", "hours", or "traps") consistent with the \code{context}. This may be
+#' @param alloc_units The units for the allocated surveillance resource costs
+#'   (e.g. "$", "hours") consistent with the \code{context}. This may be
 #'   different to those specified for \code{mgmt_cost} or \code{benefit}.
 #'   Default is \code{NULL}.
-#' @param fixed_cost A vector of fixed costs, such as travel costs, at each
-#'   division part (location, category, etc.) specified by \code{divisions}.
-#'   Default is \code{NULL}. Units are specified in \code{alloc_units}.
+#' @param fixed_cost A vector of fixed costs, such as travel costs or time, at
+#'   each division part (location, category, etc.) specified by
+#'   \code{divisions}. Default is \code{NULL}. Units are specified in
+#'   \code{alloc_units}.
 #' @param budget The cost budget or constraint for the resource allocation in
 #'   the surveillance design. Default is \code{NULL}. Units are specified in
 #'   \code{alloc_units}.
@@ -85,8 +86,10 @@
 #'   \doi{10.1111/2041-210X.12564}
 #' @include SurveillanceDesign.R
 #' @export
-LagrangeSurvDesign <- function(context, divisions,
-                               establish_pr, lambda,
+LagrangeSurvDesign <- function(context,
+                               divisions,
+                               establish_pr,
+                               lambda,
                                optimal = c("cost", "benefit", "detection"),
                                mgmt_cost = NULL,
                                benefit = NULL,
@@ -101,8 +104,10 @@ LagrangeSurvDesign <- function(context, divisions,
 
 #' @name LagrangeSurvDesign
 #' @export
-LagrangeSurvDesign.Context <- function(context, divisions,
-                                       establish_pr, lambda,
+LagrangeSurvDesign.Context <- function(context,
+                                       divisions,
+                                       establish_pr,
+                                       lambda,
                                        optimal = c("cost", "benefit",
                                                    "detection"),
                                        mgmt_cost = NULL,

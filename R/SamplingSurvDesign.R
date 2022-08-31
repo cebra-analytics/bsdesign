@@ -1,11 +1,11 @@
 #' Sampling surveillance design class builder
 #'
-#' Builds a generic class to represent a surveillance design functionality for
-#' the effective allocation of surveillance sampling across one or more
-#' divisions (parts, locations, categories, etc.) via Lagrange-based or
-#' multilevel sampling methods specified with surveillance and/or incursion
-#' management costs, benefits, detection sensitivities, and/or overall
-#' detection confidence.
+#' Builds a class to represent a surveillance design functionality for the
+#' effective allocation of surveillance sampling across one or more
+#' divisions (parts, locations, categories, etc.) via Lagrange-based methods
+#' for optimizing objective functions specified with surveillance and/or
+#' incursion management costs, benefits, detection sensitivities, and/or
+#' overall detection confidence.
 #'
 #' @param context A \code{Context} or inherited class object representing the
 #'   context of a bio-security surveillance and area freedom design.
@@ -17,32 +17,47 @@
 #'   category, etc.) specified by \code{divisions}. Values are assumed to be
 #'   relative when their maximum is greater than 1, or an attribute
 #'   \code{relative = TRUE} is attached to the parameter.
-#' @param lambda A vector of efficacy or detection rates for each division part
-#'   (location, category, etc.) specified by \code{divisions}, such that the
-#'   probability of detecting an incursion when present at a part can be
-#'   expressed via \code{pr(detect|presence) = 1 - exp(-lambda*allocation)},
-#'   for a given allocation of surveillance resources.
-#' @param optimal The strategy used for finding an effective surveillance
-#'   resource allocation. One of (minimum) \code{"cost"}, (maximum)
-#'   \code{"benefit"}, or (maximum) \code{"detection"} sensitivity (up to
-#'   \code{"confidence"} level when specified).
+#' @param sensitivity A vector of sample sensitivity values for each division
+#'   part (location, category, etc.) specified by \code{divisions}. Default
+#'   is \code{1}.
+#' @param prevalence A vector of discrete sampling design prevalence values for
+#'   each division part (location, category, etc.) specified by
+#'   \code{divisions}. Note that this parameter may represent apparent
+#'   prevalence (Cannon, 2009) when the \code{sensitivity} is set to \code{1}.
+#'   Default is \code{NULL}.
+#' @param total_indiv A vector of total individual discrete sampling units
+#'   (e.g. trees, traps) present at each division part (location, category,
+#'   etc.) specified by \code{divisions}. Default is \code{NULL}.
+#' @param design_dens A vector of continuous sampling design density values for
+#'   each division part (location, category, etc.). Default is \code{NULL}.
+#' @param sample_area The area of a single sample in a continuous sampling
+#'   design. Note that when set to 1, the total number of samples will be
+#'   equivalent to the total area sampled. Default is \code{NULL}.
+#' @param optimal The strategy used for finding an effective sampling
+#'   allocation. One of (minimum) \code{"cost"}, (maximum) \code{"benefit"},
+#'   or (maximum) \code{"detection"} sensitivity (up to \code{"confidence"}
+#'   level when specified).
 #' @param mgmt_cost A list of vectors to represent estimated management costs
 #'   for when the incursion is detected and undetected. Each vector specifies
 #'   costs at each division part (location, category, etc.) specified by
-#'   \code{divisions}. Default is an empty list. An attribute \code{units} may
-#'   be used to specify the cost units (e.g. "$" or "hours").
+#'   \code{divisions}. List elements should be named \code{detected} and
+#'   \code{undetected}. Default is an empty list. An attribute \code{units}
+#'   may be used to specify the cost units (e.g. "$" or "hours").
 #' @param benefit A vector of values quantifying the benefit of detection
 #'   at each division part (location, category, etc.) specified by
 #'   \code{divisions}. Default is \code{NULL}. An attribute \code{units} may
 #'   be used to specify the benefit units (e.g. "$" or "hours").
-#' @param alloc_units The units for the allocated surveillance resources (e.g.
-#'   "$", "hours", or "traps") consistent with the \code{context}. This may be
+#' @param alloc_units The units for the allocated surveillance resource costs
+#'   (e.g. "$", "hours") consistent with the \code{context}. This may be
 #'   different to those specified for \code{mgmt_cost} or \code{benefit}.
 #'   Default is \code{NULL}.
-#' @param fixed_cost A vector of fixed costs, such as travel costs, at each
-#'   division part (location, category, etc.) specified by \code{divisions}.
-#'   Default is \code{NULL}. Units are specified in \code{alloc_units}.
-#' @param budget The cost budget or constraint for the resource allocation in
+#' @param sample_cost The cost of individual samples. Default is \code{NULL}.
+#'   Units are specified in \code{alloc_units}.
+#' @param fixed_cost A vector of fixed costs, such as travel costs or time, at
+#'   each division part (location, category, etc.) specified by
+#'   \code{divisions}. Default is \code{NULL}. Units are specified in
+#'   \code{alloc_units}.
+#' @param budget The cost budget or constraint for the sampling allocation in
 #'   the surveillance design. Default is \code{NULL}. Units are specified in
 #'   \code{alloc_units}.
 #' @param confidence The desired (minimum) system detection sensitivity or
@@ -51,15 +66,15 @@
 #'   surveillance present at each division part (location, category, etc.)
 #'   specified by \code{divisions}. Default is \code{NULL}.
 #' @param ... Additional parameters.
-#' @return A \code{LagrangeSurvDesign} class object (list) containing inherited
-#'   and extended functions from the base \code{SurveillanceDesign} class for
-#'   for allocating resources, and calculating (unit and overall) detection
+#' @return A \code{SamplingSurvDesign} class object (list) containing inherited
+#'   and extended functions from the base \code{LagrangeSurvDesign} class for
+#'   for allocating samples, and calculating (unit and overall) detection
 #'   sensitivities:
 #'   \describe{
-#'     \item{\code{get_allocation()}}{Get allocated surveillance resources via
-#'       specified strategy, utilizing costs, benefits, budget constraints,
-#'       and/or desired confidence level.}
-#'     \item{\code{get_sensitivity()}}{Get the unit/location detection
+#'     \item{\code{get_allocation()}}{Get allocated samples via specified
+#'       strategy, utilizing costs, benefits, budget constraints, and/or
+#'       desired confidence level.}
+#'     \item{\code{get_sensitivity()}}{Get the division part detection
 #'        sensitivities of the allocated surveillance design.}
 #'     \item{\code{get_confidence()}}{Get the overall system sensitivity or
 #'       confidence of the allocated surveillance design.}
@@ -76,12 +91,19 @@
 #'   Wallingford, UK: CABI.
 #' @include LagrangeSurvDesign.R
 #' @export
-SamplingSurvDesign <- function(context, divisions,
-                               establish_pr, lambda,
+SamplingSurvDesign <- function(context,
+                               divisions,
+                               establish_pr,
+                               sensitivity = 1,
+                               prevalence = NULL,
+                               total_indiv = NULL,
+                               design_dens = NULL,
+                               sample_area = NULL,
                                optimal = c("cost", "benefit", "detection"),
                                mgmt_cost = NULL,
                                benefit = NULL,
                                alloc_units = NULL,
+                               sample_cost = NULL,
                                fixed_cost = NULL,
                                budget = NULL,
                                confidence = NULL,
@@ -92,13 +114,19 @@ SamplingSurvDesign <- function(context, divisions,
 
 #' @name SamplingSurvDesign
 #' @export
-SamplingSurvDesign.Context <- function(context, divisions,
-                                       establish_pr, lambda,
-                                       optimal = c("cost", "benefit",
-                                                   "detection"),
+SamplingSurvDesign.Context <- function(context,
+                                       divisions,
+                                       establish_pr,
+                                       sensitivity = 1,
+                                       prevalence = NULL,
+                                       total_indiv = NULL,
+                                       design_dens = NULL,
+                                       sample_area = NULL,
+                                       optimal = c("cost", "benefit", "detection"),
                                        mgmt_cost = NULL,
                                        benefit = NULL,
                                        alloc_units = NULL,
+                                       sample_cost = NULL,
                                        fixed_cost = NULL,
                                        budget = NULL,
                                        confidence = NULL,
@@ -109,7 +137,7 @@ SamplingSurvDesign.Context <- function(context, divisions,
   self <- LagrangeSurvDesign(context = context,
                              divisions = divisions,
                              establish_pr = establish_pr,
-                             lambda = lambda,
+                             lambda = lambda, # TODO
                              optimal = optimal,
                              mgmt_cost = mgmt_cost,
                              benefit = benefit,
@@ -125,7 +153,7 @@ SamplingSurvDesign.Context <- function(context, divisions,
     # overridden in inherited classes
   }
 
-  # Get the unit/location detection sensitivities of the surveillance design
+  # Get the division part detection sensitivities of the surveillance design
   self$get_sensitivity <- function() {
     # overridden in inherited classes
   }

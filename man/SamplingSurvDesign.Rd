@@ -9,11 +9,16 @@ SamplingSurvDesign(
   context,
   divisions,
   establish_pr,
-  lambda,
+  sensitivity = 1,
+  prevalence = NULL,
+  total_indiv = NULL,
+  design_dens = NULL,
+  sample_area = NULL,
   optimal = c("cost", "benefit", "detection"),
   mgmt_cost = NULL,
   benefit = NULL,
   alloc_units = NULL,
+  sample_cost = NULL,
   fixed_cost = NULL,
   budget = NULL,
   confidence = NULL,
@@ -26,11 +31,16 @@ SamplingSurvDesign(
   context,
   divisions,
   establish_pr,
-  lambda,
+  sensitivity = 1,
+  prevalence = NULL,
+  total_indiv = NULL,
+  design_dens = NULL,
+  sample_area = NULL,
   optimal = c("cost", "benefit", "detection"),
   mgmt_cost = NULL,
   benefit = NULL,
   alloc_units = NULL,
+  sample_cost = NULL,
   fixed_cost = NULL,
   budget = NULL,
   confidence = NULL,
@@ -53,38 +63,58 @@ category, etc.) specified by \code{divisions}. Values are assumed to be
 relative when their maximum is greater than 1, or an attribute
 \code{relative = TRUE} is attached to the parameter.}
 
-\item{lambda}{A vector of efficacy or detection rates for each division part
-(location, category, etc.) specified by \code{divisions}, such that the
-probability of detecting an incursion when present at a part can be
-expressed via \code{pr(detect|presence) = 1 - exp(-lambda*allocation)},
-for a given allocation of surveillance resources.}
+\item{sensitivity}{A vector of sample sensitivity values for each division
+part (location, category, etc.) specified by \code{divisions}. Default
+is \code{1}.}
 
-\item{optimal}{The strategy used for finding an effective surveillance
-resource allocation. One of (minimum) \code{"cost"}, (maximum)
-\code{"benefit"}, or (maximum) \code{"detection"} sensitivity (up to
-\code{"confidence"} level when specified).}
+\item{prevalence}{A vector of discrete sampling design prevalence values for
+each division part (location, category, etc.) specified by
+\code{divisions}. Note that this parameter may represent apparent
+prevalence (Cannon, 2009) when the \code{sensitivity} is set to \code{1}.
+Default is \code{NULL}.}
+
+\item{total_indiv}{A vector of total individual discrete sampling units
+(e.g. trees, traps) present at each division part (location, category,
+etc.) specified by \code{divisions}. Default is \code{NULL}.}
+
+\item{design_dens}{A vector of continuous sampling design density values for
+each division part (location, category, etc.). Default is \code{NULL}.}
+
+\item{sample_area}{The area of a single sample in a continuous sampling
+design. Note that when set to 1, the total number of samples will be
+equivalent to the total area sampled. Default is \code{NULL}.}
+
+\item{optimal}{The strategy used for finding an effective sampling
+allocation. One of (minimum) \code{"cost"}, (maximum) \code{"benefit"},
+or (maximum) \code{"detection"} sensitivity (up to \code{"confidence"}
+level when specified).}
 
 \item{mgmt_cost}{A list of vectors to represent estimated management costs
 for when the incursion is detected and undetected. Each vector specifies
 costs at each division part (location, category, etc.) specified by
-\code{divisions}. Default is an empty list. An attribute \code{units} may
-be used to specify the cost units (e.g. "$" or "hours").}
+\code{divisions}. List elements should be named \code{detected} and
+\code{undetected}. Default is an empty list. An attribute \code{units}
+may be used to specify the cost units (e.g. "$" or "hours").}
 
 \item{benefit}{A vector of values quantifying the benefit of detection
 at each division part (location, category, etc.) specified by
 \code{divisions}. Default is \code{NULL}. An attribute \code{units} may
 be used to specify the benefit units (e.g. "$" or "hours").}
 
-\item{alloc_units}{The units for the allocated surveillance resources (e.g.
-"$", "hours", or "traps") consistent with the \code{context}. This may be
+\item{alloc_units}{The units for the allocated surveillance resource costs
+(e.g. "$", "hours") consistent with the \code{context}. This may be
 different to those specified for \code{mgmt_cost} or \code{benefit}.
 Default is \code{NULL}.}
 
-\item{fixed_cost}{A vector of fixed costs, such as travel costs, at each
-division part (location, category, etc.) specified by \code{divisions}.
-Default is \code{NULL}. Units are specified in \code{alloc_units}.}
+\item{sample_cost}{The cost of individual samples. Default is \code{NULL}.
+Units are specified in \code{alloc_units}.}
 
-\item{budget}{The cost budget or constraint for the resource allocation in
+\item{fixed_cost}{A vector of fixed costs, such as travel costs or time, at
+each division part (location, category, etc.) specified by
+\code{divisions}. Default is \code{NULL}. Units are specified in
+\code{alloc_units}.}
+
+\item{budget}{The cost budget or constraint for the sampling allocation in
 the surveillance design. Default is \code{NULL}. Units are specified in
 \code{alloc_units}.}
 
@@ -98,27 +128,27 @@ specified by \code{divisions}. Default is \code{NULL}.}
 \item{...}{Additional parameters.}
 }
 \value{
-A \code{LagrangeSurvDesign} class object (list) containing inherited
-and extended functions from the base \code{SurveillanceDesign} class for
-for allocating resources, and calculating (unit and overall) detection
+A \code{SamplingSurvDesign} class object (list) containing inherited
+and extended functions from the base \code{LagrangeSurvDesign} class for
+for allocating samples, and calculating (unit and overall) detection
 sensitivities:
 \describe{
-\item{\code{get_allocation()}}{Get allocated surveillance resources via
-specified strategy, utilizing costs, benefits, budget constraints,
-and/or desired confidence level.}
-\item{\code{get_sensitivity()}}{Get the unit/location detection
+\item{\code{get_allocation()}}{Get allocated samples via specified
+strategy, utilizing costs, benefits, budget constraints, and/or
+desired confidence level.}
+\item{\code{get_sensitivity()}}{Get the division part detection
 sensitivities of the allocated surveillance design.}
 \item{\code{get_confidence()}}{Get the overall system sensitivity or
 confidence of the allocated surveillance design.}
 }
 }
 \description{
-Builds a generic class to represent a surveillance design functionality for
-the effective allocation of surveillance sampling across one or more
-divisions (parts, locations, categories, etc.) via Lagrange-based or
-multilevel sampling methods specified with surveillance and/or incursion
-management costs, benefits, detection sensitivities, and/or overall
-detection confidence.
+Builds a class to represent a surveillance design functionality for the
+effective allocation of surveillance sampling across one or more
+divisions (parts, locations, categories, etc.) via Lagrange-based methods
+for optimizing objective functions specified with surveillance and/or
+incursion management costs, benefits, detection sensitivities, and/or
+overall detection confidence.
 }
 \references{
 Cannon, R. M. (2009). Inspecting and monitoring on a restricted budget -

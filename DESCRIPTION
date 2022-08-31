@@ -23,5 +23,6 @@ Collate:
     'Divisions.R'
     'SurveillanceDesign.R'
     'LagrangeSurvDesign.R'
+    'MultilevelSurvDesign.R'
     'SamplingSurvDesign.R'
     'SpatialSurvDesign.R'

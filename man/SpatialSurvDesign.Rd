@@ -76,14 +76,14 @@ at each spatial location specified by \code{divisions}. Default is
 \code{NULL}. An attribute \code{units} may be used to specify the benefit
 units (e.g. "$" or "hours").}
 
-\item{alloc_units}{The units for the allocated surveillance resources (e.g.
-"$", "hours", or "traps") consistent with the \code{context}. This may be
+\item{alloc_units}{The units for the allocated surveillance resource costs
+(e.g. "$", "hours") consistent with the \code{context}. This may be
 different to those specified for \code{mgmt_cost} or \code{benefit}.
 Default is \code{NULL}.}
 
-\item{fixed_cost}{A vector of fixed costs, such as travel costs, for each
-spatial location specified by \code{divisions}. Default is \code{NULL}.
-Units are specified in \code{alloc_units}.}
+\item{fixed_cost}{A vector of fixed costs, such as travel costs or time, for
+each spatial location specified by \code{divisions}. Default is
+\code{NULL}. Units are specified in \code{alloc_units}.}
 
 \item{budget}{The cost budget or constraint for the resource allocation in
 the surveillance design. Default is \code{NULL}. Units are specified in
@@ -99,9 +99,9 @@ surveillance present at each spatial location specified by
 \item{...}{Additional parameters.}
 }
 \value{
-A \code{LagrangeSurvDesign} class object (list) containing inherited
-and extended functions from the base \code{SurveillanceDesign} class for
-for allocating resources, and calculating (unit and overall) detection
+A \code{SpatialSurvDesign} class object (list) containing inherited
+and extended functions from the base \code{LagrangeSurvDesign} class for
+for allocating resources, and calculating (location and overall) detection
 sensitivities:
 \describe{
 \item{\code{get_allocation()}}{Get allocated surveillance resources via
