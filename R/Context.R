@@ -20,13 +20,9 @@
 #' @param surv_qty_unit The descriptive unit to describe surveillance resource
 #'   quantities. One of \code{"units"}, \code{"hours"}, \code{"traps"},
 #'   \code{"detectors"}, \code{"samples"}, or user specified.
-#' @param surv_cost_unit The descriptive unit to describe surveillance resource
-#'   costs. One of \code{"$"}, \code{"hours"}, \code{"units"},
-#'   \code{"samples"}, or user specified.
-#' @param mgmt_cost_unit The descriptive unit to describe pest, weed or disease
-#'   incursion management costs, including eradication, impacts, and additional
-#'   surveillance estimates. One of \code{"$"}, \code{"hours"}, or user
-#'   specified.
+#' @param cost_unit The descriptive unit to describe surveillance resource
+#'   costs, and incursion management costs or surveillance benefit savings.
+#'   One of \code{"$"}, \code{"hours"}, or user specified.
 #' @param incursion_status The status of the invasive species presence. One of
 #'   \code{"never_detected"}, \code{"detected"}, \code{"delimited"},
 #'   \code{"contained"}, or \code{"eradicated"}.
@@ -51,10 +47,8 @@
 #'     \item{\code{get_surv_qty_unit()}}{Get the unit for surveillance resource
 #'       quantities: "units", "hours", "traps", "detectors", "samples", or user
 #'       specified.}
-#'     \item{\code{get_surv_cost_unit()}}{Get the unit for surveillance
-#'       resource costs: "$", "hours", "units", "samples", or user specified.}
-#'     \item{\code{get_mgmt_cost_unit()}}{Get the unit for incursion management
-#'       costs: "$", "hours", or user specified.}
+#'     \item{\code{get_cost_unit()}}{Get the unit for surveillance, management,
+#'       and/or benefit costs/savings: "$", "hours", or user specified.}
 #'     \item{\code{get_incursion_status()}}{Get the incursion status:
 #'       "never_detected", "detected", "delimited", "contained", or
 #'       "eradicated".}
@@ -83,14 +77,9 @@ Context <- function(species_name,
                                       "detectors",
                                       "samples",
                                       "user"),
-                    surv_cost_unit = c("$",
-                                       "hours",
-                                       "units",
-                                       "samples",
-                                      "user"),
-                    mgmt_cost_unit = c("$",
-                                       "hours",
-                                       "user"),
+                    cost_unit = c("$",
+                                  "hours",
+                                  "user"),
                     incursion_status = c("never_detected",
                                          "detected",
                                          "delimited",
@@ -125,14 +114,9 @@ Context.default <- function(species_name,
                                               "detectors",
                                               "samples",
                                               "user"),
-                            surv_cost_unit = c("$",
-                                               "hours",
-                                               "units",
-                                               "samples",
-                                               "user"),
-                            mgmt_cost_unit = c("$",
-                                               "hours",
-                                               "user"),
+                            cost_unit = c("$",
+                                          "hours",
+                                          "user"),
                             incursion_status = c("never_detected",
                                                  "detected",
                                                  "delimited",
@@ -151,11 +135,8 @@ Context.default <- function(species_name,
   if (!is.character(surv_qty_unit) || length(surv_qty_unit) > 1) {
     surv_qty_unit <- match.arg(surv_qty_unit)
   }
-  if (!is.character(surv_cost_unit) || length(surv_cost_unit) > 1) {
-    surv_cost_unit <- match.arg(surv_cost_unit)
-  }
-  if (!is.character(mgmt_cost_unit) || length(mgmt_cost_unit) > 1) {
-    mgmt_cost_unit <- match.arg(mgmt_cost_unit)
+  if (!is.character(cost_unit) || length(cost_unit) > 1) {
+    cost_unit <- match.arg(cost_unit)
   }
   incursion_status <- match.arg(incursion_status)
   market_requirement <- match.arg(market_requirement)
@@ -188,14 +169,9 @@ Context.default <- function(species_name,
     return(surv_qty_unit)
   }
 
-  # Get the unit for surveillance resource costs
-  self$get_surv_cost_unit <- function() {
-    return(surv_cost_unit)
-  }
-
-  # Get the unit for incursion management costs
-  self$get_mgmt_cost_unit <- function() {
-    return(mgmt_cost_unit)
+  # Get the cost unit for surveillance, management, benefit
+  self$get_cost_unit <- function() {
+    return(cost_unit)
   }
 
   # Get the incursion status

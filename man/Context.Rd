@@ -11,8 +11,7 @@ Context(
   surveillance_purpose = c("early_detection", "delimitation", "post-eradication"),
   surveillance_type = c("survey", "traps", "detectors", "samples", "reports", "mixed"),
   surv_qty_unit = c("units", "hours", "traps", "detectors", "samples", "user"),
-  surv_cost_unit = c("$", "hours", "units", "samples", "user"),
-  mgmt_cost_unit = c("$", "hours", "user"),
+  cost_unit = c("$", "hours", "user"),
   incursion_status = c("never_detected", "detected", "delimited", "contained",
     "eradicated"),
   area_freedom = FALSE,
@@ -27,8 +26,7 @@ Context(
   surveillance_purpose = c("early_detection", "delimitation", "post-eradication"),
   surveillance_type = c("survey", "traps", "detectors", "samples", "reports", "mixed"),
   surv_qty_unit = c("units", "hours", "traps", "detectors", "samples", "user"),
-  surv_cost_unit = c("$", "hours", "units", "samples", "user"),
-  mgmt_cost_unit = c("$", "hours", "user"),
+  cost_unit = c("$", "hours", "user"),
   incursion_status = c("never_detected", "detected", "delimited", "contained",
     "eradicated"),
   area_freedom = FALSE,
@@ -56,14 +54,9 @@ One of \code{"survey"}, \code{"traps"}, \code{"detectors"},
 quantities. One of \code{"units"}, \code{"hours"}, \code{"traps"},
 \code{"detectors"}, \code{"samples"}, or user specified.}
 
-\item{surv_cost_unit}{The descriptive unit to describe surveillance resource
-costs. One of \code{"$"}, \code{"hours"}, \code{"units"},
-\code{"samples"}, or user specified.}
-
-\item{mgmt_cost_unit}{The descriptive unit to describe pest, weed or disease
-incursion management costs, including eradication, impacts, and additional
-surveillance estimates. One of \code{"$"}, \code{"hours"}, or user
-specified.}
+\item{cost_unit}{The descriptive unit to describe surveillance resource
+costs, and incursion management costs or surveillance benefit savings.
+One of \code{"$"}, \code{"hours"}, or user specified.}
 
 \item{incursion_status}{The status of the invasive species presence. One of
 \code{"never_detected"}, \code{"detected"}, \code{"delimited"},
@@ -95,10 +88,8 @@ surveillance design: "early_detection", "delimitation", or
 \item{\code{get_surv_qty_unit()}}{Get the unit for surveillance resource
 quantities: "units", "hours", "traps", "detectors", "samples", or user
 specified.}
-\item{\code{get_surv_cost_unit()}}{Get the unit for surveillance
-resource costs: "$", "hours", "units", "samples", or user specified.}
-\item{\code{get_mgmt_cost_unit()}}{Get the unit for incursion management
-costs: "$", "hours", or user specified.}
+\item{\code{get_cost_unit()}}{Get the unit for surveillance, management,
+and/or benefit costs/savings: "$", "hours", or user specified.}
 \item{\code{get_incursion_status()}}{Get the incursion status:
 "never_detected", "detected", "delimited", "contained", or
 "eradicated".}
