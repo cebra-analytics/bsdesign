@@ -234,9 +234,6 @@ LagrangeSurvDesign.Context <- function(context,
   ## given the surveillance resource quantity allocation qty_alloc
   ## where qty_alloc = (x_alloc - fixed_cost)/alloc_cost
 
-  # Include x_alloc in the objective function?
-  incl_x <- optimal == "cost" & is.null(budget)
-
   # Objective function
   f_obj <- function(x_alloc) {
     if (optimal == "detection") { # maximum detection
@@ -247,6 +244,7 @@ LagrangeSurvDesign.Context <- function(context,
                              exp(-1*lambda*
                                    (x_alloc - fixed_cost)/alloc_cost))))))
     } else { # minimum cost or maximum benefit
+      incl_x <- (optimal == "cost")
       return(
         benefit*establish_pr*(1 - exist_sens)*
            ((x_alloc < fixed_cost)*1 +
@@ -267,6 +265,7 @@ LagrangeSurvDesign.Context <- function(context,
                           exp(-1*lambda*
                                 (x_alloc - fixed_cost)/alloc_cost))))))
     } else { # minimum cost or maximum benefit
+      incl_x <- (optimal == "cost")
       return(
         (x_alloc >= fixed_cost)*
           (1*incl_x - (benefit*establish_pr*(1 - exist_sens)*
@@ -289,6 +288,7 @@ LagrangeSurvDesign.Context <- function(context,
                          log(1 - exist_sens[idx])) +
                       fixed_cost[idx])))
     } else { # minimum cost or maximum benefit
+      incl_x <- (optimal == "cost")
       values[idx] <-
         (((alpha - 1*incl_x) >= -1*values[idx])*
            (-1*alloc_cost[idx]/lambda[idx]*
@@ -363,7 +363,7 @@ LagrangeSurvDesign.Context <- function(context,
     if (is.null(qty_alloc)) {
 
       # No constraint
-      best_alpha <- incl_x - 1
+      best_alpha <- (optimal == "cost") - 1
 
       # Search for minimum objective via marginal benefit (alpha) values
       if (is.numeric(budget) || is.numeric(confidence)) {
@@ -383,6 +383,7 @@ LagrangeSurvDesign.Context <- function(context,
 
       # Optimal allocation
       qty_alloc <- (allocate(best_alpha) - fixed_cost)/alloc_cost
+      qty_alloc[which(qty_alloc < 0)] <- 0
     }
 
     return(qty_alloc)
