@@ -260,25 +260,23 @@ SpatialSurvDesign.Context <- function(context,
                   exp(-1*lambda*(x_alloc - fixed_cost)/alloc_cost)))
   }
 
-  # Utilize Lagrange survey design for allocating surveillance resources
-  lagrangeSurvDesign <- LagrangeSurvDesign(context,
-                                           divisions,
-                                           establish_pr,
-                                           f_obj,
-                                           f_deriv,
-                                           f_pos,
-                                           alpha_unconstr,
-                                           alpha_min,
-                                           f_unit_sens,
-                                           budget = budget,
-                                           confidence = confidence)
-
   # Get the allocated surveillance resource values of the surveillance design
   qty_alloc <- NULL
   self$get_allocation <- function() {
     if (is.null(qty_alloc)) {
 
       # Get cost allocation x_alloc via Lagrange surveillance design
+      lagrangeSurvDesign <- LagrangeSurvDesign(context,
+                                               divisions,
+                                               establish_pr,
+                                               f_obj,
+                                               f_deriv,
+                                               f_pos,
+                                               alpha_unconstr,
+                                               alpha_min,
+                                               f_unit_sens,
+                                               budget = budget,
+                                               confidence = confidence)
       x_alloc <- lagrangeSurvDesign$get_cost_allocation()
 
       # Optimal resource allocation
