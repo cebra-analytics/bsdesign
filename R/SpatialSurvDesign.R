@@ -29,22 +29,25 @@
 #'   for when the incursion is detected and undetected. Each vector specifies
 #'   these costs at each spatial location specified by \code{divisions}. List
 #'   elements should be named \code{detected} and \code{undetected}. Default is
-#'   an empty list. An attribute \code{units} may be used to specify the cost
-#'   units (e.g. "$" or "hours").
+#'   an empty list. Units should be consistent with the \code{cost_unit}
+#'   parameter specified in the \code{context}.
 #' @param benefit A vector of values quantifying the benefit of detection
 #'   at each spatial location specified by \code{divisions}. Default is
-#'   \code{NULL}. An attribute \code{units} may be used to specify the benefit
-#'   units (e.g. "$" or "hours").
-#' @param alloc_units The units for the allocated surveillance resource costs
-#'   (e.g. "$", "hours") consistent with the \code{context}. This may be
-#'   different to those specified for \code{mgmt_cost} or \code{benefit}.
-#'   Default is \code{NULL}.
-#' @param fixed_cost A vector of fixed costs, such as travel costs or time, for
+#'   \code{NULL}. Units should be consistent with the \code{cost_unit}
+#'   parameter specified in the \code{context}.
+#' @param alloc_cost A vector of cost per unit of allocated surveillance
+#'   resources. Default is \code{NULL}. Units should be consistent with the
+#'   \code{cost_unit} parameter specified in the \code{context}.
+#' @param fixed_cost A vector of fixed costs, such as travel costs or time, at
 #'   each spatial location specified by \code{divisions}. Default is
-#'   \code{NULL}. Units are specified in \code{alloc_units}.
+#'   \code{NULL}. Units should be consistent with \code{alloc_cost} when
+#'   specified. Otherwise the units should be consistent with the
+#'   \code{surv_qty_unit} parameter specified in the \code{context}.
 #' @param budget The cost budget or constraint for the resource allocation in
-#'   the surveillance design. Default is \code{NULL}. Units are specified in
-#'   \code{alloc_units}.
+#'   the surveillance design. Default is \code{NULL}. Units should be
+#'   consistent with \code{alloc_cost} when specified. Otherwise the units
+#'   should be consistent with the \code{surv_qty_unit} parameter specified in
+#'   the \code{context}.
 #' @param confidence The desired (minimum) system detection sensitivity or
 #'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
 #' @param exist_sens A vector of detection sensitivity values of existing
@@ -52,7 +55,7 @@
 #'   \code{divisions}. Default is \code{NULL}.
 #' @param ... Additional parameters.
 #' @return A \code{SpatialSurvDesign} class object (list) containing inherited
-#'   and extended functions from the base \code{LagrangeSurvDesign} class for
+#'   and extended functions from the base \code{SurveillanceDesign} class for
 #'   for allocating resources, and calculating (location and overall) detection
 #'   sensitivities:
 #'   \describe{
@@ -79,6 +82,7 @@
 #'   survey effort over space and time.
 #'   \emph{Methods in Ecology and Evolution}, 7(8), 891–899.
 #'   \doi{10.1111/2041-210X.12564}
+#' @include SurveillanceDesign.R
 #' @include LagrangeSurvDesign.R
 #' @export
 SpatialSurvDesign <- function(context,
@@ -88,7 +92,7 @@ SpatialSurvDesign <- function(context,
                               optimal = c("cost", "benefit", "detection"),
                               mgmt_cost = NULL,
                               benefit = NULL,
-                              alloc_units = NULL,
+                              alloc_cost = NULL,
                               fixed_cost = NULL,
                               budget = NULL,
                               confidence = NULL,
@@ -107,36 +111,191 @@ SpatialSurvDesign.Context <- function(context,
                                                   "detection"),
                                       mgmt_cost = NULL,
                                       benefit = NULL,
-                                      alloc_units = NULL,
+                                      alloc_cost = NULL,
                                       fixed_cost = NULL,
                                       budget = NULL,
                                       confidence = NULL,
                                       exist_sens = NULL,
                                       class = character(), ...) {
 
-  # Build via base class
-  self <- LagrangeSurvDesign(context = context,
+  # Build via base class (for checks and system sensitivity)
+  self <- SurveillanceDesign(context = context,
                              divisions = divisions,
                              establish_pr = establish_pr,
-                             lambda = lambda,
                              optimal = optimal,
                              mgmt_cost = mgmt_cost,
                              benefit = benefit,
-                             alloc_units = alloc_units,
+                             alloc_cost = alloc_cost,
                              fixed_cost = fixed_cost,
                              budget = budget,
                              confidence = confidence,
                              exist_sens = exist_sens,
                              class = "SpatialSurvDesign", ...)
 
+  # Number of division parts
+  parts <- divisions$get_parts()
+
+  # Resolve if establish_pr is relative
+  if ((!is.null(attr(establish_pr, "relative")) &&
+       as.logical(attr(establish_pr, "relative"))) || max(establish_pr) > 1) {
+    relative_establish_pr <- TRUE
+  } else {
+    relative_establish_pr <- FALSE
+  }
+
+  # Check lambda
+  if (!is.numeric(lambda) || lambda < 0 || !length(lambda) %in% c(1, parts)) {
+    stop(paste("The lambda parameter must be numeric,  >= 0, and match the",
+               "number of division parts."), call. = FALSE)
+  } else if (length(lambda) == 1) {
+    lambda <- rep(lambda, parts)
+  }
+
+  # Match optimal arguments
+  optimal <- match.arg(optimal)
+
+  # Resolve alloc_cost, fixed_cost, and exist_sens
+  if (length(alloc_cost) == 1) {
+    alloc_cost <- rep(alloc_cost, parts)
+  } else if (is.null(alloc_cost)) {
+    alloc_cost <- rep(1, parts)
+  }
+  if (length(fixed_cost) == 1) {
+    fixed_cost <- rep(fixed_cost, parts)
+  } else if (is.null(fixed_cost)) {
+    fixed_cost <- rep(0, parts)
+  }
+  if (is.null(exist_sens)) {
+    exist_sens <- rep(0, parts)
+  }
+
+  # Check and resolve empty optimal strategy parameters
+  if (optimal == "cost") {
+    if (!all(c("detected", "undetected") %in% names(mgmt_cost))) {
+      stop(paste("The management cost parameter must contain list elements",
+                 "'detected' and 'undetected'."), call. = FALSE)
+    } else {
+      benefit <- mgmt_cost$undetected - mgmt_cost$detected
+    }
+  } else if (optimal != "benefit") {
+    benefit <- 1
+  }
+
+  ## Lagrange optimization of allocated cost per division part x_alloc
+  ## given the surveillance resource quantity allocation qty_alloc
+  ## where qty_alloc = (x_alloc - fixed_cost)/alloc_cost
+
+  # Objective function
+  f_obj <- function(x_alloc) {
+    if (optimal == "detection") { # maximum detection
+      return(
+        (x_alloc >= fixed_cost)*
+          log(1 - (establish_pr*
+                     (1 - ((1 - exist_sens)*
+                             exp(-1*lambda*
+                                   (x_alloc - fixed_cost)/alloc_cost))))))
+    } else { # minimum cost or maximum benefit
+      incl_x <- (optimal == "cost")
+      return(
+        benefit*establish_pr*(1 - exist_sens)*
+          ((x_alloc < fixed_cost)*1 +
+             ((x_alloc >= fixed_cost)*
+                (x_alloc*incl_x + exp(-1*lambda* # cost only
+                                        (x_alloc - fixed_cost)/alloc_cost)))))
+    }
+  }
+
+  # Derivative of objective function
+  f_deriv <- function(x_alloc) {
+    if (optimal == "detection") { # maximum detection
+      return(
+        (x_alloc >= fixed_cost)*-1*establish_pr*(1 - exist_sens)*
+          lambda/alloc_cost*exp(-1*lambda*(x_alloc - fixed_cost)/alloc_cost)/
+          (1 - (establish_pr*
+                  (1 - ((1 - exist_sens)*
+                          exp(-1*lambda*
+                                (x_alloc - fixed_cost)/alloc_cost))))))
+    } else { # minimum cost or maximum benefit
+      incl_x <- (optimal == "cost")
+      return(
+        (x_alloc >= fixed_cost)*
+          (1*incl_x - (benefit*establish_pr*(1 - exist_sens)*
+                         lambda/alloc_cost*
+                         exp(-1*lambda*(x_alloc - fixed_cost)/alloc_cost))))
+    }
+  }
+
+  # Pseudo-inverse of derivative given marginal benefit alpha
+  f_pos <- function(alpha) {
+    values <- lambda/alloc_cost*benefit*establish_pr*(1 - exist_sens)
+    idx <- which(values > 0)
+    values[-idx] <- 0
+    if (optimal == "detection") { # maximum detection
+      values[idx] <-
+        pmax(0, ((alpha > -1*lambda[idx]/alloc_cost[idx])*
+                   (alloc_cost[idx]/lambda[idx]*
+                      (log(-1*lambda[idx]/alloc_cost[idx]/alpha - 1) -
+                         log(1/establish_pr[idx] - 1) +
+                         log(1 - exist_sens[idx])) +
+                      fixed_cost[idx])))
+    } else { # minimum cost or maximum benefit
+      incl_x <- (optimal == "cost")
+      values[idx] <-
+        (((alpha - 1*incl_x) >= -1*values[idx])*
+           (-1*alloc_cost[idx]/lambda[idx]*
+              log(-1*(alpha - 1*incl_x)/(values[idx])) + fixed_cost[idx]))
+    }
+    return(values)
+  }
+
+  # Unconstrained marginal benefit alpha
+  alpha_unconstr <- (optimal == "cost") - 1
+
+  # Minimum marginal benefit alpha
+  alpha_min <- min(f_deriv(fixed_cost))
+
+  # Function for calculating unit sensitivity
+  f_unit_sens <- function(x_alloc) {
+    return(1 - ((1 - exist_sens)*
+                  exp(-1*lambda*(x_alloc - fixed_cost)/alloc_cost)))
+  }
+
+  # Utilize Lagrange survey design for allocating surveillance resources
+  lagrangeSurvDesign <- LagrangeSurvDesign(context,
+                                           divisions,
+                                           establish_pr,
+                                           f_obj,
+                                           f_deriv,
+                                           f_pos,
+                                           alpha_unconstr,
+                                           alpha_min,
+                                           f_unit_sens,
+                                           budget = budget,
+                                           confidence = confidence)
+
   # Get the allocated surveillance resource values of the surveillance design
+  qty_alloc <- NULL
   self$get_allocation <- function() {
-    # overridden in inherited classes
+    if (is.null(qty_alloc)) {
+
+      # Get cost allocation x_alloc via Lagrange surveillance design
+      x_alloc <- lagrangeSurvDesign$get_cost_allocation()
+
+      # Optimal resource allocation
+      qty_alloc <<- (x_alloc - fixed_cost)/alloc_cost
+      qty_alloc[which(qty_alloc < 0)] <<- 0
+    }
+
+    return(qty_alloc)
   }
 
   # Get the location detection sensitivities of the surveillance design
+  sensitivity <- NULL
   self$get_sensitivity <- function() {
-    # overridden in inherited classes
+    if (is.null(sensitivity) && !is.null(qty_alloc)) {
+      sensitivity <<- 1 - (1 - exist_sens)*exp(-1*lambda*qty_alloc)
+    }
+    return(sensitivity)
   }
 
   # Get the overall system sensitivity/confidence of the surveillance design

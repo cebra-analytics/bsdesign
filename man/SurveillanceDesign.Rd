@@ -10,9 +10,9 @@ SurveillanceDesign(
   divisions,
   establish_pr = NULL,
   optimal = c("cost", "benefit", "detection"),
-  mgmt_cost = NULL,
+  mgmt_cost = list(),
   benefit = NULL,
-  alloc_units = NULL,
+  alloc_cost = NULL,
   fixed_cost = NULL,
   budget = NULL,
   confidence = NULL,
@@ -26,9 +26,9 @@ SurveillanceDesign(
   divisions,
   establish_pr = NULL,
   optimal = c("cost", "benefit", "detection"),
-  mgmt_cost = NULL,
+  mgmt_cost = list(),
   benefit = NULL,
-  alloc_units = NULL,
+  alloc_cost = NULL,
   fixed_cost = NULL,
   budget = NULL,
   confidence = NULL,
@@ -59,34 +59,36 @@ resource allocation. One of (minimum) \code{"cost"}, (maximum)
 \item{mgmt_cost}{A list of vectors to represent management costs specific to
 the method implemented in the inherited class. Each vector specifies costs
 at each division part (location, category, etc.) specified by
-\code{divisions}. Default is an empty list. An attribute \code{units} may
-be used to specify the cost units (e.g. "$" or "hours").}
+\code{divisions}. Default is an empty list. Units should be consistent
+with the \code{cost_unit} parameter specified in the \code{context}.}
 
 \item{benefit}{A vector of values quantifying the benefit of detection
 at each division part (location, category, etc.) specified by
-\code{divisions}. Default is \code{NULL}. An attribute \code{units} may
-be used to specify the benefit units (e.g. "$" or "hours").}
+\code{divisions}. Default is \code{NULL}. Units should be consistent with
+the \code{cost_unit} parameter specified in the \code{context}.}
 
-\item{alloc_units}{The units for the allocated surveillance resource costs
-(e.g. "$", "hours") consistent with the \code{context}. This may be
-different to those specified for \code{mgmt_cost} or \code{benefit}.
-Default is \code{NULL}.}
+\item{alloc_cost}{A vector of cost per unit of allocated surveillance
+resources. Default is \code{NULL}. Units should be consistent with the
+\code{cost_unit} parameter specified in the \code{context}.}
 
 \item{fixed_cost}{A vector of fixed costs, such as travel costs or time, at
 each division part (location, category, etc.) specified by
-\code{divisions}. Default is \code{NULL}. Units are specified in
-\code{alloc_units}.}
+\code{divisions}. Default is \code{NULL}. Units should be consistent with
+\code{alloc_cost} when specified. Otherwise the units should be consistent
+with the \code{surv_qty_unit} parameter specified in the \code{context}.}
 
 \item{budget}{The cost budget or constraint for the resource allocation in
-the surveillance design. Default is \code{NULL}. Units are specified in
-\code{alloc_units}.}
+the surveillance design. Default is \code{NULL}. Units should be
+consistent with \code{alloc_cost} when specified. Otherwise the units
+should be consistent with the \code{surv_qty_unit} parameter specified in
+the \code{context}.}
 
 \item{confidence}{The desired (minimum) system detection sensitivity or
 confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
 
 \item{exist_sens}{A vector of detection sensitivity values of existing
-surveillance present at each division part (location, category, etc.)
-specified by \code{divisions}. Default is \code{NULL}.}
+surveillance present at each division part (location, category,
+etc.) specified by \code{divisions}. Default is \code{NULL}.}
 
 \item{...}{Additional parameters.}
 }

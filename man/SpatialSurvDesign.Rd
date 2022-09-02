@@ -13,7 +13,7 @@ SpatialSurvDesign(
   optimal = c("cost", "benefit", "detection"),
   mgmt_cost = NULL,
   benefit = NULL,
-  alloc_units = NULL,
+  alloc_cost = NULL,
   fixed_cost = NULL,
   budget = NULL,
   confidence = NULL,
@@ -30,7 +30,7 @@ SpatialSurvDesign(
   optimal = c("cost", "benefit", "detection"),
   mgmt_cost = NULL,
   benefit = NULL,
-  alloc_units = NULL,
+  alloc_cost = NULL,
   fixed_cost = NULL,
   budget = NULL,
   confidence = NULL,
@@ -68,26 +68,29 @@ resource allocation. One of (minimum) \code{"cost"}, (maximum)
 for when the incursion is detected and undetected. Each vector specifies
 these costs at each spatial location specified by \code{divisions}. List
 elements should be named \code{detected} and \code{undetected}. Default is
-an empty list. An attribute \code{units} may be used to specify the cost
-units (e.g. "$" or "hours").}
+an empty list. Units should be consistent with the \code{cost_unit}
+parameter specified in the \code{context}.}
 
 \item{benefit}{A vector of values quantifying the benefit of detection
 at each spatial location specified by \code{divisions}. Default is
-\code{NULL}. An attribute \code{units} may be used to specify the benefit
-units (e.g. "$" or "hours").}
+\code{NULL}. Units should be consistent with the \code{cost_unit}
+parameter specified in the \code{context}.}
 
-\item{alloc_units}{The units for the allocated surveillance resource costs
-(e.g. "$", "hours") consistent with the \code{context}. This may be
-different to those specified for \code{mgmt_cost} or \code{benefit}.
-Default is \code{NULL}.}
+\item{alloc_cost}{A vector of cost per unit of allocated surveillance
+resources. Default is \code{NULL}. Units should be consistent with the
+\code{cost_unit} parameter specified in the \code{context}.}
 
-\item{fixed_cost}{A vector of fixed costs, such as travel costs or time, for
+\item{fixed_cost}{A vector of fixed costs, such as travel costs or time, at
 each spatial location specified by \code{divisions}. Default is
-\code{NULL}. Units are specified in \code{alloc_units}.}
+\code{NULL}. Units should be consistent with \code{alloc_cost} when
+specified. Otherwise the units should be consistent with the
+\code{surv_qty_unit} parameter specified in the \code{context}.}
 
 \item{budget}{The cost budget or constraint for the resource allocation in
-the surveillance design. Default is \code{NULL}. Units are specified in
-\code{alloc_units}.}
+the surveillance design. Default is \code{NULL}. Units should be
+consistent with \code{alloc_cost} when specified. Otherwise the units
+should be consistent with the \code{surv_qty_unit} parameter specified in
+the \code{context}.}
 
 \item{confidence}{The desired (minimum) system detection sensitivity or
 confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
@@ -100,7 +103,7 @@ surveillance present at each spatial location specified by
 }
 \value{
 A \code{SpatialSurvDesign} class object (list) containing inherited
-and extended functions from the base \code{LagrangeSurvDesign} class for
+and extended functions from the base \code{SurveillanceDesign} class for
 for allocating resources, and calculating (location and overall) detection
 sensitivities:
 \describe{

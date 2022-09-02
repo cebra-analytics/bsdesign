@@ -21,8 +21,8 @@ Suggests:
 Collate: 
     'Context.R'
     'Divisions.R'
-    'SurveillanceDesign.R'
     'LagrangeSurvDesign.R'
+    'SurveillanceDesign.R'
     'MultilevelSurvDesign.R'
     'SamplingSurvDesign.R'
     'SpatialSurvDesign.R'

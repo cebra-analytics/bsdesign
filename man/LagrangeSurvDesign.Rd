@@ -9,16 +9,14 @@ LagrangeSurvDesign(
   context,
   divisions,
   establish_pr,
-  lambda,
-  optimal = c("cost", "benefit", "detection"),
-  mgmt_cost = NULL,
-  benefit = NULL,
-  alloc_cost = NULL,
-  fixed_cost = NULL,
+  f_obj,
+  f_deriv,
+  f_pos,
+  alpha_unconstr,
+  alpha_min,
+  f_unit_sens,
   budget = NULL,
   confidence = NULL,
-  exist_sens = NULL,
-  class = character(),
   ...
 )
 
@@ -26,16 +24,14 @@ LagrangeSurvDesign(
   context,
   divisions,
   establish_pr,
-  lambda,
-  optimal = c("cost", "benefit", "detection"),
-  mgmt_cost = NULL,
-  benefit = NULL,
-  alloc_cost = NULL,
-  fixed_cost = NULL,
+  f_obj,
+  f_deriv,
+  f_pos,
+  alpha_unconstr,
+  alpha_min,
+  f_unit_sens,
   budget = NULL,
   confidence = NULL,
-  exist_sens = NULL,
-  class = character(),
   ...
 )
 }
@@ -53,67 +49,55 @@ category, etc.) specified by \code{divisions}. Values are assumed to be
 relative when their maximum is greater than 1, or an attribute
 \code{relative = TRUE} is attached to the parameter.}
 
-\item{lambda}{A vector of efficacy or detection rates for each division part
-(location, category, etc.) specified by \code{divisions}, such that the
-probability of detecting an incursion when present at a part can be
-expressed via \code{pr(detect|presence) = 1 - exp(-lambda*allocation)},
-for a given allocation of surveillance resources.}
+\item{f_obj}{The objective function for calculating values to optimize
+(minimize) in the form \code{function(x_alloc)}, where \code{x_alloc}
+represents a candidate resource allocation at each division part
+(location, category, etc.) specified by \code{divisions}.}
 
-\item{optimal}{The strategy used for finding an effective surveillance
-resource allocation. One of (minimum) \code{"cost"}, (maximum)
-\code{"benefit"}, or (maximum) \code{"detection"} sensitivity (up to
-\code{"confidence"} level when specified).}
+\item{f_deriv}{The derivative of the objective function \code{f_obj} in the
+form \code{function(x_alloc)}, where \code{x_alloc} represents a candidate
+resource allocation at each division part (location, category, etc.)
+specified by \code{divisions}.}
 
-\item{mgmt_cost}{A list of vectors to represent estimated management costs
-for when the incursion is detected and undetected. Each vector specifies
-costs at each division part (location, category, etc.) specified by
-\code{divisions}. List elements should be named \code{detected} and
-\code{undetected}. Default is an empty list. Units should be consistent
-with the \code{cost_unit} parameter specified in the \code{context}.}
+\item{f_pos}{The pseudo-inverse of the derivative function \code{f_deriv} in
+the form \code{function(alpha)}, where \code{alpha} represents the
+marginal benefit value for a candidate resource allocation \code{x_alloc},
+which is returned by the function for each division part (location,
+category, etc.) specified by \code{divisions}.}
 
-\item{benefit}{A vector of values quantifying the benefit of detection
-at each division part (location, category, etc.) specified by
-\code{divisions}. Default is \code{NULL}. Units should be consistent with
-the \code{cost_unit} parameter specified in the \code{context}.}
+\item{alpha_unconstr}{The marginal benefit value to utilize when the search
+for the optimal resource allocation is not constrained via a \code{budget}
+or a desired \code{confidence} (both \code{NULL}).}
 
-\item{alloc_cost}{A vector of cost per unit of allocated surveillance
-resources. Default is \code{NULL}. Units should be consistent with the
-\code{cost_unit} parameter specified in the \code{context}.}
+\item{alpha_min}{The minimum marginal benefit value to utilize when
+searching for the optimal resource allocation.}
 
-\item{fixed_cost}{A vector of fixed costs, such as travel costs or time, at
-each division part (location, category, etc.) specified by
-\code{divisions}. Default is \code{NULL}. Units should be consistent with
-\code{alloc_cost} when specified. Otherwise the units should be consistent
-with the \code{surv_qty_unit} parameter specified in the \code{context}.}
+\item{f_unit_sens}{A function for calculating the unit (division part)
+sensitivity, or probability of detecting an incursion when present. The
+function should be in the form \code{function(x_alloc)}, where
+\code{x_alloc} represents a candidate resource allocation at each
+division part (location, category, etc.) specified by \code{divisions}.}
 
 \item{budget}{The cost budget or constraint for the resource allocation in
-the surveillance design. Default is \code{NULL}. Units should be
-consistent with \code{alloc_cost} when specified. Otherwise the units
-should be consistent with the \code{surv_qty_unit} parameter specified in
-the \code{context}.}
+the surveillance design. Default is \code{NULL}.}
 
 \item{confidence}{The desired (minimum) system detection sensitivity or
 confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
 
-\item{exist_sens}{A vector of detection sensitivity values of existing
-surveillance present at each division part (location, category,
-etc.) specified by \code{divisions}. Default is \code{NULL}.}
-
 \item{...}{Additional parameters.}
 }
 \value{
-A \code{SurveillanceDesign} class object (list) containing inherited
+A \code{LagrangeSurvDesign} class object (list) containing inherited
 and extended functions from the base \code{SurveillanceDesign} class for
 for allocating resources, and calculating (unit and overall) detection
 sensitivities:
+
+A \code{LagrangeSurvDesign} class object (list) containing functions
+for allocating resource costs:
 \describe{
-\item{\code{get_allocation()}}{Get allocated surveillance resources via
-specified strategy, utilizing costs, benefits, budget constraints,
-and/or desired confidence level.}
-\item{\code{get_sensitivity()}}{Get the division part detection
-sensitivities of the allocated surveillance design.}
-\item{\code{get_confidence()}}{Get the overall system sensitivity or
-confidence of the allocated surveillance design.}
+\item{\code{get_cost_allocation()}}{Get allocated surveillance resources
+(costs) via Lagrange-based method, utilizing costs, benefits, budget
+constraints, and/or desired confidence level.}
 }
 }
 \description{
