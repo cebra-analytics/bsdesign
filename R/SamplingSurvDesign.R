@@ -17,13 +17,15 @@
 #'   category, etc.) specified by \code{divisions}. Values are assumed to be
 #'   relative when their maximum is greater than 1, or an attribute
 #'   \code{relative = TRUE} is attached to the parameter.
-#' @param sensitivity A vector of sample sensitivity values for each division
+#' @param sample_sens A vector of sample sensitivity values for each division
 #'   part (location, category, etc.) specified by \code{divisions}. Default
 #'   is \code{1}.
+#' @param sample_type The type of sampling used. One of \code{"discrete"} or
+#'   \code{"continuous"}.
 #' @param prevalence A vector of discrete sampling design prevalence values for
 #'   each division part (location, category, etc.) specified by
 #'   \code{divisions}. Note that this parameter may represent apparent
-#'   prevalence (Cannon, 2009) when the \code{sensitivity} is set to \code{1}.
+#'   prevalence (Cannon, 2009) when the \code{sample_sens} is set to \code{1}.
 #'   Default is \code{NULL}.
 #' @param total_indiv A vector of total individual discrete sampling units
 #'   (e.g. trees, traps) present at each division part (location, category,
@@ -31,8 +33,8 @@
 #' @param design_dens A vector of continuous sampling design density values for
 #'   each division part (location, category, etc.). Default is \code{NULL}.
 #' @param sample_area The area of a single sample in a continuous sampling
-#'   design. Note that when set to 1, the total number of samples will be
-#'   equivalent to the total area sampled. Default is \code{NULL}.
+#'   design. Note that when set to \code{1}, the total number of samples will
+#'   be equivalent to the total area sampled. Default is \code{NULL}.
 #' @param optimal The strategy used for finding an effective sampling
 #'   allocation. One of (minimum) \code{"cost"}, (maximum) \code{"benefit"},
 #'   or (maximum) \code{"detection"} sensitivity (up to \code{"confidence"}
@@ -41,25 +43,27 @@
 #'   for when the incursion is detected and undetected. Each vector specifies
 #'   costs at each division part (location, category, etc.) specified by
 #'   \code{divisions}. List elements should be named \code{detected} and
-#'   \code{undetected}. Default is an empty list. An attribute \code{units}
-#'   may be used to specify the cost units (e.g. "$" or "hours").
+#'   \code{undetected}. Default is an empty list. Units should be consistent
+#'   with the \code{cost_unit} parameter specified in the \code{context}.
 #' @param benefit A vector of values quantifying the benefit of detection
 #'   at each division part (location, category, etc.) specified by
-#'   \code{divisions}. Default is \code{NULL}. An attribute \code{units} may
-#'   be used to specify the benefit units (e.g. "$" or "hours").
-#' @param alloc_units The units for the allocated surveillance resource costs
-#'   (e.g. "$", "hours") consistent with the \code{context}. This may be
-#'   different to those specified for \code{mgmt_cost} or \code{benefit}.
-#'   Default is \code{NULL}.
-#' @param sample_cost The cost of individual samples. Default is \code{NULL}.
-#'   Units are specified in \code{alloc_units}.
+#'   \code{divisions}. Default is \code{NULL}. Units should be consistent with
+#'   the \code{cost_unit} parameter specified in the \code{context}.
+#' @param sample_cost A vector of cost per sample of allocated surveillance
+#'   resources at each division part (location, category, etc.) specified by
+#'   \code{divisions}. Default is \code{NULL}. Units should be consistent with
+#'   the \code{cost_unit} parameter specified in the \code{context}.
 #' @param fixed_cost A vector of fixed costs, such as travel costs or time, at
 #'   each division part (location, category, etc.) specified by
-#'   \code{divisions}. Default is \code{NULL}. Units are specified in
-#'   \code{alloc_units}.
+#'   \code{divisions}. Default is \code{NULL}. Units should be consistent with
+#'   \code{sample_cost} when specified. Otherwise the units should be
+#'   consistent with the \code{surv_qty_unit} parameter specified in the
+#'   \code{context} (e.g. traps or samples).
 #' @param budget The cost budget or constraint for the sampling allocation in
-#'   the surveillance design. Default is \code{NULL}. Units are specified in
-#'   \code{alloc_units}.
+#'   the surveillance design. Default is \code{NULL}. Units should be
+#'   consistent with \code{sample_cost} when specified. Otherwise the units
+#'   should be consistent with the \code{surv_qty_unit} parameter specified in
+#'   the \code{context} (e.g. traps or samples).
 #' @param confidence The desired (minimum) system detection sensitivity or
 #'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
 #' @param exist_sens A vector of detection sensitivity values of existing
@@ -67,7 +71,7 @@
 #'   specified by \code{divisions}. Default is \code{NULL}.
 #' @param ... Additional parameters.
 #' @return A \code{SamplingSurvDesign} class object (list) containing inherited
-#'   and extended functions from the base \code{LagrangeSurvDesign} class for
+#'   and extended functions from the base \code{SurveillanceDesign} class for
 #'   for allocating samples, and calculating (unit and overall) detection
 #'   sensitivities:
 #'   \describe{
@@ -89,20 +93,21 @@
 #'   S. Low-Choy & K. Mengersen (eds.),
 #'   \emph{Biosecurity surveillance: Quantitative approaches} (pp. 238– 250).
 #'   Wallingford, UK: CABI.
+#' @include SurveillanceDesign.R
 #' @include LagrangeSurvDesign.R
 #' @export
 SamplingSurvDesign <- function(context,
                                divisions,
                                establish_pr,
-                               sensitivity = 1,
+                               sample_sens = 1,
+                               sample_type = c("discrete", "continuous"),
                                prevalence = NULL,
                                total_indiv = NULL,
                                design_dens = NULL,
                                sample_area = NULL,
                                optimal = c("cost", "benefit", "detection"),
-                               mgmt_cost = NULL,
+                               mgmt_cost = list(),
                                benefit = NULL,
-                               alloc_units = NULL,
                                sample_cost = NULL,
                                fixed_cost = NULL,
                                budget = NULL,
@@ -117,15 +122,17 @@ SamplingSurvDesign <- function(context,
 SamplingSurvDesign.Context <- function(context,
                                        divisions,
                                        establish_pr,
-                                       sensitivity = 1,
+                                       sample_sens = 1,
+                                       sample_type = c("discrete",
+                                                       "continuous"),
                                        prevalence = NULL,
                                        total_indiv = NULL,
                                        design_dens = NULL,
                                        sample_area = NULL,
-                                       optimal = c("cost", "benefit", "detection"),
-                                       mgmt_cost = NULL,
+                                       optimal = c("cost", "benefit",
+                                                   "detection"),
+                                       mgmt_cost = list(),
                                        benefit = NULL,
-                                       alloc_units = NULL,
                                        sample_cost = NULL,
                                        fixed_cost = NULL,
                                        budget = NULL,
@@ -133,29 +140,234 @@ SamplingSurvDesign.Context <- function(context,
                                        exist_sens = NULL,
                                        class = character(), ...) {
 
-  # Build via base class
-  self <- LagrangeSurvDesign(context = context,
+  # Build via base class (for checks and system sensitivity)
+  self <- SurveillanceDesign(context = context,
                              divisions = divisions,
                              establish_pr = establish_pr,
-                             lambda = lambda, # TODO
                              optimal = optimal,
                              mgmt_cost = mgmt_cost,
                              benefit = benefit,
-                             alloc_units = alloc_units,
                              fixed_cost = fixed_cost,
                              budget = budget,
                              confidence = confidence,
                              exist_sens = exist_sens,
                              class = "SamplingSurvDesign", ...)
 
-  # Get the allocated surveillance resource values of the surveillance design
-  self$get_allocation <- function() {
-    # overridden in inherited classes
+  # Number of division parts
+  parts <- divisions$get_parts()
+
+  # Resolve if establish_pr is relative
+  if ((!is.null(attr(establish_pr, "relative")) &&
+       as.logical(attr(establish_pr, "relative"))) || max(establish_pr) > 1) {
+    relative_establish_pr <- TRUE
+  } else {
+    relative_establish_pr <- FALSE
   }
 
-  # Get the division part detection sensitivities of the surveillance design
+  # Check sampling parameters (not in base class)
+  if (!is.numeric(sample_sens) || any(sample_sens < 0) ||
+      any(sample_sens > 1) || !length(sample_sens) %in% c(1, parts)) {
+    stop(paste("The sample sensitivity parameter must be numeric with values",
+               ">= 0 and <= 1 for each division part."), call. = FALSE)
+  }
+  if (!is.null(prevalence) &&
+      (!is.numeric(prevalence) || any(prevalence < 0) ||
+       any(prevalence > 1) || !length(prevalence) %in% c(1, parts))) {
+    stop(paste("The prevalence parameter must be numeric with values",
+               ">= 0 and <= 1 for each division part."), call. = FALSE)
+  }
+  if (!is.null(total_indiv) &&
+      (!is.numeric(total_indiv) || any(total_indiv < 0) ||
+       !length(total_indiv) %in% c(1, parts))) {
+    stop(paste("The total individuals parameter must be numeric with values",
+               ">= 0 for each division part."), call. = FALSE)
+  }
+  if (!is.null(design_dens) &&
+      (!is.numeric(design_dens) || any(design_dens < 0) ||
+       !length(design_dens) %in% c(1, parts))) {
+    stop(paste("The design density parameter must be numeric with values",
+               ">= 0 for each division part."), call. = FALSE)
+  }
+  if (!is.null(sample_area) &&
+      (!is.numeric(sample_area) || any(sample_area < 0))) {
+    stop("The sample area parameter must be numeric with values >= 0.",
+         call. = FALSE)
+  }
+  if (!is.null(sample_cost) &&
+      (!is.numeric(sample_cost) || !length(sample_cost) %in% c(1, parts))) {
+    stop(paste("The sample cost parameter must be a numeric vector with ",
+               "values for each division part."), call. = FALSE)
+  }
+
+  # Discrete or continuous sampling?
+  sample_type <- match.arg(sample_type)
+  if (sample_type == "discrete" && is.null(prevalence)) {
+    stop("The prevalence parameter is required for discrete sampling.",
+         call. = FALSE)
+  } else if (sample_type == "continuous" &&
+             (is.null(design_dens) || is.null(sample_area))) {
+    stop(paste("The design density and sample area parameters are required",
+               "for continuous sampling."), call. = FALSE)
+  }
+
+  # Match optimal arguments
+  optimal <- match.arg(optimal)
+
+  # Resolve sample_cost, fixed_cost, and exist_sens
+  if (length(sample_cost) == 1) {
+    sample_cost <- rep(sample_cost, parts)
+  } else if (is.null(sample_cost)) {
+    sample_cost <- rep(1, parts)
+  }
+  if (length(fixed_cost) == 1) {
+    fixed_cost <- rep(fixed_cost, parts)
+  } else if (is.null(fixed_cost)) {
+    fixed_cost <- rep(0, parts)
+  }
+  if (is.null(exist_sens)) {
+    exist_sens <- rep(0, parts)
+  }
+
+  # Check and resolve empty optimal strategy parameters
+  if (optimal == "cost") {
+    if (!all(c("detected", "undetected") %in% names(mgmt_cost))) {
+      stop(paste("The management cost parameter must contain list elements",
+                 "'detected' and 'undetected'."), call. = FALSE)
+    } else {
+      benefit <- mgmt_cost$undetected - mgmt_cost$detected
+    }
+  } else if (optimal != "benefit") {
+    benefit <- 1
+  }
+
+  ## Lagrange optimization of allocated cost per division part x_alloc
+  ## given the surveillance sampling resource allocation quantity qty_alloc
+  ## where qty_alloc = (x_alloc - fixed_cost)/sample_cost
+
+  # Define lambda via sampling parameters
+  if (sample_type == "discrete") {
+    lambda <- -1*log(1 - sample_sens*prevalence) # n <= 0.1N
+    ## TODO n > 0.1N ####
+  } else { # continuous
+    lambda <- sample_sens*sample_area*design_dens
+  }
+
+  # Objective function
+  f_obj <- function(x_alloc) {
+    if (optimal == "detection") { # maximum detection
+      return(
+        (x_alloc >= fixed_cost)*
+          log(1 - (establish_pr*
+                     (1 - ((1 - exist_sens)*
+                             exp(-1*lambda*
+                                   (x_alloc - fixed_cost)/sample_cost))))))
+    } else { # minimum cost or maximum benefit
+      incl_x <- (optimal == "cost")
+      return(
+        benefit*establish_pr*(1 - exist_sens)*
+          ((x_alloc < fixed_cost)*1 +
+             ((x_alloc >= fixed_cost)*
+                (x_alloc*incl_x + exp(-1*lambda* # cost only
+                                        (x_alloc - fixed_cost)/sample_cost)))))
+    }
+  }
+
+  # Derivative of objective function
+  f_deriv <- function(x_alloc) {
+    if (optimal == "detection") { # maximum detection
+      return(
+        (x_alloc >= fixed_cost)*-1*establish_pr*(1 - exist_sens)*
+          lambda/sample_cost*exp(-1*lambda*(x_alloc - fixed_cost)/sample_cost)/
+          (1 - (establish_pr*
+                  (1 - ((1 - exist_sens)*
+                          exp(-1*lambda*
+                                (x_alloc - fixed_cost)/sample_cost))))))
+    } else { # minimum cost or maximum benefit
+      incl_x <- (optimal == "cost")
+      return(
+        (x_alloc >= fixed_cost)*
+          (1*incl_x - (benefit*establish_pr*(1 - exist_sens)*
+                         lambda/sample_cost*
+                         exp(-1*lambda*(x_alloc - fixed_cost)/sample_cost))))
+    }
+  }
+
+  # Pseudo-inverse of derivative given marginal benefit alpha
+  f_pos <- function(alpha) {
+    values <- lambda/sample_cost*benefit*establish_pr*(1 - exist_sens)
+    idx <- which(values > 0)
+    values[-idx] <- 0
+    if (optimal == "detection") { # maximum detection
+      values[idx] <-
+        pmax(0, ((alpha > -1*lambda[idx]/sample_cost[idx])*
+                   (sample_cost[idx]/lambda[idx]*
+                      (log(-1*lambda[idx]/sample_cost[idx]/alpha - 1) -
+                         log(1/establish_pr[idx] - 1) +
+                         log(1 - exist_sens[idx])) +
+                      fixed_cost[idx])))
+    } else { # minimum cost or maximum benefit
+      incl_x <- (optimal == "cost")
+      values[idx] <-
+        (((alpha - 1*incl_x) >= -1*values[idx])*
+           (-1*sample_cost[idx]/lambda[idx]*
+              log(-1*(alpha - 1*incl_x)/(values[idx])) + fixed_cost[idx]))
+    }
+    return(values)
+  }
+
+  # Unconstrained marginal benefit alpha
+  alpha_unconstr <- (optimal == "cost") - 1
+
+  # Minimum marginal benefit alpha
+  alpha_min <- min(f_deriv(fixed_cost))
+
+  # Function for calculating unit sensitivity
+  f_unit_sens <- function(x_alloc) {
+    return(1 - ((1 - exist_sens)*
+                  exp(-1*lambda*(x_alloc - fixed_cost)/sample_cost)))
+  }
+
+  # Function for calculating inverse of unit sensitivity
+  f_inv_unit_sens <- function(unit_sens) {
+    return(-1*sample_cost/lambda*log((1 - unit_sens)/(1 - exist_sens))
+           + fixed_cost)
+  }
+
+  # Get the allocated surveillance resource values of the surveillance design
+  qty_alloc <- NULL
+  self$get_allocation <- function() {
+    if (is.null(qty_alloc)) {
+
+      # Get cost allocation x_alloc via Lagrange surveillance design
+      lagrangeSurvDesign <- LagrangeSurvDesign(context,
+                                               divisions,
+                                               establish_pr,
+                                               f_obj,
+                                               f_deriv,
+                                               f_pos,
+                                               alpha_unconstr,
+                                               alpha_min,
+                                               f_unit_sens,
+                                               f_inv_unit_sens,
+                                               budget = budget,
+                                               confidence = confidence)
+      x_alloc <- lagrangeSurvDesign$get_cost_allocation()
+
+      # Optimal resource allocation
+      qty_alloc <<- (x_alloc - fixed_cost)/sample_cost
+      qty_alloc[which(qty_alloc < 0)] <<- 0
+    }
+
+    return(qty_alloc)
+  }
+
+  # Get the location detection sensitivities of the surveillance design
+  sensitivity <- NULL
   self$get_sensitivity <- function() {
-    # overridden in inherited classes
+    if (is.null(sensitivity) && !is.null(qty_alloc)) {
+      sensitivity <<- 1 - (1 - exist_sens)*exp(-1*lambda*qty_alloc)
+    }
+    return(sensitivity)
   }
 
   # Get the overall system sensitivity/confidence of the surveillance design

@@ -40,6 +40,11 @@
 #'   function should be in the form \code{function(x_alloc)}, where
 #'   \code{x_alloc} represents a candidate resource allocation at each
 #'   division part (location, category, etc.) specified by \code{divisions}.
+#' @param f_inv_unit_sens A function for calculating the inverse of the unit
+#'   sensitivity, or candidate resource allocation. The function should be in
+#'   the form \code{function(unit_sens)}, where \code{unit_sens} represents the
+#'   unit sensitivity at each division part (location, category, etc.)
+#'   specified by \code{divisions}.
 #' @param budget The cost budget or constraint for the resource allocation in
 #'   the surveillance design. Default is \code{NULL}.
 #' @param confidence The desired (minimum) system detection sensitivity or
@@ -85,6 +90,7 @@ LagrangeSurvDesign <- function(context,
                                alpha_unconstr,
                                alpha_min,
                                f_unit_sens,
+                               f_inv_unit_sens,
                                budget = NULL,
                                confidence = NULL, ...) {
   UseMethod("LagrangeSurvDesign")
@@ -101,6 +107,7 @@ LagrangeSurvDesign.Context <- function(context,
                                        alpha_unconstr,
                                        alpha_min,
                                        f_unit_sens,
+                                       f_inv_unit_sens,
                                        budget = NULL,
                                        confidence = NULL, ...) {
 
@@ -134,7 +141,7 @@ LagrangeSurvDesign.Context <- function(context,
          call. = FALSE)
   }
 
-  # Check f_obj, f_deriv, f_pos, and f_unit_sens
+  # Check f_obj, f_deriv, f_pos, f_unit_sens, and f_inv_unit_sens
   if (!is.function(f_obj)) {
     stop("The objective function must be a function.", call. = FALSE)
   }
@@ -147,6 +154,10 @@ LagrangeSurvDesign.Context <- function(context,
   }
   if (!is.function(f_unit_sens)) {
     stop("The unit sensitivity function must be a function.", call. = FALSE)
+  }
+  if (!is.function(f_inv_unit_sens)) {
+    stop("The inverse unit sensitivity function must be a function.",
+         call. = FALSE)
   }
 
   ## Lagrange optimization of allocated cost per division part x_alloc
@@ -189,18 +200,30 @@ LagrangeSurvDesign.Context <- function(context,
 
         # Calculate confidence
         if (relative_establish_pr) {
+          cum_conf <- (cumsum((establish_pr*new_sens)[idx][nonzero])/
+                         sum(establish_pr))
+        } else {
           cum_conf <-
             ((1 - cumprod((1 - establish_pr*new_sens)[idx][nonzero]))/
                (1 - prod(1 - establish_pr)))
-        } else {
-          cum_conf <- (cumsum((establish_pr*new_sens)[idx][nonzero])/
-                         sum(establish_pr))
         }
 
         # Select allocation up to confidence level
         over_conf <- which(cum_conf > confidence)
         if (length(over_conf)) {
-          x_alloc[idx][over_conf[-1]] <- 0
+          if (relative_establish_pr) {
+            # TODO ####
+
+          } else {
+            adj_sens <-
+              (1 - ((1 - confidence*(1 - prod(1 - establish_pr)))/
+                      prod((1 - establish_pr*new_sens)
+                           [idx][nonzero][-over_conf])))/
+              establish_pr[idx][nonzero][over_conf[1]]
+            x_alloc[idx][nonzero][over_conf[1]] <-
+              f_inv_unit_sens(adj_sens)[idx][nonzero][over_conf[1]]
+          }
+          x_alloc[idx][nonzero][over_conf[-1]] <- 0
         }
       }
     }
@@ -219,15 +242,14 @@ LagrangeSurvDesign.Context <- function(context,
 
     # Search for minimum objective via marginal benefit (alpha) values
     if (is.numeric(budget) || is.numeric(confidence)) {
-      interval <- (0:10)/10*alpha_min
+      interval <- (0:100)/100*alpha_min
       alpha_range <- range(interval)[2] - range(interval)[1]
       precision <- 8 # for alpha
-      best_alpha <- 0
       while (alpha_range > abs(best_alpha*10^(-1*precision))) {
         obj <- sapply(interval[-1], function(a) sum(f_obj(allocate(a))))
         i <- which.min(obj)
         best_alpha <- interval[i + 1]
-        interval <- (0:10)/10*(interval[i + 2] - interval[i]) + interval[i]
+        interval <- (0:100)/100*(interval[i + 2] - interval[i]) + interval[i]
         alpha_range <- range(interval)[2] - range(interval)[1]
       }
     }

@@ -9,15 +9,15 @@ SamplingSurvDesign(
   context,
   divisions,
   establish_pr,
-  sensitivity = 1,
+  sample_sens = 1,
+  sample_type = c("discrete", "continuous"),
   prevalence = NULL,
   total_indiv = NULL,
   design_dens = NULL,
   sample_area = NULL,
   optimal = c("cost", "benefit", "detection"),
-  mgmt_cost = NULL,
+  mgmt_cost = list(),
   benefit = NULL,
-  alloc_units = NULL,
   sample_cost = NULL,
   fixed_cost = NULL,
   budget = NULL,
@@ -31,15 +31,15 @@ SamplingSurvDesign(
   context,
   divisions,
   establish_pr,
-  sensitivity = 1,
+  sample_sens = 1,
+  sample_type = c("discrete", "continuous"),
   prevalence = NULL,
   total_indiv = NULL,
   design_dens = NULL,
   sample_area = NULL,
   optimal = c("cost", "benefit", "detection"),
-  mgmt_cost = NULL,
+  mgmt_cost = list(),
   benefit = NULL,
-  alloc_units = NULL,
   sample_cost = NULL,
   fixed_cost = NULL,
   budget = NULL,
@@ -63,14 +63,17 @@ category, etc.) specified by \code{divisions}. Values are assumed to be
 relative when their maximum is greater than 1, or an attribute
 \code{relative = TRUE} is attached to the parameter.}
 
-\item{sensitivity}{A vector of sample sensitivity values for each division
+\item{sample_sens}{A vector of sample sensitivity values for each division
 part (location, category, etc.) specified by \code{divisions}. Default
 is \code{1}.}
+
+\item{sample_type}{The type of sampling used. One of \code{"discrete"} or
+\code{"continuous"}.}
 
 \item{prevalence}{A vector of discrete sampling design prevalence values for
 each division part (location, category, etc.) specified by
 \code{divisions}. Note that this parameter may represent apparent
-prevalence (Cannon, 2009) when the \code{sensitivity} is set to \code{1}.
+prevalence (Cannon, 2009) when the \code{sample_sens} is set to \code{1}.
 Default is \code{NULL}.}
 
 \item{total_indiv}{A vector of total individual discrete sampling units
@@ -81,8 +84,8 @@ etc.) specified by \code{divisions}. Default is \code{NULL}.}
 each division part (location, category, etc.). Default is \code{NULL}.}
 
 \item{sample_area}{The area of a single sample in a continuous sampling
-design. Note that when set to 1, the total number of samples will be
-equivalent to the total area sampled. Default is \code{NULL}.}
+design. Note that when set to \code{1}, the total number of samples will
+be equivalent to the total area sampled. Default is \code{NULL}.}
 
 \item{optimal}{The strategy used for finding an effective sampling
 allocation. One of (minimum) \code{"cost"}, (maximum) \code{"benefit"},
@@ -93,30 +96,31 @@ level when specified).}
 for when the incursion is detected and undetected. Each vector specifies
 costs at each division part (location, category, etc.) specified by
 \code{divisions}. List elements should be named \code{detected} and
-\code{undetected}. Default is an empty list. An attribute \code{units}
-may be used to specify the cost units (e.g. "$" or "hours").}
+\code{undetected}. Default is an empty list. Units should be consistent
+with the \code{cost_unit} parameter specified in the \code{context}.}
 
 \item{benefit}{A vector of values quantifying the benefit of detection
 at each division part (location, category, etc.) specified by
-\code{divisions}. Default is \code{NULL}. An attribute \code{units} may
-be used to specify the benefit units (e.g. "$" or "hours").}
+\code{divisions}. Default is \code{NULL}. Units should be consistent with
+the \code{cost_unit} parameter specified in the \code{context}.}
 
-\item{alloc_units}{The units for the allocated surveillance resource costs
-(e.g. "$", "hours") consistent with the \code{context}. This may be
-different to those specified for \code{mgmt_cost} or \code{benefit}.
-Default is \code{NULL}.}
-
-\item{sample_cost}{The cost of individual samples. Default is \code{NULL}.
-Units are specified in \code{alloc_units}.}
+\item{sample_cost}{A vector of cost per sample of allocated surveillance
+resources at each division part (location, category, etc.) specified by
+\code{divisions}. Default is \code{NULL}. Units should be consistent with
+the \code{cost_unit} parameter specified in the \code{context}.}
 
 \item{fixed_cost}{A vector of fixed costs, such as travel costs or time, at
 each division part (location, category, etc.) specified by
-\code{divisions}. Default is \code{NULL}. Units are specified in
-\code{alloc_units}.}
+\code{divisions}. Default is \code{NULL}. Units should be consistent with
+\code{sample_cost} when specified. Otherwise the units should be
+consistent with the \code{surv_qty_unit} parameter specified in the
+\code{context} (e.g. traps or samples).}
 
 \item{budget}{The cost budget or constraint for the sampling allocation in
-the surveillance design. Default is \code{NULL}. Units are specified in
-\code{alloc_units}.}
+the surveillance design. Default is \code{NULL}. Units should be
+consistent with \code{sample_cost} when specified. Otherwise the units
+should be consistent with the \code{surv_qty_unit} parameter specified in
+the \code{context} (e.g. traps or samples).}
 
 \item{confidence}{The desired (minimum) system detection sensitivity or
 confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
@@ -129,7 +133,7 @@ specified by \code{divisions}. Default is \code{NULL}.}
 }
 \value{
 A \code{SamplingSurvDesign} class object (list) containing inherited
-and extended functions from the base \code{LagrangeSurvDesign} class for
+and extended functions from the base \code{SurveillanceDesign} class for
 for allocating samples, and calculating (unit and overall) detection
 sensitivities:
 \describe{

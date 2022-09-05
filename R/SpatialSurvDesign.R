@@ -36,8 +36,9 @@
 #'   \code{NULL}. Units should be consistent with the \code{cost_unit}
 #'   parameter specified in the \code{context}.
 #' @param alloc_cost A vector of cost per unit of allocated surveillance
-#'   resources. Default is \code{NULL}. Units should be consistent with the
-#'   \code{cost_unit} parameter specified in the \code{context}.
+#'   resources at each spatial location specified by \code{divisions}. Default
+#'   is \code{NULL}. Units should be consistent with the \code{cost_unit}
+#'   parameter specified in the \code{context}.
 #' @param fixed_cost A vector of fixed costs, such as travel costs or time, at
 #'   each spatial location specified by \code{divisions}. Default is
 #'   \code{NULL}. Units should be consistent with \code{alloc_cost} when
@@ -260,6 +261,12 @@ SpatialSurvDesign.Context <- function(context,
                   exp(-1*lambda*(x_alloc - fixed_cost)/alloc_cost)))
   }
 
+  # Function for calculating inverse of unit sensitivity
+  f_inv_unit_sens <- function(unit_sens) {
+    return(-1*sample_cost/lambda*log((1 - unit_sens)/(1 - exist_sens))
+           + fixed_cost)
+  }
+
   # Get the allocated surveillance resource values of the surveillance design
   qty_alloc <- NULL
   self$get_allocation <- function() {
@@ -275,6 +282,7 @@ SpatialSurvDesign.Context <- function(context,
                                                alpha_unconstr,
                                                alpha_min,
                                                f_unit_sens,
+                                               f_inv_unit_sens,
                                                budget = budget,
                                                confidence = confidence)
       x_alloc <- lagrangeSurvDesign$get_cost_allocation()

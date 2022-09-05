@@ -15,6 +15,7 @@ LagrangeSurvDesign(
   alpha_unconstr,
   alpha_min,
   f_unit_sens,
+  f_inv_unit_sens,
   budget = NULL,
   confidence = NULL,
   ...
@@ -30,6 +31,7 @@ LagrangeSurvDesign(
   alpha_unconstr,
   alpha_min,
   f_unit_sens,
+  f_inv_unit_sens,
   budget = NULL,
   confidence = NULL,
   ...
@@ -77,6 +79,12 @@ sensitivity, or probability of detecting an incursion when present. The
 function should be in the form \code{function(x_alloc)}, where
 \code{x_alloc} represents a candidate resource allocation at each
 division part (location, category, etc.) specified by \code{divisions}.}
+
+\item{f_inv_unit_sens}{A function for calculating the inverse of the unit
+sensitivity, or candidate resource allocation. The function should be in
+the form \code{function(unit_sens)}, where \code{unit_sens} represents the
+unit sensitivity at each division part (location, category, etc.)
+specified by \code{divisions}.}
 
 \item{budget}{The cost budget or constraint for the resource allocation in
 the surveillance design. Default is \code{NULL}.}

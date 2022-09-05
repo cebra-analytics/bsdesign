@@ -77,8 +77,9 @@ at each spatial location specified by \code{divisions}. Default is
 parameter specified in the \code{context}.}
 
 \item{alloc_cost}{A vector of cost per unit of allocated surveillance
-resources. Default is \code{NULL}. Units should be consistent with the
-\code{cost_unit} parameter specified in the \code{context}.}
+resources at each spatial location specified by \code{divisions}. Default
+is \code{NULL}. Units should be consistent with the \code{cost_unit}
+parameter specified in the \code{context}.}
 
 \item{fixed_cost}{A vector of fixed costs, such as travel costs or time, at
 each spatial location specified by \code{divisions}. Default is

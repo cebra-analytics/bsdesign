@@ -107,7 +107,7 @@ SurveillanceDesign.Context <- function(context,
   if (!is.null(establish_pr) &&
       (!is.numeric(establish_pr) || any(establish_pr < 0) ||
        length(establish_pr) != parts)) {
-    stop(paste("The establishment probability must be numeric,  >= 0, and",
+    stop(paste("The establishment probability must be numeric, >= 0, and",
                "match the number of division parts."), call. = FALSE)
   }
 
@@ -121,8 +121,7 @@ SurveillanceDesign.Context <- function(context,
                "vectors with values for each division part."), call. = FALSE)
   }
   if (!is.null(benefit) &&
-      (!is.numeric(benefit) ||
-       !all(sapply(benefit, length) %in% c(1, parts)))) {
+      (!is.numeric(benefit) || !length(benefit) %in% c(1, parts))) {
     stop(paste("The benefit parameter must be a numeric vector with values",
                "for each division part."), call. = FALSE)
   }
@@ -140,21 +139,19 @@ SurveillanceDesign.Context <- function(context,
     stop("The benefit parameter must be specified for optimal benefit.",
          call. = FALSE)
   } else if (optimal == "detection" &&
-             (is.null(budget) || is.null(confidence))) {
+             (is.null(budget) && is.null(confidence))) {
     stop(paste("Either the budget or confidence parameter must be specified",
                "for optimal detection."), call. = FALSE)
   }
 
   # Check alloc_cost, fixed_cost, budget, and exist_sens
   if (!is.null(alloc_cost) &&
-      (!is.numeric(alloc_cost) ||
-       !all(sapply(alloc_cost, length) %in% c(1, parts)))) {
-    stop(paste("The fixed cost parameter must be a numeric vector with values",
-               "for each division part."), call. = FALSE)
+      (!is.numeric(alloc_cost) || !length(alloc_cost) %in% c(1, parts))) {
+    stop(paste("The allocation cost parameter must be a numeric vector with ",
+               "values for each division part."), call. = FALSE)
   }
   if (!is.null(fixed_cost) &&
-      (!is.numeric(fixed_cost) ||
-       !all(sapply(fixed_cost, length) %in% c(1, parts)))) {
+      (!is.numeric(fixed_cost) || !length(fixed_cost) %in% c(1, parts))) {
     stop(paste("The fixed cost parameter must be a numeric vector with values",
                "for each division part."), call. = FALSE)
   }
@@ -162,8 +159,7 @@ SurveillanceDesign.Context <- function(context,
     stop("The budget parameter must be numeric and >= 0.", call. = FALSE)
   }
   if (!is.null(exist_sens) &&
-      (!is.numeric(exist_sens) ||
-       !all(sapply(exist_sens, length) %in% c(1, parts)))) {
+      (!is.numeric(exist_sens) || !length(exist_sens) %in% c(1, parts))) {
     stop(paste("The existing sensitivity parameter must be a numeric vector",
                "with values for each division part."), call. = FALSE)
   }
