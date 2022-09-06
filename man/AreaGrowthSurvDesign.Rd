@@ -15,12 +15,9 @@ AreaGrowthSurvDesign(
   class_pops_max = 100,
   f_area_growth = function(g, s) {     pi * (g * s)^2 },
   sample_sens = 1,
-  optimal = c("cost", "detection"),
   mgmt_cost = list(),
   sample_cost = NULL,
   budget = NULL,
-  confidence = NULL,
-  class = character(),
   ...
 )
 
@@ -34,12 +31,9 @@ AreaGrowthSurvDesign(
   class_pops_max = 100,
   f_area_growth = function(g, s) {     pi * (g * s)^2 },
   sample_sens = 1,
-  optimal = c("cost", "detection"),
   mgmt_cost = list(),
   sample_cost = NULL,
   budget = NULL,
-  confidence = NULL,
-  class = character(),
   ...
 )
 }
@@ -78,10 +72,6 @@ implements radial (circular) expansion:
 \item{sample_sens}{A vector of sample sensitivity values for each sub-region
 specified by \code{divisions}. Default is \code{1}.}
 
-\item{optimal}{The strategy used for finding an effective sampling
-allocation. One of (minimum) \code{"cost"} or (maximum) \code{"detection"}
-sensitivity (up to \code{"confidence"} level when specified).}
-
 \item{mgmt_cost}{A list of vectors to represent estimated management costs
 for population incursions. Each vector specifies costs at each sub-region
 specified by \code{divisions}. List elements should be named
@@ -100,20 +90,16 @@ consistent with \code{sample_cost} when specified. Otherwise the units
 should be consistent with the \code{surv_qty_unit} parameter specified in
 the \code{context} (e.g. traps or samples).}
 
-\item{confidence}{The desired (minimum) system detection sensitivity or
-confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
-
 \item{...}{Additional parameters.}
 }
 \value{
 A \code{AreaGrowthSurvDesign} class object (list) containing inherited
-and extended functions from the \code{SamplingSurvDesign} class for
+and extended functions from the base \code{SurveillanceDesign} class for
 for allocating sample densities, and calculating (unit and overall)
 detection sensitivities:
 \describe{
 \item{\code{get_allocation()}}{Get allocated sample densities via
-specified strategy, utilizing costs, budget constraints, and/or
-desired confidence level.}
+specified strategy, utilizing costs and budget constraints.}
 \item{\code{get_sensitivity()}}{Get the sub-region detection
 sensitivities of the allocated surveillance design.}
 \item{\code{get_confidence()}}{Get the overall system sensitivity or
@@ -122,10 +108,10 @@ confidence of the allocated surveillance design.}
 }
 \description{
 Builds a class to represent a surveillance design functionality for the
-effective allocation of surveillance sampling densities across one or more
-spatial sub-regions via a method that incorporates area-based population
-growth, surveillance and incursion management costs, detection
-sensitivities, and/or overall detection confidence.
+cost-effective allocation of surveillance sampling densities across one or
+more spatial sub-regions via a method that incorporates area-based
+population growth, surveillance and management costs, including costs
+associated with eradication, damages, and failure to contain incursions.
 }
 \references{
 Epanchin-Niell, R. S., Haight, R. G., Berec, L., Kean, J. M., & Liebhold,
