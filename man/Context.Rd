@@ -12,6 +12,8 @@ Context(
   surveillance_type = c("survey", "traps", "detectors", "samples", "reports", "mixed"),
   surv_qty_unit = c("units", "hours", "traps", "detectors", "samples", "user"),
   cost_unit = c("$", "hours", "user"),
+  time_unit = c("years", "months", "weeks", "days", "hours", "user"),
+  dist_unit = c("meters", "kilometers", "user"),
   incursion_status = c("never_detected", "detected", "delimited", "contained",
     "eradicated"),
   area_freedom = FALSE,
@@ -27,6 +29,8 @@ Context(
   surveillance_type = c("survey", "traps", "detectors", "samples", "reports", "mixed"),
   surv_qty_unit = c("units", "hours", "traps", "detectors", "samples", "user"),
   cost_unit = c("$", "hours", "user"),
+  time_unit = c("years", "months", "weeks", "days", "hours", "user"),
+  dist_unit = c("meters", "kilometers", "user"),
   incursion_status = c("never_detected", "detected", "delimited", "contained",
     "eradicated"),
   area_freedom = FALSE,
@@ -57,6 +61,14 @@ quantities. One of \code{"units"}, \code{"hours"}, \code{"traps"},
 \item{cost_unit}{The descriptive unit to describe surveillance resource
 costs, and incursion management costs or surveillance benefit savings.
 One of \code{"$"}, \code{"hours"}, or user specified.}
+
+\item{time_unit}{The descriptive unit to describe surveillance time
+intervals when applicable. One of \code{"years"}, \code{"months"},
+\code{"weeks"}, \code{"days"}, \code{"hours"}, or user specified.}
+
+\item{dist_unit}{The descriptive unit to describe spatial distances (and
+areas) when applicable. One of \code{"meters"}, \code{"kilometers"},
+or user specified.}
 
 \item{incursion_status}{The status of the invasive species presence. One of
 \code{"never_detected"}, \code{"detected"}, \code{"delimited"},
@@ -90,6 +102,11 @@ quantities: "units", "hours", "traps", "detectors", "samples", or user
 specified.}
 \item{\code{get_cost_unit()}}{Get the unit for surveillance, management,
 and/or benefit costs/savings: "$", "hours", or user specified.}
+\item{\code{get_time_unit()}}{Get the unit for surveillance time
+intervals: "years", "months", "weeks", "days" "hours", or user
+specified.}
+\item{\code{get_dist_unit()}}{Get the unit for spatial distances (and
+areas): "meters", "kilometers", or user specified.}
 \item{\code{get_incursion_status()}}{Get the incursion status:
 "never_detected", "detected", "delimited", "contained", or
 "eradicated".}
