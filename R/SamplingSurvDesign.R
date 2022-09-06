@@ -156,7 +156,7 @@ SamplingSurvDesign.Context <- function(context,
   # Number of division parts
   parts <- divisions$get_parts()
 
-  # Ensure has values for each division part
+  # Ensure establish_pr has values for each division part
   if (length(establish_pr) == 1) {
     establish_pr <- rep(establish_pr, parts)
   }
