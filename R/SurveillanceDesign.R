@@ -106,9 +106,9 @@ SurveillanceDesign.Context <- function(context,
   # Check establish_pr
   if (!is.null(establish_pr) &&
       (!is.numeric(establish_pr) || any(establish_pr < 0) ||
-       length(establish_pr) != parts)) {
-    stop(paste("The establishment probability must be numeric, >= 0, and",
-               "match the number of division parts."), call. = FALSE)
+       !length(establish_pr) %in% c(1, parts))) {
+    stop(paste("The establishment probability must be a numeric vector with",
+               "values  >= 0 for each division part."), call. = FALSE)
   }
 
   # Match optimal arguments

@@ -7,8 +7,9 @@
 \usage{
 MultilevelSurvDesign(
   context,
-  levels,
-  sensitivity = 1,
+  divisions,
+  sample_sens = 1,
+  sample_type = c("discrete", "continuous"),
   prevalence = NULL,
   total_indiv = NULL,
   design_dens = NULL,
@@ -21,8 +22,9 @@ MultilevelSurvDesign(
 
 \method{MultilevelSurvDesign}{Context}(
   context,
-  levels,
-  sensitivity = 1,
+  divisions,
+  sample_sens = 1,
+  sample_type = c("discrete", "continuous"),
   prevalence = NULL,
   total_indiv = NULL,
   design_dens = NULL,
@@ -37,7 +39,7 @@ MultilevelSurvDesign(
 \item{context}{A \code{Context} or inherited class object representing the
 context of a bio-security surveillance and area freedom design.}
 
-\item{levels}{A \code{Divisions} or inherited class object representing
+\item{divisions}{A \code{Divisions} or inherited class object representing
 one or more multistage levels, for the surveillance design. The levels
 should be ordered from lowest to highest (e.g. leaves, trees, rows,
 orchards). Only the lowest level can utilize either continuous
@@ -45,9 +47,11 @@ density-based or discrete sampling, higher levels can only utilize
 discrete sampling. Note that more than five levels may not be
 computationally feasible.}
 
-\item{sensitivity}{A single sample sensitivity value for the lowest level
-of a multilevel/stage sampling when \code{multilevel} is enabled. Default
-is \code{1}.}
+\item{sample_sens}{A single sample sensitivity value for the lowest level
+of a multilevel/stage sampling. Default is \code{1}.}
+
+\item{sample_type}{The type of sampling used for the lowest level of the
+multilevel sampling. One of \code{"discrete"} or \code{"continuous"}.}
 
 \item{prevalence}{A vector of discrete sampling design prevalence values for
 each multistage level specified by \code{divisions}. Note that this
@@ -58,12 +62,13 @@ parameter may represent apparent prevalence (Cannon, 2009) when the
 (e.g. leaves, trees, rows, orchards) present at each multistage level
 specified by \code{divisions}. Default is \code{NULL}.}
 
-\item{design_dens}{A single design density value for the lowest level of the
-multilevel sampling. Default is \code{NULL}.}
+\item{design_dens}{A single design density value for when the lowest level
+of the multilevel sampling is continuous. Default is \code{NULL}.}
 
-\item{sample_area}{The area of a single sample in a continuous sampling
-design. Note that when set to 1, the total number of samples will be
-equivalent to the total area sampled. Default is \code{NULL}.}
+\item{sample_area}{The area of a single sample when the lowest level for
+when the lowest level of the multilevel sampling is continuous. Note that
+when set to 1, the total number of samples will be equivalent to the total
+area sampled. Default is \code{NULL}.}
 
 \item{sample_cost}{The cost of individual samples. Default is \code{1}.
 An attribute \code{units} may be used to specify the cost units (e.g. "$"
@@ -76,25 +81,24 @@ confidence of the surveillance design. Default is \code{0.95}.}
 }
 \value{
 A \code{MultilevelSurvDesign} class object (list) containing
-inherited and extended functions from the base \code{SurveillanceDesign}
+inherited and extended functions from the base \code{SamplingSurvDesign}
 class for for allocating resources, and calculating (unit and overall)
 detection sensitivities:
 \describe{
-\item{\code{get_allocation()}}{Get allocated surveillance resources via
-specified strategy, utilizing costs, benefits, budget constraints,
-and/or desired confidence level.}
-\item{\code{get_sensitivity()}}{Get the unit/location detection
+\item{\code{get_allocation()}}{Get allocated surveillance resources for
+each level to achieve a minimal total cost given a specified desired
+confidence level.}
+\item{\code{get_sensitivity()}}{Get the level detection
 sensitivities of the allocated surveillance design.}
 \item{\code{get_confidence()}}{Get the overall system sensitivity or
 confidence of the allocated surveillance design.}
 }
 }
 \description{
-Builds a generic class to represent a surveillance design functionality for
-the effective allocation of surveillance sampling across one or more
-levels or stages via multilevel sampling methods specified with surveillance
-and/or incursion management costs, benefits, detection sensitivities, and/or
-overall detection confidence.
+Builds a class to represent a surveillance design functionality for the
+effective allocation of surveillance sampling across one or more levels or
+stages via multilevel sampling methods specified with surveillance detection
+sensitivities, sample costs, and overall detection confidence.
 }
 \references{
 Cannon, R. M. (2009). Inspecting and monitoring on a restricted budget -

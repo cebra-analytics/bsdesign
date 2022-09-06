@@ -50,10 +50,6 @@
 #' @param confidence The desired (minimum) system detection sensitivity or
 #'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
 #' @param ... Additional parameters.
-#' @return A \code{LagrangeSurvDesign} class object (list) containing inherited
-#'   and extended functions from the base \code{SurveillanceDesign} class for
-#'   for allocating resources, and calculating (unit and overall) detection
-#'   sensitivities:
 #' @return A \code{LagrangeSurvDesign} class object (list) containing functions
 #'   for allocating resource costs:
 #'   \describe{

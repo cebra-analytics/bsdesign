@@ -156,6 +156,11 @@ SamplingSurvDesign.Context <- function(context,
   # Number of division parts
   parts <- divisions$get_parts()
 
+  # Ensure has values for each division part
+  if (length(establish_pr) == 1) {
+    establish_pr <- rep(establish_pr, parts)
+  }
+
   # Resolve if establish_pr is relative
   if ((!is.null(attr(establish_pr, "relative")) &&
        as.logical(attr(establish_pr, "relative"))) || max(establish_pr) > 1) {
@@ -361,7 +366,7 @@ SamplingSurvDesign.Context <- function(context,
     return(qty_alloc)
   }
 
-  # Get the location detection sensitivities of the surveillance design
+  # Get the detection sensitivities for each division part of the design
   sensitivity <- NULL
   self$get_sensitivity <- function() {
     if (is.null(sensitivity) && !is.null(qty_alloc)) {
