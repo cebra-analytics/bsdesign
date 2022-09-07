@@ -91,16 +91,18 @@ MultilevelSurvDesign.Context <- function(context,
                                          confidence = 0.95,
                                          class = character(), ...) {
 
-  # Resolve prevalence and total_indiv when lowest level is continuous
+  # Resolve prevalence when sample type is continuous and lowest level is NA
   sample_type <- match.arg(sample_type)
   if (sample_type == "continuous") {
     if (!is.null(prevalence) && is.na(prevalence[1])) {
       prevalence[1] <- 0 # design density used instead
     }
-    if (is.null(total_indiv) ||
-        (!is.null(total_indiv) && is.na(total_indiv[1]))) {
-      total_indiv[1] <- 0 # resolve later
-    }
+  }
+
+  # Resolve total_indiv when NULL or lowest level is NA
+  if (is.null(total_indiv) ||
+      (!is.null(total_indiv) && is.na(total_indiv[1]))) {
+    total_indiv[1] <- 0 # maximum resolved later
   }
 
   # Build via base class
@@ -121,16 +123,6 @@ MultilevelSurvDesign.Context <- function(context,
   # Number of levels
   nlevels <- divisions$get_parts()
 
-  # Set lowest level total_indiv when discrete
-  if (is.null(total_indiv)) {
-    total_indiv_present <- rep(FALSE, nlevels)
-  } else {
-    total_indiv_present <- (!is.na(total_indiv) & total_indiv > 0)
-  }
-  if (!total_indiv_present[1]) {
-    total_indiv[1] <- 0 # resolve later
-  }
-
   # Function to calculate level sensitivities
   calculate_sensitivity <- function(n_alloc) {
 
@@ -149,7 +141,8 @@ MultilevelSurvDesign.Context <- function(context,
       if (l == 1 && sample_type == "continuous") {
         level_sens[l] <- 1 - exp(-1*p*n_alloc[l]*sample_area*design_dens[l])
       } else { # discrete
-        if (total_indiv_present[l] && n_alloc[l]/total_indiv[l] > 0.1) {
+        if (!is.null(total_indiv) && total_indiv[l] > 0 &&
+            n_alloc[l]/total_indiv[l] > 0.1) {
           level_sens[l] <-
             1 - ((1 - p*min(1, n_alloc[l]/total_indiv[l]))^
                    (prevalence[l]*total_indiv[l]))
@@ -183,8 +176,15 @@ MultilevelSurvDesign.Context <- function(context,
       n_min <- rep(1, nlevels)
       n_max <- total_indiv
 
+      # Resolve n_max when lowest level is zero
+      if (n_max[1] == 0) {
+        while (calculate_sensitivity(n_max)[1] < 1) {
+          n_max[1] <- total_indiv[1] + 1
+        }
+      }
+
       # Refine minimum allocated values and cost via confidence constraint
-      cost_min <- calculate_cost(total_indiv)
+      cost_min <- calculate_cost(n_max)
       for (l in 1:nlevels) {
         n_alloc <- n_max
         decr <- rep(0, nlevels)
