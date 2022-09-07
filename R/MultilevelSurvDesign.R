@@ -94,10 +94,11 @@ MultilevelSurvDesign.Context <- function(context,
   # Resolve prevalence and total_indiv when lowest level is continuous
   sample_type <- match.arg(sample_type)
   if (sample_type == "continuous") {
-    if (is.na(prevalence[1])) {
+    if (!is.null(prevalence) && is.na(prevalence[1])) {
       prevalence[1] <- 0 # design density used instead
     }
-    if (is.na(total_indiv[1])) {
+    if (is.null(total_indiv) ||
+        (!is.null(total_indiv) && is.na(total_indiv[1]))) {
       total_indiv[1] <- 0 # resolve later
     }
   }
@@ -118,14 +119,14 @@ MultilevelSurvDesign.Context <- function(context,
                              class = "MultilevelSurvDesign", ...)
 
   # Number of levels
-  levels <- divisions$get_parts()
+  nlevels <- divisions$get_parts()
 
   # Function to calculate level sensitivities
   calculate_sensitivity <- function(n_alloc) {
 
     # Calculate sensitivity at each level
-    level_sens <- rep(NA, levels)
-    for (l in 1:levels) {
+    level_sens <- rep(NA, nlevels)
+    for (l in 1:nlevels) {
 
       # Resolve sample sensitivity p for level
       if (l == 1) {
@@ -153,7 +154,7 @@ MultilevelSurvDesign.Context <- function(context,
 
   # Function to calculate level costs
   calculate_cost <- function(n_alloc) {
-    sum(sapply(1:levels, function(l) prod(n_alloc[l:levels])*sample_cost[l]))
+    sum(sapply(1:nlevels, function(l) prod(n_alloc[l:nlevels])*sample_cost[l]))
   }
 
   # Get the allocated surveillance resource values of the surveillance design
@@ -169,16 +170,16 @@ MultilevelSurvDesign.Context <- function(context,
       }
 
       # Initial minimum and maximum allocated n values
-      n_min <- rep(1, levels)
+      n_min <- rep(1, nlevels)
       n_max <- total_indiv
 
       # Refine minimum allocated values and cost via confidence constraint
       cost_min <- calculate_cost(total_indiv)
-      for (l in 1:levels) {
+      for (l in 1:nlevels) {
         n_alloc <- n_max
-        decr <- rep(0, levels)
+        decr <- rep(0, nlevels)
         decr[l] <- 1
-        while (calculate_sensitivity(n_alloc - decr)[levels] >=
+        while (calculate_sensitivity(n_alloc - decr)[nlevels] >=
                confidence && n_alloc[l] - 1 >= n_min[l]) {
           n_alloc[l] <- n_alloc[l] - 1
         }
@@ -190,9 +191,9 @@ MultilevelSurvDesign.Context <- function(context,
       }
 
       # Refine maximum allocated values via minimum cost (so far)
-      for (l in 1:levels) {
+      for (l in 1:nlevels) {
         n_alloc <- n_min
-        incr <- rep(0, levels)
+        incr <- rep(0, nlevels)
         incr[l] <- 1
         while (calculate_cost(n_alloc + incr) < cost_min &&
                n_alloc[l] + 1 <= n_max[l]) {
@@ -202,13 +203,13 @@ MultilevelSurvDesign.Context <- function(context,
       }
 
       # Generate all combinations of allocated values between limits
-      n_comb <- lapply(1:levels, function(l) n_min[l]:n_max[l])
+      n_comb <- lapply(1:nlevels, function(l) n_min[l]:n_max[l])
       n_comb <- unname(as.matrix(expand.grid(n_comb)))
 
       # Select combinations satisfying the sensitivity constraint
       idx <- which(apply(n_comb, 1, function(n) {
-        calculate_sensitivity(n)[levels]}) >= confidence)
-      n_comb <- n_comb[idx,]
+        calculate_sensitivity(n)[nlevels]}) >= confidence)
+      n_comb <- as.matrix(n_comb[idx,])
 
       # Select values of allocated values corresponding to minimum total cost
       idx <- which.min(apply(n_comb, 1, function(n) calculate_cost(n)))
