@@ -121,6 +121,16 @@ MultilevelSurvDesign.Context <- function(context,
   # Number of levels
   nlevels <- divisions$get_parts()
 
+  # Set lowest level total_indiv when discrete
+  if (is.null(total_indiv)) {
+    total_indiv_present <- rep(FALSE, nlevels)
+  } else {
+    total_indiv_present <- (!is.na(total_indiv) & total_indiv > 0)
+  }
+  if (!total_indiv_present[1]) {
+    total_indiv[1] <- 0 # resolve later
+  }
+
   # Function to calculate level sensitivities
   calculate_sensitivity <- function(n_alloc) {
 
@@ -139,7 +149,7 @@ MultilevelSurvDesign.Context <- function(context,
       if (l == 1 && sample_type == "continuous") {
         level_sens[l] <- 1 - exp(-1*p*n_alloc[l]*sample_area*design_dens[l])
       } else { # discrete
-        if (n_alloc[l]/total_indiv[l] > 0.1) {
+        if (total_indiv_present[l] && n_alloc[l]/total_indiv[l] > 0.1) {
           level_sens[l] <-
             1 - ((1 - p*min(1, n_alloc[l]/total_indiv[l]))^
                    (prevalence[l]*total_indiv[l]))
@@ -162,8 +172,8 @@ MultilevelSurvDesign.Context <- function(context,
   self$get_allocation <- function() {
     if (is.null(qty_alloc)) {
 
-      # Resolve total_indiv when lowest level is continuous
-      if (sample_type == "continuous") {
+      # Resolve total_indiv when lowest level is zero
+      if (total_indiv[1] == 0) {
         while (calculate_sensitivity(total_indiv)[1] < 1) {
           total_indiv[1] <- total_indiv[1] + 1
         }
