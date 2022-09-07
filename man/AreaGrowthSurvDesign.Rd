@@ -74,10 +74,11 @@ specified by \code{divisions}. Default is \code{1}.}
 
 \item{mgmt_cost}{A list of vectors to represent estimated management costs
 for population incursions. Each vector specifies costs at each sub-region
-specified by \code{divisions}. List elements should be named
-\code{eradication},  \code{damage}, and \code{penalty}. Default is an
-empty list. Units should be consistent with the \code{cost_unit} parameter
-specified in the \code{context}.}
+specified by \code{divisions}. Named list elements should include
+\code{eradication} cost per area,  \code{damage} cost per area, and
+\code{penalty} cost per population of maximum size class. Default is an
+empty list. Units should be consistent with the \code{cost_unit} and
+\code{dist_unit} (area) parameters specified in the \code{context}.}
 
 \item{sample_cost}{A vector of cost per sample of allocated surveillance
 resources at each sub-region specified by \code{divisions}. Default is
@@ -104,6 +105,12 @@ specified strategy, utilizing costs and budget constraints.}
 sensitivities of the allocated surveillance design.}
 \item{\code{get_confidence()}}{Get the overall system sensitivity or
 confidence of the allocated surveillance design.}
+\item{\code{set_cores(cores)}}{Set the number of cores available for
+parallel processing and thus enable parallel processing for
+calculating optimal sample density allocation.}
+\item{\code{set_precision(prec)}}{Set the precision used in the search
+for budget constrained allocation. Default is 3. Higher values may
+result in excessive computational times.}
 }
 }
 \description{

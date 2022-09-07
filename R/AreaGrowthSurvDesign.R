@@ -33,10 +33,11 @@
 #'   specified by \code{divisions}. Default is \code{1}.
 #' @param mgmt_cost A list of vectors to represent estimated management costs
 #'   for population incursions. Each vector specifies costs at each sub-region
-#'   specified by \code{divisions}. List elements should be named
-#'   \code{eradication},  \code{damage}, and \code{penalty}. Default is an
-#'   empty list. Units should be consistent with the \code{cost_unit} parameter
-#'   specified in the \code{context}.
+#'   specified by \code{divisions}. Named list elements should include
+#'   \code{eradication} cost per area,  \code{damage} cost per area, and
+#'   \code{penalty} cost per population of maximum size class. Default is an
+#'   empty list. Units should be consistent with the \code{cost_unit} and
+#'   \code{dist_unit} (area) parameters specified in the \code{context}.
 #' @param sample_cost A vector of cost per sample of allocated surveillance
 #'   resources at each sub-region specified by \code{divisions}. Default is
 #'   \code{NULL}. Units should be consistent with the \code{cost_unit}
@@ -58,12 +59,20 @@
 #'        sensitivities of the allocated surveillance design.}
 #'     \item{\code{get_confidence()}}{Get the overall system sensitivity or
 #'       confidence of the allocated surveillance design.}
+#'     \item{\code{set_cores(cores)}}{Set the number of cores available for
+#'       parallel processing and thus enable parallel processing for
+#'       calculating optimal sample density allocation.}
+#'     \item{\code{set_precision(prec)}}{Set the precision used in the search
+#'       for budget constrained allocation. Default is 3. Higher values may
+#'       result in excessive computational times.}
 #'   }
 #' @references
 #'   Epanchin-Niell, R. S., Haight, R. G., Berec, L., Kean, J. M., & Liebhold,
 #'   A. M. (2012). Optimal surveillance and eradication of invasive species in
 #'   heterogeneous landscapes. \emph{Ecology Letters}, 15(8), 803–812.
 #'   \doi{10.1111/j.1461-0248.2012.01800.x}
+#' @importFrom foreach foreach
+#' @importFrom foreach %dopar%
 #' @include SamplingSurvDesign.R
 #' @export
 AreaGrowthSurvDesign <- function(context,
@@ -108,22 +117,22 @@ AreaGrowthSurvDesign.Context <- function(context,
                              budget = budget,
                              class = "AreaGrowthSurvDesign", ...)
 
-  # Number of division parts
-  parts <- divisions$get_parts()
+  # Number of subregions (division parts)
+  subregions <- divisions$get_parts()
 
   # Check parameters (not checked in base class)
   if (!is.numeric(subregion_area) || any(subregion_area < 0) ||
-       !length(subregion_area) %in% c(1, parts)) {
+       !length(subregion_area) %in% c(1, subregions)) {
     stop(paste("The sub-region area parameter must be a numeric vector with",
                "values  >= 0 for each sub-region."), call. = FALSE)
   }
   if (!is.numeric(establish_rate) || any(establish_rate < 0) ||
-      !length(establish_rate) %in% c(1, parts)) {
+      !length(establish_rate) %in% c(1, subregions)) {
     stop(paste("The establishment rate must be a numeric vector with",
-               "values  >= 0 for each subregion."), call. = FALSE)
+               "values  >= 0 for each sub-region."), call. = FALSE)
   }
   if (!is.numeric(growth_rate) || any(growth_rate < 0) ||
-      !length(growth_rate) %in% c(1, parts)) {
+      !length(growth_rate) %in% c(1, subregions)) {
     stop(paste("The growth rate parameter must be a numeric vector with",
                "values  >= 0 for each sub-region."), call. = FALSE)
   }
@@ -139,38 +148,271 @@ AreaGrowthSurvDesign.Context <- function(context,
     stop("The area growth function must be a function.", call. = FALSE)
   }
 
-  # Check mgmt_cost
+  # Check and resolve mgmt_cost
   if (!all(c("eradication", "damage", "penalty") %in% names(mgmt_cost))) {
     stop(paste("The management cost parameter must contain list elements",
                "'eradication', 'damage', and 'penalty'."), call. = FALSE)
   }
+  for (i in 1:length(mgmt_cost)) {
+    if (length(mgmt_cost[[i]]) == 1) {
+      mgmt_cost[[i]] <- rep(mgmt_cost[[i]], subregions)
+    }
+  }
 
   # Check and resolve sample_cost
   if (!is.null(sample_cost) &&
-      (!is.numeric(sample_cost) || !length(sample_cost) %in% c(1, parts))) {
+      (!is.numeric(sample_cost) ||
+       !length(sample_cost) %in% c(1, subregions))) {
     stop(paste("The sample cost parameter must be a numeric vector with ",
-               "values for each division part."), call. = FALSE)
+               "values for each sub-region."), call. = FALSE)
   }
   if (length(sample_cost) == 1) {
-    sample_cost <- rep(sample_cost, parts)
+    sample_cost <- rep(sample_cost, subregions)
   } else if (is.null(sample_cost)) {
-    sample_cost <- rep(1, parts)
+    sample_cost <- rep(1, subregions)
   }
 
-  # context,
-  # divisions,
-  # subregion_area,
-  # establish_rate,
-  # growth_rate,
-  # size_class_max = 10,
-  # class_pops_max = 100,
-  # f_area_growth = function(g, s) {
-  #   pi*(g*s)^2
-  # },
-  # sample_sens = 1,
-  # mgmt_cost = list(),
-  # sample_cost = NULL,
-  # budget = NULL
+  # Set the number of cores available for parallel processing
+  parallel_cores <- NULL
+  self$set_cores <- function(cores) {
+    parallel_cores <<- cores
+  }
+
+  # Set the precision used in the search for budget constrained allocation
+  precision <- 3
+  self$set_precision <- function(prec) {
+    precision <<- prec
+  }
+
+  # Function for calculating total cost for a sub-region (index)
+  subregion_total_cost <- function(sample_density, subregion) {
+
+    # Probability of pop numbers (i in G) for size class (s in S) X_s_i
+    size_class_pr <- list()
+
+    # Initialize X_s_i for S = 1
+    size_class_pr[[1]] <- stats::dpois(0:(class_pops_max - 1),
+                                       establish_rate[subregion])
+    size_class_pr[[1]] <- c(size_class_pr[[1]], 1 - sum(size_class_pr[[1]]))
+
+    # Area of each size class a(s)
+    area_size_class <- lapply(1:size_class_max,
+                              function(s) f_area_growth(growth_rate, s))
+
+    # Probability of transition from i pops of size class s to j pops of s + 1
+    # P_s_i_j (i, j in G)
+    transition_pr <- list()
+    i_matrix <- matrix(0:class_pops_max, nrow = class_pops_max + 1,
+                       ncol = class_pops_max + 1)
+    j_matrix <- matrix(0:class_pops_max, nrow = class_pops_max + 1,
+                       ncol = class_pops_max + 1, byrow = TRUE)
+    mask <- j_matrix <= i_matrix
+    i_matrix <- i_matrix*mask
+    j_matrix <- j_matrix*mask
+    for (s in 1:(size_class_max - 1)){
+      undetect_pr <- exp(-1*area_size_class[[s]]*sample_density*sample_sens)
+      transition_pr[[s]] <- (choose(i_matrix, i_matrix - j_matrix)*
+                               (1 - undetect_pr)^(i_matrix - j_matrix)*
+                               undetect_pr^j_matrix)*mask
+    }
+
+    # Transition probability for maximum size class => all detected/eradicated
+    transition_pr[[size_class_max]] <- array(0, c(class_pops_max + 1,
+                                                  class_pops_max + 1))
+    transition_pr[[size_class_max]][,1] <- 1
+
+    # Calculate X_s_i for S >= 2
+    for (s in 2:size_class_max) {
+      size_class_pr[[s]] <- size_class_pr[[s - 1]] %*% transition_pr[[s - 1]]
+    }
+
+    # Surveillance total cost
+    surv_total_cost <- (sample_cost[subregion]*sample_density*
+                          subregion_area[subregion])
+
+    # Expected total eradication cost
+    k_matrix <- i_matrix - j_matrix
+    erad_total_cost <- sum(sapply(1:size_class_max, function(s) {
+      (mgmt_cost$eradication[subregion]*area_size_class[[s]]*
+         sum(array(size_class_pr[[s]],
+                   c(class_pops_max + 1, class_pops_max + 1))*
+               transition_pr[[s]]*k_matrix))
+    }))
+
+    # Expected total damage cost
+    damage_total_cost <- sum(sapply(1:size_class_max, function(s) {
+      (mgmt_cost$damage[subregion]*area_size_class[[s]]*(0:class_pops_max)*
+         size_class_pr[[s]])
+    }))
+
+    # Expected total penalty cost
+    penalty_total_cost <-
+      (mgmt_cost$penalty[subregion]*
+         sum((0:class_pops_max)*size_class_pr[[size_class_max]]))
+
+    # Total cost
+    total_cost <- (surv_total_cost + erad_total_cost + damage_total_cost +
+                     penalty_total_cost)
+
+    # Add attributes for cost components
+    attr(total_cost, "surv_total_cost") <- surv_total_cost
+    attr(total_cost, "erad_total_cost") <- erad_total_cost
+    attr(total_cost, "damage_total_cost") <- damage_total_cost
+    attr(total_cost, "penalty_total_cost") <- penalty_total_cost
+
+    return(total_cost)
+  }
+
+  # Function for calculating total cost for all sub-regions (plural)
+  subregion_total_costs <- function(sample_density) {
+
+    # Calculate and gather the total costs for each sub-region
+    if (is.numeric(parallel_cores) && min(parallel_cores, subregions) > 1) {
+      doParallel::registerDoParallel(cores = min(parallel_cores, subregions))
+      region_cost_list <- foreach(
+        i = 1:subregions,
+        .errorhandling = c("stop"),
+        .noexport = c()) %dopar% {
+          subregion_total_cost(sample_density[i], i)
+        }
+      doParallel::stopImplicitCluster()
+    } else { # serial
+      region_cost_list <- lapply(1:subregions, function(i) {
+        subregion_total_cost(sample_density[i], i)
+      })
+    }
+    subregion_costs <- as.data.frame(t(sapply(region_cost_list, function(l) {
+      c(survey_cost = attr(l, "surv_total_cost"),
+        erad_cost = attr(l, "erad_total_cost"),
+        damage_cost = attr(l, "damage_total_cost"),
+        penalty_cost = attr(l, "penalty_total_cost"),
+        total_cost = l)
+    })))
+
+    # Return sub-region costs
+    return(subregion_costs)
+  }
+
+  # Function for finding optimal unconstrained sub-region allocations
+  unconstrained_allocation <- function() {
+
+    # Search for optimal allocation for each sub-region
+    region_cost_list <- list()
+    for (i in 1:subregions) {
+      lower = 0
+      upper = mgmt_cost$penalty[i]/sample_cost[i]/subregion_area[i]
+      region_cost_list[[i]] <-
+        optimize(subregion_total_cost,
+                 interval = c(lower, upper),
+                 subregion = i)
+    }
+
+    # Pack the results of optimizer into a data frame
+    unconstr_optim <- as.data.frame(t(sapply(region_cost_list, function(l) {
+      c(sample_density = l$minimum,
+        survey_cost = attr(l$objective, "surv_total_cost"),
+        erad_cost = attr(l$objective, "erad_total_cost"),
+        damage_cost = attr(l$objective, "damage_total_cost"),
+        penalty_cost = attr(l$objective, "penalty_total_cost"),
+        total_cost = l$objective)
+    })))
+
+    return(unconstr_optim)
+  }
+
+  # Function for finding optimal constrained sub-region allocations
+  constrained_allocation <- function() {
+
+    # Begin with the unconstrained allocation
+    constr_optim <- unconstrained_allocation()
+    constr_optim <- constr_optim[c("sample_density", "survey_cost",
+                                   "total_cost")]
+
+    # Calculate decrements to surveillance sample costs
+    cost_decr <- min(10^(-1*precision)*sample_cost*subregion_area)
+
+    # Calculate corresponding decrements to surveillance sample densities
+    constr_optim$sample_density_decr <-
+      (constr_optim$survey_cost - cost_decr)/sample_cost/subregion_area
+
+    # Calculate corresponding decremented total costs
+    subregion_cost_decr <-
+      subregion_total_costs(constr_optim$sample_density_decr)
+    constr_optim$survey_cost_decr <- subregion_cost_decr$survey_cost
+    constr_optim$total_cost_decr <- subregion_cost_decr$total_cost
+    total_survey_cost <- sum(constr_optim$survey_cost)
+
+    # Reduce surveillance sample densities until the budget is reached
+    while (total_survey_cost > budget) {
+
+      # Identify decremented sample cost with the minimum total cost impact
+      idx <- which.min(constr_optim$total_cost_decr - constr_optim$total_cost)
+
+      # Update sample density and costs with selected decremented values
+      constr_optim[idx, c("sample_density", "survey_cost", "total_cost")] <-
+        constr_optim[idx, c("sample_density_decr", "survey_cost_decr",
+                            "total_cost_decr")]
+
+      # Update total surveillance cost
+      total_survey_cost <- sum(constr_optim$survey_cost)
+
+      # Calculate new decremented sample density and costs
+      if (total_survey_cost > budget) {
+        cost_decr <- min(cost_decr, total_survey_cost - budget)
+        constr_optim$sample_density_decr <-
+          (constr_optim$survey_cost - cost_decr)/sample_cost/subregion_area
+        subregion_cost_decr <-
+          subregion_total_cost(constr_optim$sample_density_decr[idx], idx)
+        constr_optim[idx, c("survey_cost_decr", "total_cost_decr")] <-
+          c(attr(subregion_cost_decr, "surv_total_cost"),
+            as.numeric(subregion_cost_decr))
+      }
+    }
+
+    # Return constrained sample density allocation and costs
+    constr_optim <-
+      cbind(sample_density = constr_optim$sample_density,
+            subregion_total_costs(constr_optim$sample_density))
+
+    return(constr_optim)
+  }
+
+  # Get the allocated sample density values of the surveillance design
+  sample_density <- NULL
+  self$get_allocation <- function() {
+    if (is.null(sample_density)) {
+
+      # Budget constraint?
+      if (is.numeric(budget)) {
+        optim_alloc <- constrained_allocation()
+      } else {
+        optim_alloc <- unconstrained_allocation()
+      }
+
+      # Extract sample density and add costs as an attribute
+      sample_density <- optim_alloc$sample_density
+      attr(sample_density, "costs") <- optim_alloc[-1]
+    }
+
+    return(sample_density)
+  }
+
+
+  # Get the detection sensitivities for each sub-region of the design
+  sensitivity <- NULL
+  self$get_sensitivity <- function() {
+    if (is.null(sensitivity) && !is.null(sample_density)) {
+      ## TODO ####
+      #sensitivity <<- 1 - (1 - exist_sens)*exp(-1*lambda*qty_alloc)
+    }
+    return(sensitivity)
+  }
+
+  # Get the overall system sensitivity/confidence of the surveillance design
+  self$get_confidence <- function() {
+    system_sens <- NULL
+    return(system_sens)
+  }
 
   return(self)
 }
