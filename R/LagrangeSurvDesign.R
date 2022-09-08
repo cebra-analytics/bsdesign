@@ -208,17 +208,19 @@ LagrangeSurvDesign.Context <- function(context,
         over_conf <- which(cum_conf > confidence)
         if (length(over_conf)) {
           if (relative_establish_pr) {
-            # TODO ####
-
+            adj_sens <-
+              (confidence*sum(establish_pr) -
+                 sum((establish_pr*new_sens)[idx][nonzero][-over_conf]))/
+              establish_pr[idx][nonzero][over_conf[1]]
           } else {
             adj_sens <-
               (1 - ((1 - confidence*(1 - prod(1 - establish_pr)))/
                       prod((1 - establish_pr*new_sens)
                            [idx][nonzero][-over_conf])))/
               establish_pr[idx][nonzero][over_conf[1]]
-            x_alloc[idx][nonzero][over_conf[1]] <-
-              f_inv_unit_sens(adj_sens)[idx][nonzero][over_conf[1]]
           }
+          x_alloc[idx][nonzero][over_conf[1]] <-
+            f_inv_unit_sens(adj_sens)[idx][nonzero][over_conf[1]]
           x_alloc[idx][nonzero][over_conf[-1]] <- 0
         }
       }
