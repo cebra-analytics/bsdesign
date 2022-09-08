@@ -188,14 +188,14 @@ SpatialSurvDesign.Context <- function(context,
 
   # Objective function
   f_obj <- function(x_alloc) {
-    if (optimal == "detection") { # maximum detection
+    if (optimal == "detection" && !relative_establish_pr) { # maximum detection
       return(
         (x_alloc >= fixed_cost)*
           log(1 - (establish_pr*
                      (1 - ((1 - exist_sens)*
                              exp(-1*lambda*
                                    (x_alloc - fixed_cost)/alloc_cost))))))
-    } else { # minimum cost or maximum benefit
+    } else { # minimum cost or maximum benefit (benefit = 1 for detection)
       incl_x <- (optimal == "cost")
       return(
         benefit*establish_pr*(1 - exist_sens)*
@@ -208,7 +208,7 @@ SpatialSurvDesign.Context <- function(context,
 
   # Derivative of objective function
   f_deriv <- function(x_alloc) {
-    if (optimal == "detection") { # maximum detection
+    if (optimal == "detection" && !relative_establish_pr) { # maximum detection
       return(
         (x_alloc >= fixed_cost)*-1*establish_pr*(1 - exist_sens)*
           lambda/alloc_cost*exp(-1*lambda*(x_alloc - fixed_cost)/alloc_cost)/
@@ -216,7 +216,7 @@ SpatialSurvDesign.Context <- function(context,
                   (1 - ((1 - exist_sens)*
                           exp(-1*lambda*
                                 (x_alloc - fixed_cost)/alloc_cost))))))
-    } else { # minimum cost or maximum benefit
+    } else { # minimum cost or maximum benefit (benefit = 1 for detection)
       incl_x <- (optimal == "cost")
       return(
         (x_alloc >= fixed_cost)*
@@ -231,7 +231,7 @@ SpatialSurvDesign.Context <- function(context,
     values <- lambda/alloc_cost*benefit*establish_pr*(1 - exist_sens)
     idx <- which(values > 0)
     values[-idx] <- 0
-    if (optimal == "detection") { # maximum detection
+    if (optimal == "detection" && !relative_establish_pr) { # maximum detection
       values[idx] <-
         pmax(0, ((alpha > -1*lambda[idx]/alloc_cost[idx])*
                    (alloc_cost[idx]/lambda[idx]*
@@ -239,7 +239,7 @@ SpatialSurvDesign.Context <- function(context,
                          log(1/establish_pr[idx] - 1) +
                          log(1 - exist_sens[idx])) +
                       fixed_cost[idx])))
-    } else { # minimum cost or maximum benefit
+    } else { # minimum cost or maximum benefit (benefit = 1 for detection)
       incl_x <- (optimal == "cost")
       values[idx] <-
         (((alpha - 1*incl_x) >= -1*values[idx])*
