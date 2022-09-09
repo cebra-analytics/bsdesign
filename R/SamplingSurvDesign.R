@@ -479,8 +479,18 @@ SamplingSurvDesign.Context <- function(context,
   sensitivity <- NULL
   self$get_sensitivity <- function() {
     if (is.null(sensitivity) && !is.null(qty_alloc)) {
-      sensitivity <<- 1 - (1 - exist_sens)*exp(-1*lambda*qty_alloc)
+
+      # Check if discrete sample fraction n/N > 0.1
+      if (sample_type == "discrete" && is.numeric(total_indiv) &&
+          any(qty_alloc/total_indiv > 0.1)) {
+        sensitivity <<-
+          1 - (1 - exist_sens)*((1 - sample_sens*qty_alloc/total_indiv)
+                                ^(prevalence*total_indiv))
+      } else {
+        sensitivity <<- 1 - (1 - exist_sens)*exp(-1*lambda*qty_alloc)
+      }
     }
+
     return(sensitivity)
   }
 
