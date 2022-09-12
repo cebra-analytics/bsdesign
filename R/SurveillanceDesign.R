@@ -60,6 +60,10 @@
 #'     \item{\code{get_confidence()}}{Get the overall system sensitivity or
 #'       detection confidence of the allocated surveillance design.}
 #'   }
+#' @references
+#'   Cannon, R. M. (2009). Inspecting and monitoring on a restricted budget -
+#'   where best to look? \emph{Preventive Veterinary Medicine}, 92(1–2),
+#'   163-174. \doi{10.1016/j.prevetmed.2009.06.009}
 #' @include Context.R
 #' @include Divisions.R
 #' @export
@@ -109,6 +113,16 @@ SurveillanceDesign.Context <- function(context,
        !length(establish_pr) %in% c(1, parts))) {
     stop(paste("The establishment probability must be a numeric vector with",
                "values  >= 0 for each division part."), call. = FALSE)
+  }
+
+  # Resolve if establish_pr is relative
+  if (!is.null(establish_pr) &&
+      ((!is.null(attr(establish_pr, "relative")) &&
+        as.logical(attr(establish_pr, "relative"))) ||
+       max(establish_pr) > 1)) {
+    relative_establish_pr <- TRUE
+  } else {
+    relative_establish_pr <- FALSE
   }
 
   # Match optimal arguments
@@ -178,8 +192,22 @@ SurveillanceDesign.Context <- function(context,
   }
 
   # Get the overall system sensitivity or detection confidence of the design
+  system_sens <- NULL
   self$get_confidence <- function() {
-    system_sens <- NULL
+    sensitivity <- self$get_sensitivity()
+    if (is.null(system_sens) && !is.null(sensitivity)) {
+      if (parts == 1) {
+        system_sens <<- sensitivity
+      } else if (!is.null(establish_pr)) {
+        if (relative_establish_pr) {
+          system_sens <<- sum(establish_pr*sensitivity)/sum(establish_pr)
+        } else {
+          system_sens <<- ((1 - prod(1 - establish_pr*sensitivity))/
+                             (1 - prod(1 - establish_pr)))
+        }
+      }
+    }
+
     return(system_sens)
   }
 

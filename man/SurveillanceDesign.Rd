@@ -113,3 +113,8 @@ effective allocation of surveillance resources across one or more divisions
 and/or incursion management costs, benefits, detection sensitivities,
 and/or overall detection confidence.
 }
+\references{
+Cannon, R. M. (2009). Inspecting and monitoring on a restricted budget -
+where best to look? \emph{Preventive Veterinary Medicine}, 92(1–2),
+163-174. \doi{10.1016/j.prevetmed.2009.06.009}
+}

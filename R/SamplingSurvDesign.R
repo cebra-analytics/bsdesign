@@ -495,10 +495,10 @@ SamplingSurvDesign.Context <- function(context,
   }
 
   # Get the overall system sensitivity or detection confidence of the design
-  self$get_confidence <- function() {
-    system_sens <- NULL
-    return(system_sens)
-  }
+  system_sens <- NULL
+  get_confidence_body <- body(self$get_confidence) # from base class
+  self$get_confidence <- function() {}
+  body(self$get_confidence) <- get_confidence_body
 
   return(self)
 }

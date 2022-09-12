@@ -263,7 +263,7 @@ SpatialSurvDesign.Context <- function(context,
 
   # Function for calculating inverse of unit sensitivity
   f_inv_unit_sens <- function(unit_sens) {
-    return(-1*sample_cost/lambda*log((1 - unit_sens)/(1 - exist_sens))
+    return(-1*alloc_cost/lambda*log((1 - unit_sens)/(1 - exist_sens))
            + fixed_cost)
   }
 
@@ -305,10 +305,10 @@ SpatialSurvDesign.Context <- function(context,
   }
 
   # Get the overall system sensitivity or detection confidence of the design
-  self$get_confidence <- function() {
-    system_sens <- NULL
-    return(system_sens)
-  }
+  system_sens <- NULL
+  get_confidence_body <- body(self$get_confidence) # from base class
+  self$get_confidence <- function() {}
+  body(self$get_confidence) <- get_confidence_body
 
   return(self)
 }

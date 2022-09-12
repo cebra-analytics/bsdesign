@@ -402,17 +402,16 @@ AreaGrowthSurvDesign.Context <- function(context,
   sensitivity <- NULL
   self$get_sensitivity <- function() {
     if (is.null(sensitivity) && !is.null(sample_density)) {
-      ## TODO ####
-      #sensitivity <<- 1 - (1 - exist_sens)*exp(-1*lambda*qty_alloc)
+      sensitivity <<- 1 - exp(-1*sample_sens*subregion_area*sample_density)
     }
     return(sensitivity)
   }
 
   # Get the overall system sensitivity or detection confidence of the design
-  self$get_confidence <- function() {
-    system_sens <- NULL
-    return(system_sens)
-  }
+  system_sens <- NULL
+  get_confidence_body <- body(self$get_confidence) # inherit from base class
+  self$get_confidence <- function() {}
+  body(self$get_confidence) <- get_confidence_body
 
   return(self)
 }

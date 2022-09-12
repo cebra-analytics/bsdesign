@@ -240,9 +240,12 @@ MultilevelSurvDesign.Context <- function(context,
   }
 
   # Get the overall system sensitivity or detection confidence of the design
+  system_sens <- NULL
   self$get_confidence <- function() {
-    system_sens <- NULL
-    return(system_sens)
+    sensitivity <- self$get_sensitivity()
+    if (is.null(system_sens) && !is.null(sensitivity)) {
+      system_sens <<- sensitivity[nlevels]
+    }
   }
 
   return(self)
