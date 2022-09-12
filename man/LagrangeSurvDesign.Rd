@@ -89,7 +89,7 @@ specified by \code{divisions}.}
 \item{budget}{The cost budget or constraint for the resource allocation in
 the surveillance design. Default is \code{NULL}.}
 
-\item{confidence}{The desired (minimum) system detection sensitivity or
+\item{confidence}{The desired (minimum) system sensitivity or detection
 confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
 
 \item{...}{Additional parameters.}
@@ -100,7 +100,7 @@ for allocating resource costs:
 \describe{
 \item{\code{get_cost_allocation()}}{Get allocated surveillance resources
 (costs) via Lagrange-based method, utilizing costs, benefits, budget
-constraints, and/or desired confidence level.}
+constraints, and/or desired detection confidence level.}
 }
 }
 \description{

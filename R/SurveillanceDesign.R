@@ -42,7 +42,7 @@
 #'   consistent with \code{alloc_cost} when specified. Otherwise the units
 #'   should be consistent with the \code{surv_qty_unit} parameter specified in
 #'   the \code{context}.
-#' @param confidence The desired (minimum) system detection sensitivity or
+#' @param confidence The desired (minimum) system sensitivity or detection
 #'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
 #' @param exist_sens A vector of detection sensitivity values of existing
 #'   surveillance present at each division part (location, category,
@@ -54,11 +54,11 @@
 #'   \describe{
 #'     \item{\code{get_allocation()}}{Get allocated surveillance resources via
 #'       specified strategy, utilizing costs, benefits, budget constraints,
-#'       and/or desired confidence level.}
+#'       and/or desired detection confidence level.}
 #'     \item{\code{get_sensitivity()}}{Get the division part detection
 #'        sensitivities of the allocated surveillance design.}
 #'     \item{\code{get_confidence()}}{Get the overall system sensitivity or
-#'       confidence of the allocated surveillance design.}
+#'       detection confidence of the allocated surveillance design.}
 #'   }
 #' @include Context.R
 #' @include Divisions.R
@@ -127,7 +127,7 @@ SurveillanceDesign.Context <- function(context,
   }
   if (!is.null(confidence) &&
       (!is.numeric(confidence) || confidence < 0 || confidence > 1)) {
-    stop("The confidence parameter must be numeric, >= 0 and <= 1.",
+    stop("The detection confidence parameter must be numeric, >= 0 and <= 1.",
          call. = FALSE)
   }
 
@@ -140,8 +140,8 @@ SurveillanceDesign.Context <- function(context,
          call. = FALSE)
   } else if (optimal == "detection" &&
              (is.null(budget) && is.null(confidence))) {
-    stop(paste("Either the budget or confidence parameter must be specified",
-               "for optimal detection."), call. = FALSE)
+    stop(paste("Either the budget or detection confidence parameter must be",
+               "specified for optimal detection."), call. = FALSE)
   }
 
   # Check alloc_cost, fixed_cost, budget, and exist_sens
@@ -177,7 +177,7 @@ SurveillanceDesign.Context <- function(context,
     # overridden in inherited classes
   }
 
-  # Get the overall system sensitivity/confidence of the design
+  # Get the overall system sensitivity or detection confidence of the design
   self$get_confidence <- function() {
     system_sens <- NULL
     return(system_sens)

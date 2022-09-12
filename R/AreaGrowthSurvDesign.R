@@ -58,7 +58,7 @@
 #'     \item{\code{get_sensitivity()}}{Get the sub-region detection
 #'        sensitivities of the allocated surveillance design.}
 #'     \item{\code{get_confidence()}}{Get the overall system sensitivity or
-#'       confidence of the allocated surveillance design.}
+#'       detection confidence of the allocated surveillance design.}
 #'     \item{\code{set_cores(cores)}}{Set the number of cores available for
 #'       parallel processing and thus enable parallel processing for
 #'       calculating optimal sample density allocation.}
@@ -408,7 +408,7 @@ AreaGrowthSurvDesign.Context <- function(context,
     return(sensitivity)
   }
 
-  # Get the overall system sensitivity/confidence of the surveillance design
+  # Get the overall system sensitivity or detection confidence of the design
   self$get_confidence <- function() {
     system_sens <- NULL
     return(system_sens)

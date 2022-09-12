@@ -74,8 +74,8 @@ area sampled. Default is \code{NULL}.}
 An attribute \code{units} may be used to specify the cost units (e.g. "$"
 or "hours").}
 
-\item{confidence}{The desired (minimum) system detection sensitivity or
-confidence of the surveillance design. Default is \code{0.95}.}
+\item{confidence}{The desired (minimum) system sensitivity or detection
+confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
 
 \item{...}{Additional parameters.}
 }
@@ -91,7 +91,7 @@ confidence level.}
 \item{\code{get_sensitivity()}}{Get the level detection
 sensitivities of the allocated surveillance design.}
 \item{\code{get_confidence()}}{Get the overall system sensitivity or
-confidence of the allocated surveillance design.}
+detection confidence of the allocated surveillance design.}
 }
 }
 \description{

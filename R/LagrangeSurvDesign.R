@@ -47,7 +47,7 @@
 #'   specified by \code{divisions}.
 #' @param budget The cost budget or constraint for the resource allocation in
 #'   the surveillance design. Default is \code{NULL}.
-#' @param confidence The desired (minimum) system detection sensitivity or
+#' @param confidence The desired (minimum) system sensitivity or detection
 #'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
 #' @param ... Additional parameters.
 #' @return A \code{LagrangeSurvDesign} class object (list) containing functions
@@ -55,7 +55,7 @@
 #'   \describe{
 #'     \item{\code{get_cost_allocation()}}{Get allocated surveillance resources
 #'       (costs) via Lagrange-based method, utilizing costs, benefits, budget
-#'       constraints, and/or desired confidence level.}
+#'       constraints, and/or desired detection confidence level.}
 #'   }
 #' @references
 #'   Cannon, R. M. (2009). Inspecting and monitoring on a restricted budget -

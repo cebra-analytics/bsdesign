@@ -34,8 +34,8 @@
 #' @param sample_cost The cost of individual samples. Default is \code{1}.
 #'   An attribute \code{units} may be used to specify the cost units (e.g. "$"
 #'   or "hours").
-#' @param confidence The desired (minimum) system detection sensitivity or
-#'   confidence of the surveillance design. Default is \code{0.95}.
+#' @param confidence The desired (minimum) system sensitivity or detection
+#'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
 #' @param ... Additional parameters.
 #' @return A \code{MultilevelSurvDesign} class object (list) containing
 #'   inherited and extended functions from the base \code{SamplingSurvDesign}
@@ -48,7 +48,7 @@
 #'     \item{\code{get_sensitivity()}}{Get the level detection
 #'        sensitivities of the allocated surveillance design.}
 #'     \item{\code{get_confidence()}}{Get the overall system sensitivity or
-#'       confidence of the allocated surveillance design.}
+#'       detection confidence of the allocated surveillance design.}
 #'   }
 #' @references
 #'   Cannon, R. M. (2009). Inspecting and monitoring on a restricted budget -
@@ -239,7 +239,7 @@ MultilevelSurvDesign.Context <- function(context,
     return(sensitivity)
   }
 
-  # Get the overall system sensitivity/confidence of the surveillance design
+  # Get the overall system sensitivity or detection confidence of the design
   self$get_confidence <- function() {
     system_sens <- NULL
     return(system_sens)

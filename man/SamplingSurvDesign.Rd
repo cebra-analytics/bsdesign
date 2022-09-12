@@ -122,7 +122,7 @@ consistent with \code{sample_cost} when specified. Otherwise the units
 should be consistent with the \code{surv_qty_unit} parameter specified in
 the \code{context} (e.g. traps or samples).}
 
-\item{confidence}{The desired (minimum) system detection sensitivity or
+\item{confidence}{The desired (minimum) system sensitivity or detection
 confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
 
 \item{exist_sens}{A vector of detection sensitivity values of existing
@@ -139,11 +139,11 @@ sensitivities:
 \describe{
 \item{\code{get_allocation()}}{Get allocated samples via specified
 strategy, utilizing costs, benefits, budget constraints, and/or
-desired confidence level.}
+desired detection confidence level.}
 \item{\code{get_sensitivity()}}{Get the division part detection
 sensitivities of the allocated surveillance design.}
 \item{\code{get_confidence()}}{Get the overall system sensitivity or
-confidence of the allocated surveillance design.}
+detection confidence of the allocated surveillance design.}
 }
 }
 \description{

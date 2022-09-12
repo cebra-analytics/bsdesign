@@ -64,7 +64,7 @@
 #'   consistent with \code{sample_cost} when specified. Otherwise the units
 #'   should be consistent with the \code{surv_qty_unit} parameter specified in
 #'   the \code{context} (e.g. traps or samples).
-#' @param confidence The desired (minimum) system detection sensitivity or
+#' @param confidence The desired (minimum) system sensitivity or detection
 #'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
 #' @param exist_sens A vector of detection sensitivity values of existing
 #'   surveillance present at each division part (location, category, etc.)
@@ -77,11 +77,11 @@
 #'   \describe{
 #'     \item{\code{get_allocation()}}{Get allocated samples via specified
 #'       strategy, utilizing costs, benefits, budget constraints, and/or
-#'       desired confidence level.}
+#'       desired detection confidence level.}
 #'     \item{\code{get_sensitivity()}}{Get the division part detection
 #'        sensitivities of the allocated surveillance design.}
 #'     \item{\code{get_confidence()}}{Get the overall system sensitivity or
-#'       confidence of the allocated surveillance design.}
+#'       detection confidence of the allocated surveillance design.}
 #'   }
 #' @references
 #'   Cannon, R. M. (2009). Inspecting and monitoring on a restricted budget -
@@ -494,7 +494,7 @@ SamplingSurvDesign.Context <- function(context,
     return(sensitivity)
   }
 
-  # Get the overall system sensitivity/confidence of the surveillance design
+  # Get the overall system sensitivity or detection confidence of the design
   self$get_confidence <- function() {
     system_sens <- NULL
     return(system_sens)
