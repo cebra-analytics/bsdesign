@@ -28,4 +28,5 @@ Collate:
     'SamplingSurvDesign.R'
     'AreaGrowthSurvDesign.R'
     'MultilevelSurvDesign.R'
+    'RangeKernelSurvDesign.R'
     'SpatialSurvDesign.R'
