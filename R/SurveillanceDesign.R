@@ -1,6 +1,6 @@
 #' Surveillance design base class builder
 #'
-#' Builds a base class to represent a surveillance design functionality for the
+#' Builds a base class to represent surveillance design functionality for the
 #' effective allocation of surveillance resources across one or more divisions
 #' (parts, locations, categories, etc.) via methods that utilize surveillance
 #' and/or incursion management costs, benefits, detection sensitivities,

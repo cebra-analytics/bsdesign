@@ -95,7 +95,7 @@ detection confidence of the allocated surveillance design.}
 }
 }
 \description{
-Builds a class to represent a surveillance design functionality for the
+Builds a class to represent surveillance design functionality for the
 effective allocation of surveillance sampling across one or more levels or
 stages via multilevel sampling methods specified with surveillance detection
 sensitivities, sample costs, and overall detection confidence.

@@ -147,7 +147,7 @@ detection confidence of the allocated surveillance design.}
 }
 }
 \description{
-Builds a class to represent a surveillance design functionality for the
+Builds a class to represent surveillance design functionality for the
 effective allocation of surveillance sampling across one or more
 divisions (parts, locations, categories, etc.) via Lagrange-based methods
 for optimizing objective functions specified with surveillance and/or

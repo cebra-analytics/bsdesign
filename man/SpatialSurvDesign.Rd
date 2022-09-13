@@ -118,7 +118,7 @@ detection confidence of the allocated surveillance design.}
 }
 }
 \description{
-Builds a class to represent a surveillance design functionality for the
+Builds a class to represent surveillance design functionality for the
 effective allocation of surveillance resources across spatial locations
 via Lagrange-based methods for optimizing objective functions specified
 with surveillance and/or incursion management costs, benefits, detection

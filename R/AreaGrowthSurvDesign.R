@@ -1,6 +1,6 @@
 #' Area growth surveillance design class builder
 #'
-#' Builds a class to represent a surveillance design functionality for the
+#' Builds a class to represent surveillance design functionality for the
 #' cost-effective allocation of surveillance sampling densities across one or
 #' more spatial sub-regions via a method that incorporates area-based
 #' population growth, surveillance and management costs, including costs

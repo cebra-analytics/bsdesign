@@ -1,6 +1,6 @@
 #' Lagrange surveillance design class builder
 #'
-#' Builds a generic class to represent a surveillance design functionality for
+#' Builds a generic class to represent surveillance design functionality for
 #' the effective allocation of surveillance resources across one or more
 #' divisions (parts, locations, categories, etc.) via Lagrange-based methods
 #' for optimizing objective functions specified with surveillance and/or
