@@ -53,6 +53,13 @@
 #'     \item{\code{get_allocation()}}{Get allocated surveillance resources
 #'       utilizing resource budget constraint and/or desired detection
 #'       confidence level.}
+#'     \item{\code{set_surv_locs(coords)}}{Set surveillance resource locations
+#'       via a data frame (or matrix) of resource location coordinates in
+#'       longitude and latitude (WGS84) with explicitly named columns "lon"
+#'       and "lat".}
+#'     \item{\code{get_surv_locs()}}{Get surveillance resource locations as a
+#'       data frame of resource location coordinates in longitude and latitude
+#'       (WGS84) with named columns "lon" and "lat".}
 #'     \item{\code{get_sensitivity()}}{Get the location detection sensitivities
 #'       of the allocated surveillance design.}
 #'     \item{\code{get_confidence()}}{Get the overall system sensitivity or
@@ -113,6 +120,11 @@ RangeKernelSurvDesign.Context <- function(context,
                                           confidence = NULL,
                                           exist_sens = NULL, ...) {
 
+  # Allow budget and confidence to be empty for setting resource locations
+  if (is.null(budget) && is.null(confidence)) {
+    budget <- confidence <- 0
+  }
+
   # Build via base class (for checks and system sensitivity)
   self <- SurveillanceDesign(context = context,
                              divisions = divisions,
@@ -158,24 +170,34 @@ RangeKernelSurvDesign.Context <- function(context,
   }
 
   # Function to calculate surveillance unit indices and pr(detection)
+  alloc_surv_units <- NULL
   calc_surv_units <- function(loc_vect = divisions$get_feat()) {
-    surv_units <- terra::nearby(loc_vect, divisions$get_feat(),
-                                 distance = sigma*4)
-    surv_units <- lapply(1:length(loc_vect), function(i) {
-      surv_unit <- list(idx = surv_units[which(surv_units[,1] == i), 2])
-      d <- terra::distance(loc_vect[i],
-                           divisions$get_feat()[surv_unit$idx])[1,]
-      surv_unit$detect <-
-        (1 - (1 - lambda[surv_unit$idx]*exp(-1*d^2/(2*sigma^2)))^intervals)
-      return(surv_unit)
-    })
+    if (is.null(alloc_surv_units)) {
+      surv_units <- terra::nearby(loc_vect, divisions$get_feat(),
+                                   distance = sigma*4)
+      surv_units <- lapply(1:length(loc_vect), function(i) {
+        surv_unit <- list(idx = surv_units[which(surv_units[,1] == i), 2])
+        if (length(surv_unit$idx)) {
+          d <- terra::distance(loc_vect[i],
+                               divisions$get_feat()[surv_unit$idx])[1,]
+          surv_unit$detect <-
+            (1 - (1 - lambda[surv_unit$idx]*exp(-1*d^2/(2*sigma^2)))^intervals)
+        }
+        return(surv_unit)
+      })
+    }
     return(surv_units)
   }
 
-  # Get the allocated surveillance resource values of the surveillance design
+  # Initialize allocated/specified resources, and unit & system sensitivities
   qty_alloc <- NULL
+  surv_vect <- NULL
+  sensitivity <- NULL
+  system_sens <- NULL
+
+  # Get the allocated surveillance resource values of the surveillance design
   self$get_allocation <- function() {
-    if (is.null(qty_alloc)) {
+    if (is.null(qty_alloc) && is.null(surv_vect)) {
 
       # Possible surveillance units with reachable indices and pr(detection)
       surv_units <- calc_surv_units()
@@ -236,26 +258,67 @@ RangeKernelSurvDesign.Context <- function(context,
       # Cell locations for allocated surveillance resource
       qty_alloc <<- numeric(parts)
       qty_alloc[selected] <<- 1
+
+      # Set the allocated surveillance unit indices and pr(detection)
+      alloc_surv_units <<- surv_units[selected]
     }
 
     return(qty_alloc)
   }
 
+  # Set surveillance resource locations
+  self$set_surv_locs <- function(coords) {
+
+    # Only set when not already allocated
+    if (!is.null(qty_alloc)) {
+      stop("Surveillance resources have already been allocated.",
+           call. = FALSE)
+    }
+
+    # Check coordinate data
+    coords <- as.data.frame(coords)
+    if (!all(c("lon", "lat") %in% names(coords))) {
+      stop("Coordinate data must contain columns named 'lon' and 'lat'.",
+           call. = FALSE)
+    }
+
+    # Convert the coordinates to spatial points
+    surv_vect <<- terra::project(terra::vect(coords, crs = "EPSG:4326"),
+                                 divisions$get_template())
+
+    # Reset unit and system sensitivities
+    sensitivity <<- NULL
+    system_sens <<- NULL
+  }
+
+  # Get surveillance resource locations (lon/lat data)
+  self$get_surv_locs <- function() {
+    surv_locs <- NULL
+    if (!is.null(qty_alloc)) {
+      surv_locs <- as.data.frame(terra::crds(terra::project(
+        divisions$get_feat()[which(qty_alloc > 0)], "EPSG:4326")))
+      names(surv_locs) <- c("lon", "lat")
+    } else if (!is.null(surv_vect)) {
+      surv_locs <- as.data.frame(terra::crds(terra::project(
+        surv_vect, "EPSG:4326")))
+      names(surv_locs) <- c("lon", "lat")
+    }
+    return(surv_locs)
+  }
+
   # Get the location detection sensitivities of the surveillance design
-  sensitivity <- NULL
-  self$get_sensitivity <- function(loc_vect = NULL) {
+  self$get_sensitivity <- function() {
     if (is.null(sensitivity)) {
 
-      # Use allocation when locations not specified
-      if (is.null(loc_vect) && !is.null(qty_alloc)) {
-        loc_vect <- divisions$get_feat()[which(qty_alloc > 0)]
-      }
-
       # Calculate sensitivities for allocated or specified locations
-      if (!is.null(loc_vect)) {
+      if (!is.null(qty_alloc) || !is.null(surv_vect)) {
 
         # Calculate surveillance units with reachable indices and pr(detection)
-        surv_units <- calc_surv_units(loc_vect)
+        if (!is.null(qty_alloc)) {
+          surv_units <- alloc_surv_units
+        } else if (!is.null(surv_vect)) {
+          surv_units <- calc_surv_units(surv_vect)
+        }
 
         # Calculate unit sensitivities
         sensitivity <<- exist_sens
@@ -267,11 +330,11 @@ RangeKernelSurvDesign.Context <- function(context,
         }
       }
     }
+
     return(sensitivity)
   }
 
   # Get the overall system sensitivity or detection confidence of the design
-  system_sens <- NULL
   get_confidence_body <- body(self$get_confidence) # from base class
   self$get_confidence <- function() {}
   body(self$get_confidence) <- get_confidence_body

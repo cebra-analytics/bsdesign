@@ -93,6 +93,13 @@ detection sensitivities:
 \item{\code{get_allocation()}}{Get allocated surveillance resources
 utilizing resource budget constraint and/or desired detection
 confidence level.}
+\item{\code{set_surv_locs(coords)}}{Set surveillance resource locations
+via a data frame (or matrix) of resource location coordinates in
+longitude and latitude (WGS84) with explicitly named columns "lon"
+and "lat".}
+\item{\code{get_surv_locs()}}{Get surveillance resource locations as a
+data frame of resource location coordinates in longitude and latitude
+(WGS84) with named columns "lon" and "lat".}
 \item{\code{get_sensitivity()}}{Get the location detection sensitivities
 of the allocated surveillance design.}
 \item{\code{get_confidence()}}{Get the overall system sensitivity or
