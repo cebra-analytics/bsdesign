@@ -10,6 +10,7 @@ SpatialSurvDesign(
   divisions,
   establish_pr,
   lambda,
+  prevalence = 1,
   optimal = c("cost", "benefit", "detection"),
   mgmt_cost = NULL,
   benefit = NULL,
@@ -27,6 +28,7 @@ SpatialSurvDesign(
   divisions,
   establish_pr,
   lambda,
+  prevalence = 1,
   optimal = c("cost", "benefit", "detection"),
   mgmt_cost = NULL,
   benefit = NULL,
@@ -58,6 +60,12 @@ location specified by \code{divisions}, such that the probability of
 detecting an incursion when present at a part can be expressed via
 \code{pr(detect|presence) = 1 - exp(-lambda*allocation)},
 for a given allocation of surveillance resources.}
+
+\item{prevalence}{The cell-level design prevalence indicating the minimum
+number of location cells that are expected to be infected with the
+invasive species if the region of interest specified by \code{divisions}
+is infected. Default is \code{1}. Higher values can be used as a proxy
+to population growth over time.}
 
 \item{optimal}{The strategy used for finding an effective surveillance
 resource allocation. One of (minimum) \code{"cost"}, (maximum)
@@ -113,8 +121,14 @@ specified strategy, utilizing costs, benefits, budget constraints,
 and/or desired detection confidence level.}
 \item{\code{get_sensitivity()}}{Get the location detection sensitivities
 of the allocated surveillance design.}
-\item{\code{get_confidence()}}{Get the overall system sensitivity or
-detection confidence of the allocated surveillance design.}
+\item{\code{get_confidence(growth = NULL)}}{Get the overall system
+sensitivity or detection confidence of the allocated surveillance
+design. The optional \code{growth} parameter may provide a vector of
+relative increasing multipliers (e.g. 1, 1.8, 4.3, 7.5) applied to the
+cell-level design \code{prevalence} over time or a sequence of
+repeated surveillance efforts, which provide a proxy for invasive
+species growth. When present, increasing system sensitivity values are
+returned for each multiplier or time/repeat.}
 }
 }
 \description{
@@ -125,6 +139,12 @@ with surveillance and/or incursion management costs, benefits, detection
 sensitivities, and/or overall detection confidence.
 }
 \references{
+Anderson, D. P., Gormley, A. M., Ramsey, D. S. L., Nugent, G., Martin,
+P. A. J., Bosson, M., Livingstone, P., & Byrom, A. E. (2017).
+Bio-economic optimisation of surveillance to confirm broadscale
+eradications of invasive pests and diseases. \emph{Biological Invasions},
+19(10), 2869–2884. \doi{10.1007/s10530-017-1490-5}
+
 Hauser, C. E., & McCarthy, M. A. (2009). Streamlining 'search and
 destroy': cost-effective surveillance for invasive species management.
 \emph{Ecology Letters}, 12(7), 683–692.

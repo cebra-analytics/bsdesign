@@ -56,9 +56,15 @@
 #'     \item{\code{get_allocation()}}{Get allocated sample densities via
 #'       specified strategy, utilizing costs and budget constraints.}
 #'     \item{\code{get_sensitivity()}}{Get the sub-region detection
-#'        sensitivities of the allocated surveillance design.}
-#'     \item{\code{get_confidence()}}{Get the overall system sensitivity or
-#'       detection confidence of the allocated surveillance design.}
+#'       sensitivities of the allocated surveillance design.}
+#'     \item{\code{get_confidence(growth = NULL)}}{Get the overall system
+#'       sensitivity or detection confidence of the allocated surveillance
+#'       design. The optional \code{growth} parameter may provide a vector of
+#'       relative increasing multipliers (e.g. 1, 1.8, 4.3, 7.5) applied to the
+#'       sampling design density implied by the method over time or a sequence
+#'       of repeated surveillance efforts, which provide a proxy for invasive
+#'       species growth. When present, increasing system sensitivity values are
+#'       returned for each multiplier or time/repeat.}
 #'     \item{\code{set_cores(cores)}}{Set the number of cores available for
 #'       parallel processing and thus enable parallel processing for
 #'       calculating optimal sample density allocation.}
@@ -390,7 +396,7 @@ AreaGrowthSurvDesign.Context <- function(context,
       }
 
       # Extract sample density and add costs as an attribute
-      sample_density <- optim_alloc$sample_density
+      sample_density <<- optim_alloc$sample_density
       attr(sample_density, "costs") <- optim_alloc[-1]
     }
 
@@ -399,19 +405,45 @@ AreaGrowthSurvDesign.Context <- function(context,
 
 
   # Get the detection sensitivities for each sub-region of the design
+  calculate_sensitivity <- function(multi = 1) { # internal version
+    unit_sens <- NULL
+    if (!is.null(sample_density)) {
+      unit_sens <- 1 - exp(-1*sample_sens*subregion_area*sample_density*multi)
+    }
+    return(unit_sens)
+  }
   sensitivity <- NULL
-  self$get_sensitivity <- function() {
-    if (is.null(sensitivity) && !is.null(sample_density)) {
-      sensitivity <<- 1 - exp(-1*sample_sens*subregion_area*sample_density)
+  self$get_sensitivity <- function() { # class version
+    if (is.null(sensitivity)) {
+      sensitivity <<- calculate_sensitivity()
     }
     return(sensitivity)
   }
 
   # Get the overall system sensitivity or detection confidence of the design
-  system_sens <- NULL
-  get_confidence_body <- body(self$get_confidence) # inherit from base class
-  self$get_confidence <- function() {}
-  body(self$get_confidence) <- get_confidence_body
+  self$get_confidence <- function(growth = NULL) {
+
+    # Set single growth when not specified
+    if (!is.numeric(growth)) {
+      growth <- 1
+    }
+
+    # Calculate system sensitivity for each value of growth
+    system_sens <- NULL
+    for (multi in growth) {
+      sensitivity <- calculate_sensitivity(multi)
+      if (!is.null(sensitivity)) {
+        if (subregions == 1) {
+          system_sens <- c(system_sens, sensitivity)
+        } else if (!is.null(establish_rate)) {
+          system_sens <- c(system_sens,
+                           sum(establish_rate*sensitivity)/sum(establish_rate))
+        }
+      }
+    }
+
+    return(system_sens)
+  }
 
   return(self)
 }

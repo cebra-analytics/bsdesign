@@ -46,9 +46,15 @@
 #'       each level to achieve a minimal total cost given a specified desired
 #'       confidence level.}
 #'     \item{\code{get_sensitivity()}}{Get the level detection
-#'        sensitivities of the allocated surveillance design.}
-#'     \item{\code{get_confidence()}}{Get the overall system sensitivity or
-#'       detection confidence of the allocated surveillance design.}
+#'       sensitivities of the allocated surveillance design.}
+#'     \item{\code{get_confidence(growth = NULL)}}{Get the overall system
+#'       sensitivity or detection confidence of the allocated surveillance
+#'       design. The optional \code{growth} parameter may provide a vector of
+#'       relative increasing multipliers (e.g. 1, 1.8, 4.3, 7.5) applied to the
+#'       discrete sampling design \code{prevalence} over time or a sequence of
+#'       repeated surveillance efforts, which provide a proxy for invasive
+#'       species growth. When present, increasing system sensitivity values are
+#'       returned for each multiplier or time/repeat.}
 #'   }
 #' @references
 #'   Cannon, R. M. (2009). Inspecting and monitoring on a restricted budget -
@@ -124,7 +130,7 @@ MultilevelSurvDesign.Context <- function(context,
   nlevels <- divisions$get_parts()
 
   # Function to calculate level sensitivities
-  calculate_sensitivity <- function(n_alloc) {
+  calculate_sensitivity <- function(n_alloc, multi = 1) {
 
     # Calculate sensitivity at each level
     level_sens <- rep(NA, nlevels)
@@ -139,15 +145,16 @@ MultilevelSurvDesign.Context <- function(context,
 
       # Calculate level sensitivity
       if (l == 1 && sample_type == "continuous") {
-        level_sens[l] <- 1 - exp(-1*p*n_alloc[l]*sample_area*design_dens[l])
+        level_sens[l] <-
+          1 - exp(-1*p*n_alloc[l]*sample_area*design_dens[l]*multi)
       } else { # discrete
         if (!is.null(total_indiv) && total_indiv[l] > 0 &&
             n_alloc[l]/total_indiv[l] > 0.1) {
           level_sens[l] <-
             1 - ((1 - p*min(1, n_alloc[l]/total_indiv[l]))^
-                   (prevalence[l]*total_indiv[l]))
+                   (prevalence[l]*multi*total_indiv[l]))
         } else {
-          level_sens[l] <- 1 - (1 - p*prevalence[l])^n_alloc[l]
+          level_sens[l] <- 1 - (1 - p*prevalence[l]*multi)^n_alloc[l]
         }
       }
     }
@@ -240,12 +247,25 @@ MultilevelSurvDesign.Context <- function(context,
   }
 
   # Get the overall system sensitivity or detection confidence of the design
-  system_sens <- NULL
-  self$get_confidence <- function() {
-    sensitivity <- self$get_sensitivity()
-    if (is.null(system_sens) && !is.null(sensitivity)) {
-      system_sens <<- sensitivity[nlevels]
+  self$get_confidence <- function(growth = NULL) {
+
+    # Set single growth when not specified
+    if (!is.numeric(growth)) {
+      growth <- 1
     }
+
+    # Calculate system sensitivity for each value of growth
+    system_sens <- NULL
+    if (!is.null(qty_alloc)) {
+      for (multi in growth) {
+        sensitivity <- calculate_sensitivity(qty_alloc, multi)
+        if (!is.null(sensitivity)) {
+          system_sens <- c(system_sens, sensitivity[nlevels])
+        }
+      }
+    }
+
+    return(system_sens)
   }
 
   return(self)

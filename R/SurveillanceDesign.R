@@ -56,9 +56,15 @@
 #'       specified strategy, utilizing costs, benefits, budget constraints,
 #'       and/or desired detection confidence level.}
 #'     \item{\code{get_sensitivity()}}{Get the division part detection
-#'        sensitivities of the allocated surveillance design.}
-#'     \item{\code{get_confidence()}}{Get the overall system sensitivity or
-#'       detection confidence of the allocated surveillance design.}
+#'       sensitivities of the allocated surveillance design.}
+#'     \item{\code{get_confidence(growth = NULL)}}{Get the overall system
+#'       sensitivity or detection confidence of the allocated surveillance
+#'       design. The optional \code{growth} parameter may provide a vector of
+#'       relative increasing multipliers (e.g. 1, 1.8, 4.3, 7.5) applied to the
+#'       prevalence or density of the design over time or a sequence of
+#'       repeated surveillance efforts, which provide a proxy for invasive
+#'       species growth. When present, increasing system sensitivity values are
+#'       returned for each multiplier or time/repeat.}
 #'   }
 #' @references
 #'   Cannon, R. M. (2009). Inspecting and monitoring on a restricted budget -
@@ -192,23 +198,8 @@ SurveillanceDesign.Context <- function(context,
   }
 
   # Get the overall system sensitivity or detection confidence of the design
-  system_sens <- NULL
-  self$get_confidence <- function() {
-    sensitivity <- self$get_sensitivity()
-    if (is.null(system_sens) && !is.null(sensitivity)) {
-      if (parts == 1) {
-        system_sens <<- sensitivity
-      } else if (!is.null(establish_pr)) {
-        if (relative_establish_pr) {
-          system_sens <<- sum(establish_pr*sensitivity)/sum(establish_pr)
-        } else {
-          system_sens <<- ((1 - prod(1 - establish_pr*sensitivity))/
-                             (1 - prod(1 - establish_pr)))
-        }
-      }
-    }
-
-    return(system_sens)
+  self$get_confidence <- function(growth = NULL) {
+    # overridden in inherited classes
   }
 
   return(self)

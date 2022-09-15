@@ -21,6 +21,11 @@
 #'   detecting an incursion when present at a part can be expressed via
 #'   \code{pr(detect|presence) = 1 - exp(-lambda*allocation)},
 #'   for a given allocation of surveillance resources.
+#' @param prevalence The cell-level design prevalence indicating the minimum
+#'   number of location cells that are expected to be infected with the
+#'   invasive species if the region of interest specified by \code{divisions}
+#'   is infected. Default is \code{1}. Higher values can be used as a proxy
+#'   to population growth over time.
 #' @param optimal The strategy used for finding an effective surveillance
 #'   resource allocation. One of (minimum) \code{"cost"}, (maximum)
 #'   \code{"benefit"}, or (maximum) \code{"detection"} sensitivity (up to
@@ -65,10 +70,22 @@
 #'       and/or desired detection confidence level.}
 #'     \item{\code{get_sensitivity()}}{Get the location detection sensitivities
 #'       of the allocated surveillance design.}
-#'     \item{\code{get_confidence()}}{Get the overall system sensitivity or
-#'       detection confidence of the allocated surveillance design.}
+#'     \item{\code{get_confidence(growth = NULL)}}{Get the overall system
+#'       sensitivity or detection confidence of the allocated surveillance
+#'       design. The optional \code{growth} parameter may provide a vector of
+#'       relative increasing multipliers (e.g. 1, 1.8, 4.3, 7.5) applied to the
+#'       cell-level design \code{prevalence} over time or a sequence of
+#'       repeated surveillance efforts, which provide a proxy for invasive
+#'       species growth. When present, increasing system sensitivity values are
+#'       returned for each multiplier or time/repeat.}
 #'   }
 #' @references
+#'   Anderson, D. P., Gormley, A. M., Ramsey, D. S. L., Nugent, G., Martin,
+#'   P. A. J., Bosson, M., Livingstone, P., & Byrom, A. E. (2017).
+#'   Bio-economic optimisation of surveillance to confirm broadscale
+#'   eradications of invasive pests and diseases. \emph{Biological Invasions},
+#'   19(10), 2869–2884. \doi{10.1007/s10530-017-1490-5}
+#'
 #'   Hauser, C. E., & McCarthy, M. A. (2009). Streamlining 'search and
 #'   destroy': cost-effective surveillance for invasive species management.
 #'   \emph{Ecology Letters}, 12(7), 683–692.
@@ -90,6 +107,7 @@ SpatialSurvDesign <- function(context,
                               divisions,
                               establish_pr,
                               lambda,
+                              prevalence = 1,
                               optimal = c("cost", "benefit", "detection"),
                               mgmt_cost = NULL,
                               benefit = NULL,
@@ -108,6 +126,7 @@ SpatialSurvDesign.Context <- function(context,
                                       divisions,
                                       establish_pr,
                                       lambda,
+                                      prevalence = 1,
                                       optimal = c("cost", "benefit",
                                                   "detection"),
                                       mgmt_cost = NULL,
@@ -144,12 +163,15 @@ SpatialSurvDesign.Context <- function(context,
     relative_establish_pr <- FALSE
   }
 
-  # Check lambda
+  # Check lambda and prevalence
   if (!is.numeric(lambda) || lambda < 0 || !length(lambda) %in% c(1, parts)) {
     stop(paste("The lambda parameter must be numeric,  >= 0, and match the",
                "number of division parts."), call. = FALSE)
   } else if (length(lambda) == 1) {
     lambda <- rep(lambda, parts)
+  }
+  if (!is.numeric(prevalence) || prevalence < 0) {
+    stop("The prevalence parameter must be numeric and  >= 0.", call. = FALSE)
   }
 
   # Match optimal arguments
@@ -305,10 +327,32 @@ SpatialSurvDesign.Context <- function(context,
   }
 
   # Get the overall system sensitivity or detection confidence of the design
-  system_sens <- NULL
-  get_confidence_body <- body(self$get_confidence) # from base class
-  self$get_confidence <- function() {}
-  body(self$get_confidence) <- get_confidence_body
+  self$get_confidence <- function(growth = NULL) {
+    system_sens <- NULL
+    sensitivity <- self$get_sensitivity()
+    if (!is.null(sensitivity)) {
+
+      # Calculate base system sensitivity
+      if (parts == 1) {
+        system_sens <- sensitivity
+      } else if (!is.null(establish_pr)) {
+        if (relative_establish_pr) {
+          system_sens <- sum(establish_pr*sensitivity)/sum(establish_pr)
+        } else {
+          system_sens <- ((1 - prod(1 - establish_pr*sensitivity))/
+                            (1 - prod(1 - establish_pr)))
+        }
+      }
+
+      # Apply prevalence with growth if present
+      if (is.numeric(growth)) {
+        prevalence <- prevalence*growth
+      }
+      system_sens <- 1 - (1 - system_sens)^prevalence
+    }
+
+    return(system_sens)
+  }
 
   return(self)
 }

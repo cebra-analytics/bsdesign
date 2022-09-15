@@ -102,8 +102,14 @@ data frame of resource location coordinates in longitude and latitude
 (WGS84) with named columns "lon" and "lat".}
 \item{\code{get_sensitivity()}}{Get the location detection sensitivities
 of the allocated surveillance design.}
-\item{\code{get_confidence()}}{Get the overall system sensitivity or
-detection confidence of the allocated surveillance design.}
+\item{\code{get_confidence(growth = NULL)}}{Get the overall system
+sensitivity or detection confidence of the allocated surveillance
+design. The optional \code{growth} parameter may provide a vector of
+relative increasing multipliers (e.g. 1, 1.8, 4.3, 7.5) applied to the
+cell-level design \code{prevalence} over time or a sequence of
+repeated surveillance efforts, which provide a proxy for invasive
+species growth. When present, increasing system sensitivity values are
+returned for each multiplier or time/repeat.}
 }
 }
 \description{

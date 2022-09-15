@@ -62,8 +62,14 @@
 #'       (WGS84) with named columns "lon" and "lat".}
 #'     \item{\code{get_sensitivity()}}{Get the location detection sensitivities
 #'       of the allocated surveillance design.}
-#'     \item{\code{get_confidence()}}{Get the overall system sensitivity or
-#'       detection confidence of the allocated surveillance design.}
+#'     \item{\code{get_confidence(growth = NULL)}}{Get the overall system
+#'       sensitivity or detection confidence of the allocated surveillance
+#'       design. The optional \code{growth} parameter may provide a vector of
+#'       relative increasing multipliers (e.g. 1, 1.8, 4.3, 7.5) applied to the
+#'       cell-level design \code{prevalence} over time or a sequence of
+#'       repeated surveillance efforts, which provide a proxy for invasive
+#'       species growth. When present, increasing system sensitivity values are
+#'       returned for each multiplier or time/repeat.}
 #'   }
 #' @references
 #'   Anderson, D. P., Ramsey, D. S. L., Nugent, G., Bosson, M., Livingstone,
@@ -189,11 +195,10 @@ RangeKernelSurvDesign.Context <- function(context,
     return(surv_units)
   }
 
-  # Initialize allocated/specified resources, and unit & system sensitivities
+  # Initialize allocated/specified resources, and unit sensitivities
   qty_alloc <- NULL
   surv_vect <- NULL
   sensitivity <- NULL
-  system_sens <- NULL
 
   # Get the allocated surveillance resource values of the surveillance design
   self$get_allocation <- function() {
@@ -286,9 +291,8 @@ RangeKernelSurvDesign.Context <- function(context,
     surv_vect <<- terra::project(terra::vect(coords, crs = "EPSG:4326"),
                                  divisions$get_template())
 
-    # Reset unit and system sensitivities
+    # Reset unit sensitivities
     sensitivity <<- NULL
-    system_sens <<- NULL
   }
 
   # Get surveillance resource locations (lon/lat data)
@@ -335,9 +339,32 @@ RangeKernelSurvDesign.Context <- function(context,
   }
 
   # Get the overall system sensitivity or detection confidence of the design
-  get_confidence_body <- body(self$get_confidence) # from base class
-  self$get_confidence <- function() {}
-  body(self$get_confidence) <- get_confidence_body
+  self$get_confidence <- function(growth = NULL) {
+    system_sens <- NULL
+    sensitivity <- self$get_sensitivity()
+    if (!is.null(sensitivity)) {
+
+      # Calculate base system sensitivity
+      if (parts == 1) {
+        system_sens <- sensitivity
+      } else if (!is.null(establish_pr)) {
+        if (relative_establish_pr) {
+          system_sens <- sum(establish_pr*sensitivity)/sum(establish_pr)
+        } else {
+          system_sens <- ((1 - prod(1 - establish_pr*sensitivity))/
+                            (1 - prod(1 - establish_pr)))
+        }
+      }
+
+      # Apply prevalence with growth if present
+      if (is.numeric(growth)) {
+        prevalence <- prevalence*growth
+      }
+      system_sens <- 1 - (1 - system_sens)^prevalence
+    }
+
+    return(system_sens)
+  }
 
   return(self)
 }

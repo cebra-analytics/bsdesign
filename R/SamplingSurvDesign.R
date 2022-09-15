@@ -79,9 +79,16 @@
 #'       strategy, utilizing costs, benefits, budget constraints, and/or
 #'       desired detection confidence level.}
 #'     \item{\code{get_sensitivity()}}{Get the division part detection
-#'        sensitivities of the allocated surveillance design.}
-#'     \item{\code{get_confidence()}}{Get the overall system sensitivity or
-#'       detection confidence of the allocated surveillance design.}
+#'       sensitivities of the allocated surveillance design.}
+#'     \item{\code{get_confidence(growth = NULL)}}{Get the overall system
+#'       sensitivity or detection confidence of the allocated surveillance
+#'       design. The optional \code{growth} parameter may provide a vector of
+#'       relative increasing multipliers (e.g. 1, 1.8, 4.3, 7.5) applied to the
+#'       discrete sampling design \code{prevalence}, or the continuous sampling
+#'       design density (\code{design_dens}), over time or a sequence of
+#'       repeated surveillance efforts, which provide a proxy for invasive
+#'       species growth. When present, increasing system sensitivity values are
+#'       returned for each multiplier or time/repeat.}
 #'   }
 #' @references
 #'   Cannon, R. M. (2009). Inspecting and monitoring on a restricted budget -
@@ -186,6 +193,10 @@ SamplingSurvDesign.Context <- function(context,
        length(total_indiv) != parts)) {
     stop(paste("The total individuals parameter must be numeric with values",
                ">= 0 for each division part."), call. = FALSE)
+  }
+  if (is.numeric(total_indiv) && length(total_indiv) == 1 &&
+      total_indiv == 0) {
+    total_indiv <- NULL
   }
   if (!is.null(design_dens) &&
       (!is.numeric(design_dens) || any(design_dens < 0) ||
@@ -476,29 +487,67 @@ SamplingSurvDesign.Context <- function(context,
   }
 
   # Get the detection sensitivities for each division part of the design
-  sensitivity <- NULL
-  self$get_sensitivity <- function() {
-    if (is.null(sensitivity) && !is.null(qty_alloc)) {
+  calculate_sensitivity <- function(multi = 1) { # internal version
+    unit_sens <- NULL
+    if (!is.null(qty_alloc)) {
 
       # Check if discrete sample fraction n/N > 0.1
-      if (sample_type == "discrete" && is.numeric(total_indiv) &&
-          any(qty_alloc/total_indiv > 0.1)) {
-        sensitivity <<-
-          1 - (1 - exist_sens)*((1 - sample_sens*qty_alloc/total_indiv)
-                                ^(prevalence*total_indiv))
-      } else {
-        sensitivity <<- 1 - (1 - exist_sens)*exp(-1*lambda*qty_alloc)
+      if (sample_type == "discrete") {
+        if (is.numeric(total_indiv) && any(qty_alloc/total_indiv > 0.1)) {
+          unit_sens <-
+            1 - (1 - exist_sens)*((1 - sample_sens*qty_alloc/total_indiv)
+                                  ^(prevalence*multi*total_indiv))
+        } else {
+          unit_sens <-
+            1 - (1 - exist_sens)*(1 - sample_sens*prevalence*multi)^qty_alloc
+        }
+      } else { # continuous
+        unit_sens <-
+          1 - ((1 - exist_sens)*
+                 exp(-1*sample_sens*sample_area*qty_alloc*design_dens*multi))
       }
     }
 
+    return(unit_sens)
+  }
+  sensitivity <- NULL
+  self$get_sensitivity <- function() { # class version
+    if (is.null(sensitivity)) {
+      sensitivity <<- calculate_sensitivity()
+    }
     return(sensitivity)
   }
 
   # Get the overall system sensitivity or detection confidence of the design
-  system_sens <- NULL
-  get_confidence_body <- body(self$get_confidence) # from base class
-  self$get_confidence <- function() {}
-  body(self$get_confidence) <- get_confidence_body
+  self$get_confidence <- function(growth = NULL) {
+
+    # Set single growth when not specified
+    if (!is.numeric(growth)) {
+      growth <- 1
+    }
+
+    # Calculate system sensitivity for each value of growth
+    system_sens <- NULL
+    for (multi in growth) {
+      sensitivity <- calculate_sensitivity(multi)
+      if (!is.null(sensitivity)) {
+        if (parts == 1) {
+          system_sens <- c(system_sens, sensitivity)
+        } else if (!is.null(establish_pr)) {
+          if (relative_establish_pr) {
+            system_sens <- c(system_sens,
+                             sum(establish_pr*sensitivity)/sum(establish_pr))
+          } else {
+            system_sens <- c(system_sens,
+                             ((1 - prod(1 - establish_pr*sensitivity))/
+                              (1 - prod(1 - establish_pr))))
+          }
+        }
+      }
+    }
+
+    return(system_sens)
+  }
 
   return(self)
 }
