@@ -21,12 +21,15 @@ Suggests:
     rmarkdown,
     testthat
 Collate: 
+    'Context.R'
+    'AreaFreedomDesign.R'
     'LagrangeSurvDesign.R'
     'Divisions.R'
-    'Context.R'
     'SurveillanceDesign.R'
     'SamplingSurvDesign.R'
     'AreaGrowthSurvDesign.R'
+    'BayesianFreedomDesign.R'
+    'HypothTestFreedomDesign.R'
     'MultilevelSurvDesign.R'
     'RangeKernelSurvDesign.R'
     'SpatialSurvDesign.R'
