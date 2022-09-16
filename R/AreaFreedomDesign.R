@@ -28,6 +28,10 @@
 #'   (obtained via Bayesian approaches). The following template functions are
 #'   provided in the base class:
 #'   \describe{
+#'     \item{\code{get_evidence()}}{Get a sequence of values that provide
+#'       evidence for area freedom, for each iteration or time interval
+#'       specified, or for the iterations required to satisfy the stopping
+#'       criteria (see inherited classes).}
 #'     \item{\code{get_iterations()}}{Get the number of time intervals, or
 #'       sequential surveillance system applications, used to provide evidence
 #'       of area freedom. The value returned will be either the specified
@@ -35,10 +39,6 @@
 #'       specified stopping criteria for the freedom evidence has been
 #'       satisfied, such as a threshold probability or target confidence in
 #'       freedom (see inherited classes).}
-#'     \item{\code{get_evidence()}}{Get a sequence of values that provide
-#'       evidence for area freedom, for each iteration or time interval
-#'       specified, or for the iterations required to satisfy the stopping
-#'       criteria (see inherited classes).}
 #'   }
 #' @references
 #'   Rout, T. (2017). Declaring Eradication of an Invasive Species. In
@@ -83,13 +83,13 @@ AreaFreedomDesign.Context <- function(context,
   # Create a class structure
   self <- structure(list(), class = c(class, "AreaFreedomDesign"))
 
-  # Get the number of time intervals or surveillance system sequences
-  self$get_iterations <- function() {
+  # Get a sequence of values that provide evidence for area freedom
+  self$get_evidence <- function() {
     # overridden in inherited classes
   }
 
-  # Get a sequence of values that provide evidence for area freedom
-  self$get_evidence <- function() {
+  # Get the number of time intervals or surveillance system sequences
+  self$get_iterations <- function() {
     # overridden in inherited classes
   }
 

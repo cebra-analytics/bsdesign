@@ -64,18 +64,18 @@ inherited and extended functions from the base \code{AreaFreedomDesign}
 class to provide evidence for area freedom, given detection records,
 over a number of iterations, via hypothesis testing approaches:
 \describe{
-\item{\code{get_iterations()}}{Get the number of time intervals, or
-sequential surveillance system applications, used to provide evidence
-for area freedom. The value returned will be either the specified
-\code{iterations} parameter, or the iterations recorded when the
-specified threshold probability \code{p_value} for rejecting the null
-hypothesis of presence given no detection is reached.}
 \item{\code{get_evidence()}}{Get a sequence of values for the
 probability that an extant invasive species could evade surveillance
 system detection, for each iteration or time interval specified, or
 for the iterations required to satisfy the threshold probability
 \code{p_value} for rejecting the null hypothesis that the invasive
 species remains present.}
+\item{\code{get_iterations()}}{Get the number of time intervals, or
+sequential surveillance system applications, used to provide evidence
+for area freedom. The value returned will be either the specified
+\code{iterations} parameter, or the iterations recorded when the
+specified threshold probability \code{p_value} for rejecting the null
+hypothesis of presence given no detection is reached.}
 }
 }
 \description{

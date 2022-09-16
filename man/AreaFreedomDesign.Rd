@@ -53,6 +53,10 @@ evades detection (for hypothesis testing), or the confidence in freedom
 (obtained via Bayesian approaches). The following template functions are
 provided in the base class:
 \describe{
+\item{\code{get_evidence()}}{Get a sequence of values that provide
+evidence for area freedom, for each iteration or time interval
+specified, or for the iterations required to satisfy the stopping
+criteria (see inherited classes).}
 \item{\code{get_iterations()}}{Get the number of time intervals, or
 sequential surveillance system applications, used to provide evidence
 of area freedom. The value returned will be either the specified
@@ -60,10 +64,6 @@ of area freedom. The value returned will be either the specified
 specified stopping criteria for the freedom evidence has been
 satisfied, such as a threshold probability or target confidence in
 freedom (see inherited classes).}
-\item{\code{get_evidence()}}{Get a sequence of values that provide
-evidence for area freedom, for each iteration or time interval
-specified, or for the iterations required to satisfy the stopping
-criteria (see inherited classes).}
 }
 }
 \description{

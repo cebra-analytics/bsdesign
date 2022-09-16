@@ -33,16 +33,16 @@
 #'   class to provide evidence for area freedom, given detection records,
 #'   over a number of iterations, via Bayesian approaches:
 #'   \describe{
+#'     \item{\code{get_evidence()}}{Get a sequence of values of confidence in
+#'       area freedom, or probability of absence given no detection of an
+#'       invasive species, for each iteration or time interval specified, or
+#'       for the iterations required to satisfy the target \code{confidence}.}
 #'     \item{\code{get_iterations()}}{Get the number of time intervals, or
 #'       sequential surveillance system applications, used to provide evidence
 #'       for area freedom. The value returned will be either the specified
 #'       \code{iterations} parameter, or the iterations recorded when the
 #'       specified target \code{confidence} level for absence given no
 #'       detection is reached.}
-#'     \item{\code{get_evidence()}}{Get a sequence of values of confidence in
-#'       area freedom, or probability of absence given no detection of an
-#'       invasive species, for each iteration or time interval specified, or
-#'       for the iterations required to satisfy the target \code{confidence}.}
 #'   }
 #' @references
 #'   Anderson, D. P., Ramsey, D. S. L., Nugent, G., Bosson, M., Livingstone,
@@ -109,13 +109,13 @@ BayesianFreedomDesign.Context <- function(context,
                "and <= 1."), call. = FALSE)
   }
 
-  # Get the number of time intervals or surveillance system sequences
-  self$get_iterations <- function() {
+  # Get a sequence of values that provide evidence for area freedom
+  self$get_evidence <- function() {
     # TODO ####
   }
 
-  # Get a sequence of values that provide evidence for area freedom
-  self$get_evidence <- function() {
+  # Get the number of time intervals or surveillance system sequences
+  self$get_iterations <- function() {
     # TODO ####
   }
 

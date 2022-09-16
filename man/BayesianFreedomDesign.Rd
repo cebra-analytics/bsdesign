@@ -62,16 +62,16 @@ inherited and extended functions from the base \code{AreaFreedomDesign}
 class to provide evidence for area freedom, given detection records,
 over a number of iterations, via Bayesian approaches:
 \describe{
+\item{\code{get_evidence()}}{Get a sequence of values of confidence in
+area freedom, or probability of absence given no detection of an
+invasive species, for each iteration or time interval specified, or
+for the iterations required to satisfy the target \code{confidence}.}
 \item{\code{get_iterations()}}{Get the number of time intervals, or
 sequential surveillance system applications, used to provide evidence
 for area freedom. The value returned will be either the specified
 \code{iterations} parameter, or the iterations recorded when the
 specified target \code{confidence} level for absence given no
 detection is reached.}
-\item{\code{get_evidence()}}{Get a sequence of values of confidence in
-area freedom, or probability of absence given no detection of an
-invasive species, for each iteration or time interval specified, or
-for the iterations required to satisfy the target \code{confidence}.}
 }
 }
 \description{
