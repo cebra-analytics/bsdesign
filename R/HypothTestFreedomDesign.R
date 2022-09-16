@@ -106,14 +106,55 @@ HypothTestFreedomDesign.Context <- function(context,
                "and <= 1."), call. = FALSE)
   }
 
-  # Get a sequence of values that provide evidence for area freedom
+  # Get a sequence of values for the probability of non-detection if an
+  # invasive species remains present, providing evidence for area freedom
+  pr_undetected <- NULL
   self$get_evidence <- function() {
-    # TODO ####
+
+    # Any invasive species previously detected?
+    if (any(detected)) {
+      n_pres <- length(which(detected))
+      time_n <- which(detected)[n_pres]
+      pr_undetected <<- rep(1, time_n)
+    }
+
+    # Calculate the probability of undetected presence for iterations or
+    # when p-value is met
+    while ((is.numeric(iterations) && is.numeric(p_value) &&
+            length(pr_undetected) < iterations &&
+            pr_undetected[length(pr_undetected)] > p_value) ||
+           (is.numeric(iterations) && is.null(p_value) &&
+            length(pr_undetected) < iterations) ||
+           (is.null(iterations) && is.numeric(p_value) &&
+            pr_undetected[length(pr_undetected)] > p_value) ||
+           (is.null(iterations) && is.null(p_value) && any(detected) &&
+            length(pr_undetected) < length(detected))) {
+
+      # Use probability of detection when present, else use detection record
+      if (is.numeric(pr_detect)) {
+        if (length(pr_undetected)) {
+          pr_undetected <<- c(pr_undetected,
+                             (pr_persist*(1 - pr_detect)*
+                                pr_undetected[length(pr_undetected)]))
+        } else {
+          pr_undetected <<- pr_persist*(1 - pr_detect)
+        }
+      } else if (any(detected)) {
+        pr_undetected <<- c(pr_undetected,
+                           (time_n/(length(pr_undetected) + 1))^n_pres)
+      }
+    }
+
+    return(pr_undetected)
   }
 
   # Get the number of time intervals or surveillance system sequences
   self$get_iterations <- function() {
-    # TODO ####
+    n_iter <- NULL
+    if (length(pr_undetected)) {
+      n_iter <- length(pr_undetected)
+    }
+    return(n_iter)
   }
 
   return(self)
