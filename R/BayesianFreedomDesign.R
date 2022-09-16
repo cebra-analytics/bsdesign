@@ -88,6 +88,38 @@ BayesianFreedomDesign.Context <- function(context,
                                           pr_detect = NULL,
                                           pr_freedom = 1,
                                           iterations = NULL,
-                                          confidence = NULL, ...) {}
+                                          confidence = NULL, ...) {
+
+  # Build via base class (for checks)
+  self <- AreaFreedomDesign(context = context,
+                            detected = detected,
+                            pr_detect = pr_detect,
+                            iterations = iterations,
+                            class = "BayesianFreedomDesign", ...)
+
+  # Check class parameters
+  if (!is.null(pr_freedom) &&
+      (!is.numeric(pr_freedom) || pr_freedom < 0 || pr_freedom > 1)) {
+    stop(paste("The prior probability of freedom parameter must be numeric,",
+               ">= 0, and <= 1."), call. = FALSE)
+  }
+  if (!is.null(confidence) &&
+      (!is.numeric(confidence) || confidence < 0 || confidence > 1)) {
+    stop(paste("The confidence of freedom parameter must be numeric, >= 0,",
+               "and <= 1."), call. = FALSE)
+  }
+
+  # Get the number of time intervals or surveillance system sequences
+  self$get_iterations <- function() {
+    # TODO ####
+  }
+
+  # Get a sequence of values that provide evidence for area freedom
+  self$get_evidence <- function() {
+    # TODO ####
+  }
+
+  return(self)
+}
 
 

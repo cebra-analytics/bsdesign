@@ -64,4 +64,37 @@ AreaFreedomDesign.Context <- function(context,
                                       iterations = NULL,
                                       class = character(), ...) {
 
+  # Check parameters
+  detected <- as.logical(detected)
+  if (length(detected) < 1) {
+    stop(paste("The temporal detected parameter should be a logical vector",
+               "with length >= 1."), call. = FALSE)
+  }
+  if (!is.null(pr_detect) &&
+      (!is.numeric(pr_detect) || pr_detect < 0 || pr_detect > 1)) {
+    stop(paste("The probability of detection parameter must be numeric, >= 0,",
+               "and <= 1."), call. = FALSE)
+  }
+  if (!is.null(iterations) &&
+      (!is.numeric(iterations) || pr_detect < 1)) {
+    stop("The iterations parameter must be numeric and >= 1.", call. = FALSE)
+  }
+
+  # Create a class structure
+  self <- structure(list(), class = c(class, "AreaFreedomDesign"))
+
+  # Get the number of time intervals or surveillance system sequences
+  self$get_iterations <- function() {
+    # overridden in inherited classes
+  }
+
+  # Get a sequence of values that provide evidence for area freedom
+  self$get_evidence <- function() {
+    # overridden in inherited classes
+  }
+
+  return(self)
 }
+
+
+

@@ -87,4 +87,34 @@ HypothTestFreedomDesign.Context <- function(context,
                                             iterations = NULL,
                                             p_value = NULL, ...) {
 
+  # Build via base class (for checks)
+  self <- AreaFreedomDesign(context = context,
+                            detected = detected,
+                            pr_detect = pr_detect,
+                            iterations = iterations,
+                            class = "HypothTestFreedomDesign", ...)
+
+  # Check class parameters
+  if (!is.null(pr_persist) &&
+      (!is.numeric(pr_persist) || pr_persist < 0 || pr_persist > 1)) {
+    stop(paste("The probability of persistence parameter must be numeric,",
+               ">= 0, and <= 1."), call. = FALSE)
+  }
+  if (!is.null(p_value) &&
+      (!is.numeric(p_value) || p_value < 0 || p_value > 1)) {
+    stop(paste("The hypothesis test p-value parameter must be numeric, >= 0,",
+               "and <= 1."), call. = FALSE)
+  }
+
+  # Get the number of time intervals or surveillance system sequences
+  self$get_iterations <- function() {
+    # TODO ####
+  }
+
+  # Get a sequence of values that provide evidence for area freedom
+  self$get_evidence <- function() {
+    # TODO ####
+  }
+
+  return(self)
 }
