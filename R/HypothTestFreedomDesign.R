@@ -106,14 +106,40 @@ HypothTestFreedomDesign.Context <- function(context,
                "and <= 1."), call. = FALSE)
   }
 
-  # Get a sequence of values that provide evidence for area freedom
+  # Get a sequence of values for the probability of non-detection if an
+  # invasive species remains present - provides evidence for area freedom
+  pr_undetected <- NULL
   self$get_evidence <- function() {
+
+    # context$get_surveillance_purpose() == "post-eradication"
+    # detected = as.logical(c(1, 0, 1, 0, 0, 1, 0, 0, 0))
+    if (any(detected)) {
+      n_pres <- length(which(detected))
+      time_n <- presences[n_pres]
+      pr_undetected <<- rep(1, time_n)
+      while ((is.numeric(iterations) &&
+              length(pr_undetected) < iterations) &&
+             (is.numeric(p_value) &&
+              pr_undetected[length(pr_undetected)] > p_value) ||
+             (length(pr_undetected) < length(detected))) {
+        pr_undetected <<- c(pr_undetected,
+                           (time_n/(length(pr_undetected) + 1))^n_pres)
+      }
+    }
+
     # TODO ####
+    (pr_persist*(1 - pr_detect))^n_seq_absences
+
+    return(pr_undetected)
   }
 
   # Get the number of time intervals or surveillance system sequences
   self$get_iterations <- function() {
-    # TODO ####
+    n_iter <- NULL
+    if (length(pr_undetected)) {
+      n_iter <- length(pr_undetected)
+    }
+    return(n_iter)
   }
 
   return(self)
