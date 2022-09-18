@@ -111,6 +111,26 @@ HypothTestFreedomDesign.Context <- function(context,
   pr_undetected <- NULL
   self$get_evidence <- function() {
 
+    # context$get_surveillance_purpose() == "post-eradication"
+    # detected = as.logical(c(1, 0, 1, 0, 0, 1, 0, 0, 0))
+    # if (any(detected)) {
+    #   n_pres <- length(which(detected))
+    #   time_n <- which(detected)[n_pres]
+    #   pr_undetected <<- rep(1, time_n)
+    #   while ((is.numeric(iterations) && is.numeric(p_value) &&
+    #           length(pr_undetected) < iterations &&
+    #           pr_undetected[length(pr_undetected)] > p_value) ||
+    #          (is.numeric(iterations) && is.null(p_value) &&
+    #           length(pr_undetected) < iterations) ||
+    #          (is.null(iterations) && is.numeric(p_value) &&
+    #           pr_undetected[length(pr_undetected)] > p_value) ||
+    #          (is.null(iterations) && is.null(p_value) &&
+    #           length(pr_undetected) < length(detected))) {
+    #     pr_undetected <<- c(pr_undetected,
+    #                         (time_n/(length(pr_undetected) + 1))^n_pres)
+    #   }
+    # }
+
     # Any invasive species previously detected?
     if (any(detected)) {
       n_pres <- length(which(detected))
@@ -144,6 +164,26 @@ HypothTestFreedomDesign.Context <- function(context,
                            (time_n/(length(pr_undetected) + 1))^n_pres)
       }
     }
+
+    # TODO ####
+    # if (is.numeric(pr_detect)) {
+    #   while ((is.numeric(iterations) && is.numeric(p_value) &&
+    #           length(pr_undetected) < iterations &&
+    #           pr_undetected[length(pr_undetected)] > p_value) ||
+    #          (is.numeric(iterations) && is.null(p_value) &&
+    #           length(pr_undetected) < iterations) ||
+    #          (is.null(iterations) && is.numeric(p_value) &&
+    #           pr_undetected[length(pr_undetected)] > p_value)) {
+    #     if (length(pr_undetected)) {
+    #       pr_undetected <- c(pr_undetected,
+    #                          (pr_persist*(1 - pr_detect)*
+    #                             pr_undetected[length(pr_undetected)]))
+    #     } else {
+    #       pr_undetected <- pr_persist*(1 - pr_detect)
+    #     }
+    #   }
+    # }
+    #(pr_persist*(1 - pr_detect))^n_seq_absences
 
     return(pr_undetected)
   }
