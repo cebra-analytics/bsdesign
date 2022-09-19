@@ -14,6 +14,12 @@
 #'   presence. Also known as system sensitivity or detection confidence for
 #'   a surveillance system. Default is \code{NULL} implying only detection
 #'   records are available.
+#' @param pr_persist The probability that the invasive species persists at each
+#'   time interval (specified by the \code{time_unit} parameter in the
+#'   \code{context}). Default is \code{1} implies that the invasive species
+#'   will persist across time intervals if present, representing the worst case
+#'   scenario when persistence probability is unknown. Only utilized when
+#'   \code{pr_detect} is given.
 #' @param pr_freedom The prior probability of invasive species freedom or
 #'   absence used in the first iteration of the Bayesian process. Values are
 #'   typically estimated via expert elicitation. Default is \code{0.5} for an
@@ -75,6 +81,7 @@
 BayesianFreedomDesign <- function(context,
                                   detected = FALSE,
                                   pr_detect = NULL,
+                                  pr_persist = 1,
                                   pr_freedom = 0.5,
                                   iterations = NULL,
                                   confidence = NULL, ...) {
@@ -86,6 +93,7 @@ BayesianFreedomDesign <- function(context,
 BayesianFreedomDesign.Context <- function(context,
                                           detected = FALSE,
                                           pr_detect = NULL,
+                                          pr_persist = 1,
                                           pr_freedom = 0.5,
                                           iterations = NULL,
                                           confidence = NULL, ...) {
@@ -94,6 +102,7 @@ BayesianFreedomDesign.Context <- function(context,
   self <- AreaFreedomDesign(context = context,
                             detected = detected,
                             pr_detect = pr_detect,
+                            pr_persist = pr_persist,
                             iterations = iterations,
                             class = "BayesianFreedomDesign", ...)
 
@@ -141,8 +150,12 @@ BayesianFreedomDesign.Context <- function(context,
 
       # Use probability of detection when present, else use detection record
       if (is.numeric(pr_detect)) {
+        # conf_freedom <- c(conf_freedom,
+        #                   prior_freedom/(1 - pr_detect*(1 - prior_freedom)))
         conf_freedom <- c(conf_freedom,
-                          prior_freedom/(1 - pr_detect*(1 - prior_freedom)))
+                          (prior_freedom/
+                             (pr_persist*(1 - pr_detect)*(1 - prior_freedom) +
+                                prior_freedom)))
         #pr_persist*(1 - pr_detect)
         prior_freedom <- conf_freedom[length(conf_freedom)]
       } else if (any(detected)) {
