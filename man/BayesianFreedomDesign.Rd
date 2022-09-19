@@ -9,7 +9,7 @@ BayesianFreedomDesign(
   context,
   detected = FALSE,
   pr_detect = NULL,
-  pr_freedom = 1,
+  pr_freedom = 0.5,
   iterations = NULL,
   confidence = NULL,
   ...
@@ -19,7 +19,7 @@ BayesianFreedomDesign(
   context,
   detected = FALSE,
   pr_detect = NULL,
-  pr_freedom = 1,
+  pr_freedom = 0.5,
   iterations = NULL,
   confidence = NULL,
   ...

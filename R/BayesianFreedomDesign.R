@@ -75,7 +75,7 @@
 BayesianFreedomDesign <- function(context,
                                   detected = FALSE,
                                   pr_detect = NULL,
-                                  pr_freedom = 1,
+                                  pr_freedom = 0.5,
                                   iterations = NULL,
                                   confidence = NULL, ...) {
   UseMethod("BayesianFreedomDesign")
@@ -86,7 +86,7 @@ BayesianFreedomDesign <- function(context,
 BayesianFreedomDesign.Context <- function(context,
                                           detected = FALSE,
                                           pr_detect = NULL,
-                                          pr_freedom = 1,
+                                          pr_freedom = 0.5,
                                           iterations = NULL,
                                           confidence = NULL, ...) {
 
@@ -110,13 +110,72 @@ BayesianFreedomDesign.Context <- function(context,
   }
 
   # Get a sequence of values that provide evidence for area freedom
+
+  # Get a sequence of evidence values for the confidence in area freedom, or
+  # the probability of freedom (absence) given a sequence of non detection
+  conf_freedom <- NULL
   self$get_evidence <- function() {
-    # TODO ####
+
+    # context$get_surveillance_purpose() == "post-eradication"
+    # detected = as.logical(c(1, 0, 1, 0, 0, 1, 0, 0, 0))
+
+    # Any invasive species previously detected?
+    if (any(detected)) {
+      n_pres <- length(which(detected))
+      time_n <- which(detected)[n_pres]
+      conf_freedom <- rep(0, time_n)
+    }
+
+    # Calculate the confidence in area freedom for iterations or when target
+    # confidence is met
+    prior_freedom <- pr_freedom
+    while ((is.numeric(iterations) && is.numeric(confidence) &&
+            length(conf_freedom) < iterations &&
+            conf_freedom[length(conf_freedom)] < confidence) ||
+           (is.numeric(iterations) && is.null(confidence) &&
+            length(conf_freedom) < iterations) ||
+           (is.null(iterations) && is.numeric(confidence) &&
+            conf_freedom[length(conf_freedom)] > p_value) ||
+           (is.null(iterations) && is.null(confidence) && any(detected) &&
+            length(conf_freedom) < length(detected))) {
+
+      # Use probability of detection when present, else use detection record
+      if (is.numeric(pr_detect)) {
+        conf_freedom <- c(conf_freedom,
+                          prior_freedom/(1 - pr_detect*(1 - prior_freedom)))
+        #pr_persist*(1 - pr_detect)
+        prior_freedom <- conf_freedom[length(conf_freedom)]
+      } else if (any(detected)) {
+        Bayes_factor <- ((n_pres - 1)/
+                           (((length(conf_freedom) + 1)/
+                               time_n)^(n_pres - 1) - 1))
+        conf_freedom <- c(conf_freedom,
+                           1 - 1/(1 + (prior_freedom/
+                                         ((1 - prior_freedom)*Bayes_factor))))
+      }
+    }
+
+    return(conf_freedom)
   }
+
+  # pr_presence <- rep(1, time_n)
+  # prior <- 0.5
+  # for (T_ in 7:25) {
+  #   Bayes_factor <- ((n_pres - 1)/
+  #                      ((T_/time_n)^(n_pres - 1) - 1))
+  #   print(Bayes_factor)
+  #   pr_presence <- c(pr_presence,
+  #                    1/(1 + ((1 - prior)/
+  #                              (prior*Bayes_factor))))
+  # } # plot(pr_presence[6:25], type = "l", ylim = 0:1)
 
   # Get the number of time intervals or surveillance system sequences
   self$get_iterations <- function() {
-    # TODO ####
+    n_iter <- NULL
+    if (length(conf_freedom)) {
+      n_iter <- length(conf_freedom)
+    }
+    return(n_iter)
   }
 
   return(self)
