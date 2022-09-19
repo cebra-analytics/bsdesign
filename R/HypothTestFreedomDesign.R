@@ -131,14 +131,14 @@ HypothTestFreedomDesign.Context <- function(context,
       if (is.numeric(pr_detect)) {
         if (length(pr_undetected)) {
           pr_undetected <<- c(pr_undetected,
-                             (pr_persist*(1 - pr_detect)*
-                                pr_undetected[length(pr_undetected)]))
+                              (pr_persist*(1 - pr_detect)*
+                                 pr_undetected[length(pr_undetected)]))
         } else {
           pr_undetected <<- pr_persist*(1 - pr_detect)
         }
       } else if (any(detected)) {
         pr_undetected <<- c(pr_undetected,
-                           (time_n/(length(pr_undetected) + 1))^n_pres)
+                            (time_n/(length(pr_undetected) + 1))^n_pres)
       }
     }
 
