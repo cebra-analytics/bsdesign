@@ -18,7 +18,8 @@
 #'   time interval (specified by the \code{time_unit} parameter in the
 #'   \code{context}). Default is \code{1} implies that the invasive species
 #'   will persist across time intervals if present, representing the worst case
-#'   scenario when persistence probability is unknown.
+#'   scenario when persistence probability is unknown. Only utilized when
+#'   \code{pr_detect} is given.
 #' @param iterations The number of time intervals (specified by the
 #'   \code{time_unit} parameter in the \code{context}), or sequential
 #'   surveillance system applications, used to estimate the likelihood of area
@@ -91,15 +92,11 @@ HypothTestFreedomDesign.Context <- function(context,
   self <- AreaFreedomDesign(context = context,
                             detected = detected,
                             pr_detect = pr_detect,
+                            pr_persist = pr_persist,
                             iterations = iterations,
                             class = "HypothTestFreedomDesign", ...)
 
   # Check class parameters
-  if (!is.null(pr_persist) &&
-      (!is.numeric(pr_persist) || pr_persist < 0 || pr_persist > 1)) {
-    stop(paste("The probability of persistence parameter must be numeric,",
-               ">= 0, and <= 1."), call. = FALSE)
-  }
   if (!is.null(p_value) &&
       (!is.numeric(p_value) || p_value < 0 || p_value > 1)) {
     stop(paste("The hypothesis test p-value parameter must be numeric, >= 0,",
@@ -110,9 +107,6 @@ HypothTestFreedomDesign.Context <- function(context,
   # invasive species remains present, providing evidence for area freedom
   pr_undetected <- NULL
   self$get_evidence <- function() {
-
-    # context$get_surveillance_purpose() == "post-eradication"
-    # detected = as.logical(c(1, 0, 1, 0, 0, 1, 0, 0, 0))
 
     # Any invasive species previously detected?
     if (any(detected)) {

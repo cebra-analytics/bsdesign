@@ -9,6 +9,7 @@ BayesianFreedomDesign(
   context,
   detected = FALSE,
   pr_detect = NULL,
+  pr_persist = 1,
   pr_freedom = 0.5,
   iterations = NULL,
   confidence = NULL,
@@ -19,6 +20,7 @@ BayesianFreedomDesign(
   context,
   detected = FALSE,
   pr_detect = NULL,
+  pr_persist = 1,
   pr_freedom = 0.5,
   iterations = NULL,
   confidence = NULL,
@@ -37,6 +39,13 @@ species was detected/sighted at previous intervals. Default is
 presence. Also known as system sensitivity or detection confidence for
 a surveillance system. Default is \code{NULL} implying only detection
 records are available.}
+
+\item{pr_persist}{The probability that the invasive species persists at each
+time interval (specified by the \code{time_unit} parameter in the
+\code{context}). Default is \code{1} implies that the invasive species
+will persist across time intervals if present, representing the worst case
+scenario when persistence probability is unknown. Only utilized when
+\code{pr_detect} is given.}
 
 \item{pr_freedom}{The prior probability of invasive species freedom or
 absence used in the first iteration of the Bayesian process. Values are

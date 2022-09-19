@@ -42,7 +42,8 @@ records are available.}
 time interval (specified by the \code{time_unit} parameter in the
 \code{context}). Default is \code{1} implies that the invasive species
 will persist across time intervals if present, representing the worst case
-scenario when persistence probability is unknown.}
+scenario when persistence probability is unknown. Only utilized when
+\code{pr_detect} is given.}
 
 \item{iterations}{The number of time intervals (specified by the
 \code{time_unit} parameter in the \code{context}), or sequential

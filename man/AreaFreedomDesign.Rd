@@ -9,6 +9,7 @@ AreaFreedomDesign(
   context,
   detected = FALSE,
   pr_detect = NULL,
+  pr_persist = 1,
   iterations = NULL,
   class = character(),
   ...
@@ -18,6 +19,7 @@ AreaFreedomDesign(
   context,
   detected = FALSE,
   pr_detect = NULL,
+  pr_persist = 1,
   iterations = NULL,
   class = character(),
   ...
@@ -35,6 +37,12 @@ species was detected/sighted at previous intervals. Default is
 presence. Also known as system sensitivity or detection confidence for
 surveillance systems. Default is \code{NULL} implying only detection
 records are available.}
+
+\item{pr_persist}{The probability that the invasive species persists at each
+time interval (specified by the \code{time_unit} parameter in the
+\code{context}). Default is \code{1} implies that the invasive species
+will persist across time intervals if present, representing the worst case
+scenario when persistence probability is unknown.}
 
 \item{iterations}{The number of time intervals (specified by the
 \code{time_unit} parameter in the \code{context}), or sequential

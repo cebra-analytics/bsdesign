@@ -14,6 +14,12 @@
 #'   presence. Also known as system sensitivity or detection confidence for
 #'   a surveillance system. Default is \code{NULL} implying only detection
 #'   records are available.
+#' @param pr_persist The probability that the invasive species persists at each
+#'   time interval (specified by the \code{time_unit} parameter in the
+#'   \code{context}). Default is \code{1} implies that the invasive species
+#'   will persist across time intervals if present, representing the worst case
+#'   scenario when persistence probability is unknown. Only utilized when
+#'   \code{pr_detect} is given.
 #' @param pr_freedom The prior probability of invasive species freedom or
 #'   absence used in the first iteration of the Bayesian process. Values are
 #'   typically estimated via expert elicitation. Default is \code{0.5} for an
@@ -75,6 +81,7 @@
 BayesianFreedomDesign <- function(context,
                                   detected = FALSE,
                                   pr_detect = NULL,
+                                  pr_persist = 1,
                                   pr_freedom = 0.5,
                                   iterations = NULL,
                                   confidence = NULL, ...) {
@@ -86,6 +93,7 @@ BayesianFreedomDesign <- function(context,
 BayesianFreedomDesign.Context <- function(context,
                                           detected = FALSE,
                                           pr_detect = NULL,
+                                          pr_persist = 1,
                                           pr_freedom = 0.5,
                                           iterations = NULL,
                                           confidence = NULL, ...) {
@@ -94,6 +102,7 @@ BayesianFreedomDesign.Context <- function(context,
   self <- AreaFreedomDesign(context = context,
                             detected = detected,
                             pr_detect = pr_detect,
+                            pr_persist = pr_persist,
                             iterations = iterations,
                             class = "BayesianFreedomDesign", ...)
 
@@ -109,21 +118,16 @@ BayesianFreedomDesign.Context <- function(context,
                "and <= 1."), call. = FALSE)
   }
 
-  # Get a sequence of values that provide evidence for area freedom
-
   # Get a sequence of evidence values for the confidence in area freedom, or
   # the probability of freedom (absence) given a sequence of non detection
   conf_freedom <- NULL
   self$get_evidence <- function() {
 
-    # context$get_surveillance_purpose() == "post-eradication"
-    # detected = as.logical(c(1, 0, 1, 0, 0, 1, 0, 0, 0))
-
     # Any invasive species previously detected?
     if (any(detected)) {
       n_pres <- length(which(detected))
       time_n <- which(detected)[n_pres]
-      conf_freedom <- rep(0, time_n)
+      conf_freedom <<- rep(0, time_n)
     }
 
     # Calculate the confidence in area freedom for iterations or when target
@@ -141,15 +145,16 @@ BayesianFreedomDesign.Context <- function(context,
 
       # Use probability of detection when present, else use detection record
       if (is.numeric(pr_detect)) {
-        conf_freedom <- c(conf_freedom,
-                          prior_freedom/(1 - pr_detect*(1 - prior_freedom)))
-        #pr_persist*(1 - pr_detect)
+        conf_freedom <<- c(conf_freedom,
+                           (prior_freedom/
+                              (pr_persist*(1 - pr_detect)*(1 - prior_freedom) +
+                                 prior_freedom)))
         prior_freedom <- conf_freedom[length(conf_freedom)]
       } else if (any(detected)) {
         Bayes_factor <- ((n_pres - 1)/
                            (((length(conf_freedom) + 1)/
                                time_n)^(n_pres - 1) - 1))
-        conf_freedom <- c(conf_freedom,
+        conf_freedom <<- c(conf_freedom,
                            1 - 1/(1 + (prior_freedom/
                                          ((1 - prior_freedom)*Bayes_factor))))
       }
@@ -157,17 +162,6 @@ BayesianFreedomDesign.Context <- function(context,
 
     return(conf_freedom)
   }
-
-  # pr_presence <- rep(1, time_n)
-  # prior <- 0.5
-  # for (T_ in 7:25) {
-  #   Bayes_factor <- ((n_pres - 1)/
-  #                      ((T_/time_n)^(n_pres - 1) - 1))
-  #   print(Bayes_factor)
-  #   pr_presence <- c(pr_presence,
-  #                    1/(1 + ((1 - prior)/
-  #                              (prior*Bayes_factor))))
-  # } # plot(pr_presence[6:25], type = "l", ylim = 0:1)
 
   # Get the number of time intervals or surveillance system sequences
   self$get_iterations <- function() {
