@@ -13,12 +13,18 @@
 #' @param pr_detect The probability of detecting the invasive species given its
 #'   presence. Also known as system sensitivity or detection confidence for
 #'   surveillance systems. Default is \code{NULL} implying only detection
-#'   records are available.
+#'   records are available. Temporally changing values may be provided by a
+#'   numeric vector, the length of which should be sufficient for the expected
+#'   number of \code{iterations}, given the specified stopping criteria, else
+#'   the last value of the vector is repeated.
 #' @param pr_persist The probability that the invasive species persists at each
 #'   time interval (specified by the \code{time_unit} parameter in the
 #'   \code{context}). Default is \code{1} implies that the invasive species
 #'   will persist across time intervals if present, representing the worst case
-#'   scenario when persistence probability is unknown.
+#'   scenario when persistence probability is unknown. Temporally changing
+#'   values may be provided by a numeric vector, the length of which should be
+#'   sufficient for the expected number of \code{iterations}, given the
+#'   specified stopping criteria, else the last value of the vector is repeated.
 #' @param iterations The number of time intervals (specified by the
 #'   \code{time_unit} parameter in the \code{context}), or sequential
 #'   surveillance system applications, used to estimate the likelihood
@@ -78,17 +84,18 @@ AreaFreedomDesign.Context <- function(context,
                "with length >= 1."), call. = FALSE)
   }
   if (!is.null(pr_detect) &&
-      (!is.numeric(pr_detect) || pr_detect < 0 || pr_detect > 1)) {
+      (!is.numeric(pr_detect) || any(pr_detect < 0) || any(pr_detect > 1))) {
     stop(paste("The probability of detection parameter must be numeric, >= 0,",
                "and <= 1."), call. = FALSE)
   }
   if (!is.null(pr_persist) &&
-      (!is.numeric(pr_persist) || pr_persist < 0 || pr_persist > 1)) {
+      (!is.numeric(pr_persist) || any(pr_persist < 0) ||
+       any(pr_persist > 1))) {
     stop(paste("The probability of persistence parameter must be numeric,",
                ">= 0, and <= 1."), call. = FALSE)
   }
   if (!is.null(iterations) &&
-      (!is.numeric(iterations) || pr_detect < 1)) {
+      (!is.numeric(iterations) || iterations < 1)) {
     stop("The iterations parameter must be numeric and >= 1.", call. = FALSE)
   }
 

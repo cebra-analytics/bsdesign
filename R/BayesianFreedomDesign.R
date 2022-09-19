@@ -13,13 +13,19 @@
 #' @param pr_detect The probability of detecting the invasive species given its
 #'   presence. Also known as system sensitivity or detection confidence for
 #'   a surveillance system. Default is \code{NULL} implying only detection
-#'   records are available.
+#'   records are available. Temporally changing values may be provided by a
+#'   numeric vector, the length of which should be sufficient for the expected
+#'   number of \code{iterations}, given the specified stopping criteria, else
+#'   the last value of the vector is repeated.
 #' @param pr_persist The probability that the invasive species persists at each
 #'   time interval (specified by the \code{time_unit} parameter in the
 #'   \code{context}). Default is \code{1} implies that the invasive species
 #'   will persist across time intervals if present, representing the worst case
 #'   scenario when persistence probability is unknown. Only utilized when
-#'   \code{pr_detect} is given.
+#'   \code{pr_detect} is given. Temporally changing values may be provided by a
+#'   numeric vector, the length of which should be sufficient for the expected
+#'   number of \code{iterations}, given the specified stopping criteria, else
+#'   the last value of the vector is repeated.
 #' @param pr_freedom The prior probability of invasive species freedom or
 #'   absence used in the first iteration of the Bayesian process. Values are
 #'   typically estimated via expert elicitation. Default is \code{0.5} for an
@@ -132,32 +138,52 @@ BayesianFreedomDesign.Context <- function(context,
 
     # Calculate the confidence in area freedom for iterations or when target
     # confidence is met
-    prior_freedom <- pr_freedom
-    while ((is.numeric(iterations) && is.numeric(confidence) &&
-            length(conf_freedom) < iterations &&
-            conf_freedom[length(conf_freedom)] < confidence) ||
-           (is.numeric(iterations) && is.null(confidence) &&
-            length(conf_freedom) < iterations) ||
-           (is.null(iterations) && is.numeric(confidence) &&
-            conf_freedom[length(conf_freedom)] > p_value) ||
-           (is.null(iterations) && is.null(confidence) && any(detected) &&
-            length(conf_freedom) < length(detected))) {
+    if (is.numeric(pr_detect) || any(detected)) {
+      prior_freedom <- pr_freedom
+      while ((is.numeric(iterations) && is.numeric(confidence) &&
+              length(conf_freedom) < iterations &&
+              (length(conf_freedom) == 0 ||
+              conf_freedom[length(conf_freedom)] < confidence)) ||
+             (is.numeric(iterations) && is.null(confidence) &&
+              length(conf_freedom) < iterations) ||
+             (is.null(iterations) && is.numeric(confidence) &&
+              (length(conf_freedom) == 0 ||
+               conf_freedom[length(conf_freedom)] < confidence)) ||
+             (is.null(iterations) && is.null(confidence) && any(detected) &&
+              length(conf_freedom) < length(detected))) {
 
-      # Use probability of detection when present, else use detection record
-      if (is.numeric(pr_detect)) {
-        conf_freedom <<- c(conf_freedom,
-                           (prior_freedom/
-                              (pr_persist*(1 - pr_detect)*(1 - prior_freedom) +
-                                 prior_freedom)))
-        prior_freedom <- conf_freedom[length(conf_freedom)]
-      } else if (any(detected)) {
-        Bayes_factor <- ((n_pres - 1)/
-                           (((length(conf_freedom) + 1)/
-                               time_n)^(n_pres - 1) - 1))
-        conf_freedom <<- c(conf_freedom,
-                           1 - 1/(1 + (prior_freedom/
-                                         ((1 - prior_freedom)*Bayes_factor))))
+        # Use probability of detection when present, else use detection record
+        if (is.numeric(pr_detect)) {
+          if (length(pr_detect) >= length(conf_freedom) + 1) {
+            pr_detect_i <- pr_detect[length(conf_freedom) + 1]
+          } else {
+            pr_detect_i <- pr_detect[length(pr_detect)]
+          }
+          if (length(pr_persist) >= length(conf_freedom) + 1) {
+            pr_persist_i <- pr_persist[length(conf_freedom) + 1]
+          } else {
+            pr_persist_i <- pr_persist[length(pr_persist)]
+          }
+          conf_freedom <<- c(conf_freedom,
+                             (prior_freedom/
+                                (pr_persist_i*(1 - pr_detect_i)*
+                                   (1 - prior_freedom) + prior_freedom)))
+          prior_freedom <- conf_freedom[length(conf_freedom)]
+        } else if (any(detected)) {
+          Bayes_factor <- ((n_pres - 1)/
+                             (((length(conf_freedom) + 1)/
+                                 time_n)^(n_pres - 1) - 1))
+          conf_freedom <<- c(conf_freedom,
+                             1 - 1/(1 + (prior_freedom/
+                                           ((1 - prior_freedom)*
+                                              Bayes_factor))))
+        }
       }
+    }
+
+    # Attach a descriptive attribute
+    if (is.numeric(conf_freedom)) {
+      attr(conf_freedom, "evidence") <- "Pr(freedom|undetected)"
     }
 
     return(conf_freedom)

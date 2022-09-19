@@ -13,13 +13,19 @@
 #' @param pr_detect The probability of detecting the invasive species given its
 #'   presence. Also known as system sensitivity or detection confidence for
 #'   a surveillance system. Default is \code{NULL} implying only detection
-#'   records are available.
+#'   records are available. Temporally changing values may be provided by a
+#'   numeric vector, the length of which should be sufficient for the expected
+#'   number of \code{iterations}, given the specified stopping criteria, else
+#'   the last value of the vector is repeated.
 #' @param pr_persist The probability that the invasive species persists at each
 #'   time interval (specified by the \code{time_unit} parameter in the
 #'   \code{context}). Default is \code{1} implies that the invasive species
 #'   will persist across time intervals if present, representing the worst case
 #'   scenario when persistence probability is unknown. Only utilized when
-#'   \code{pr_detect} is given.
+#'   \code{pr_detect} is given. Temporally changing values may be provided by a
+#'   numeric vector, the length of which should be sufficient for the expected
+#'   number of \code{iterations}, given the specified stopping criteria, else
+#'   the last value of the vector is repeated.
 #' @param iterations The number of time intervals (specified by the
 #'   \code{time_unit} parameter in the \code{context}), or sequential
 #'   surveillance system applications, used to estimate the likelihood of area
@@ -117,29 +123,48 @@ HypothTestFreedomDesign.Context <- function(context,
 
     # Calculate the probability of undetected presence for iterations or
     # when p-value is met
-    while ((is.numeric(iterations) && is.numeric(p_value) &&
-            length(pr_undetected) < iterations &&
-            pr_undetected[length(pr_undetected)] > p_value) ||
-           (is.numeric(iterations) && is.null(p_value) &&
-            length(pr_undetected) < iterations) ||
-           (is.null(iterations) && is.numeric(p_value) &&
-            pr_undetected[length(pr_undetected)] > p_value) ||
-           (is.null(iterations) && is.null(p_value) && any(detected) &&
-            length(pr_undetected) < length(detected))) {
+    if (is.numeric(pr_detect) || any(detected)) {
+      while ((is.numeric(iterations) && is.numeric(p_value) &&
+              length(pr_undetected) < iterations &&
+              (length(pr_undetected) == 0 ||
+               pr_undetected[length(pr_undetected)] > p_value)) ||
+             (is.numeric(iterations) && is.null(p_value) &&
+              length(pr_undetected) < iterations) ||
+             (is.null(iterations) && is.numeric(p_value) &&
+              (length(pr_undetected) == 0 ||
+               pr_undetected[length(pr_undetected)] > p_value)) ||
+             (is.null(iterations) && is.null(p_value) && any(detected) &&
+              length(pr_undetected) < length(detected))) {
 
-      # Use probability of detection when present, else use detection record
-      if (is.numeric(pr_detect)) {
-        if (length(pr_undetected)) {
+        # Use probability of detection when present, else use detection record
+        if (is.numeric(pr_detect)) {
+          if (length(pr_detect) >= length(pr_undetected) + 1) {
+            pr_detect_i <- pr_detect[length(pr_undetected) + 1]
+          } else {
+            pr_detect_i <- pr_detect[length(pr_detect)]
+          }
+          if (length(pr_persist) >= length(pr_undetected) + 1) {
+            pr_persist_i <- pr_persist[length(pr_undetected) + 1]
+          } else {
+            pr_persist_i <- pr_persist[length(pr_persist)]
+          }
+          if (length(pr_undetected)) {
+            pr_undetected <<- c(pr_undetected,
+                                (pr_persist_i*(1 - pr_detect_i)*
+                                   pr_undetected[length(pr_undetected)]))
+          } else {
+            pr_undetected <<- pr_persist_i*(1 - pr_detect_i)
+          }
+        } else if (any(detected)) {
           pr_undetected <<- c(pr_undetected,
-                              (pr_persist*(1 - pr_detect)*
-                                 pr_undetected[length(pr_undetected)]))
-        } else {
-          pr_undetected <<- pr_persist*(1 - pr_detect)
+                              (time_n/(length(pr_undetected) + 1))^n_pres)
         }
-      } else if (any(detected)) {
-        pr_undetected <<- c(pr_undetected,
-                            (time_n/(length(pr_undetected) + 1))^n_pres)
       }
+    }
+
+    # Attach a descriptive attribute
+    if (is.numeric(pr_undetected)) {
+      attr(pr_undetected, "evidence") <- "Pr(undetected|present)"
     }
 
     return(pr_undetected)
