@@ -174,5 +174,3 @@ BayesianFreedomDesign.Context <- function(context,
 
   return(self)
 }
-
-
