@@ -189,14 +189,10 @@ SamplingSurvDesign.Context <- function(context,
                ">= 0 and <= 1 for each division part."), call. = FALSE)
   }
   if (!is.null(total_indiv) &&
-      (!is.numeric(total_indiv) || any(total_indiv < 0) ||
+      (!is.numeric(total_indiv) || any(total_indiv <= 0) ||
        length(total_indiv) != parts)) {
     stop(paste("The total individuals parameter must be numeric with values",
-               ">= 0 for each division part."), call. = FALSE)
-  }
-  if (is.numeric(total_indiv) && length(total_indiv) == 1 &&
-      total_indiv == 0) {
-    total_indiv <- NULL
+               "> 0 for each division part."), call. = FALSE)
   }
   if (!is.null(design_dens) &&
       (!is.numeric(design_dens) || any(design_dens < 0) ||
@@ -417,7 +413,7 @@ SamplingSurvDesign.Context <- function(context,
       sample_n <- (f_pos(alpha_unconstr) - fixed_cost)/sample_cost
 
       # Are any n/N > 0.1?
-      sample_fract_gt_0_1 <- any(sample_fract > 0.1)
+      sample_fract_gt_0_1 <- any(sample_n/total_indiv > 0.1)
 
     } else {
 

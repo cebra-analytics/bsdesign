@@ -70,7 +70,7 @@ when the lowest level of the multilevel sampling is continuous. Note that
 when set to 1, the total number of samples will be equivalent to the total
 area sampled. Default is \code{NULL}.}
 
-\item{sample_cost}{The cost of individual samples. Default is \code{1}.
+\item{sample_cost}{The cost of samples at each level. Default is \code{1}.
 An attribute \code{units} may be used to specify the cost units (e.g. "$"
 or "hours").}
 
@@ -81,7 +81,7 @@ confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
 }
 \value{
 A \code{MultilevelSurvDesign} class object (list) containing
-inherited and extended functions from the base \code{SamplingSurvDesign}
+inherited and extended functions from the base \code{SurveillanceDesign}
 class for for allocating resources, and calculating (unit and overall)
 detection sensitivities:
 \describe{

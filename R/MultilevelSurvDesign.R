@@ -31,14 +31,14 @@
 #'   when the lowest level of the multilevel sampling is continuous. Note that
 #'   when set to 1, the total number of samples will be equivalent to the total
 #'   area sampled. Default is \code{NULL}.
-#' @param sample_cost The cost of individual samples. Default is \code{1}.
+#' @param sample_cost The cost of samples at each level. Default is \code{1}.
 #'   An attribute \code{units} may be used to specify the cost units (e.g. "$"
 #'   or "hours").
 #' @param confidence The desired (minimum) system sensitivity or detection
 #'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
 #' @param ... Additional parameters.
 #' @return A \code{MultilevelSurvDesign} class object (list) containing
-#'   inherited and extended functions from the base \code{SamplingSurvDesign}
+#'   inherited and extended functions from the base \code{SurveillanceDesign}
 #'   class for for allocating resources, and calculating (unit and overall)
 #'   detection sensitivities:
 #'   \describe{
@@ -66,7 +66,7 @@
 #'   S. Low-Choy & K. Mengersen (eds.),
 #'   \emph{Biosecurity surveillance: Quantitative approaches} (pp. 238– 250).
 #'   Wallingford, UK: CABI.
-#' @include SamplingSurvDesign.R
+#' @include SurveillanceDesign.R
 #' @export
 MultilevelSurvDesign <- function(context,
                                  divisions,
@@ -97,12 +97,71 @@ MultilevelSurvDesign.Context <- function(context,
                                          confidence = 0.95,
                                          class = character(), ...) {
 
-  # Resolve prevalence when sample type is continuous and lowest level is NA
+  # Build via base class
+  self <- SurveillanceDesign(context = context,
+                             divisions = divisions,
+                             establish_pr = 1,
+                             optimal = "cost",
+                             mgmt_cost = list("not used"), # avoid error
+                             confidence = confidence,
+                             class = "MultilevelSurvDesign", ...)
+
+  # Number of levels
+  num_levels <- divisions$get_parts()
+
+  # Discrete or continuous sampling?
   sample_type <- match.arg(sample_type)
-  if (sample_type == "continuous") {
-    if (!is.null(prevalence) && is.na(prevalence[1])) {
-      prevalence[1] <- 0 # design density used instead
-    }
+
+  # Check sampling parameters (not in base class)
+  if (!is.numeric(sample_sens) || sample_sens < 0 || sample_sens > 1) {
+    stop(paste("The sample sensitivity parameter must be a numeric value",
+               ">= 0 and <= 1."), call. = FALSE)
+  }
+  if (sample_type == "discrete" &&
+      (is.null(prevalence) || !is.numeric(prevalence) ||
+       any(prevalence < 0) || any(prevalence > 1) ||
+       !length(prevalence) %in% c(1, num_levels))) {
+    stop(paste("The prevalence parameter must be numeric with values",
+               ">= 0 and <= 1 for each level."), call. = FALSE)
+  } else if (sample_type == "continuous" &&
+             ((is.null(prevalence) && num_levels > 1) ||
+              (num_levels > 1 &&
+               (!is.numeric(prevalence[-1]) || any(prevalence[-1] < 0) ||
+                any(prevalence[-1] > 1) ||
+                !length(prevalence) %in% c(1, num_levels))))) {
+    stop(paste("The prevalence parameter must be numeric with values",
+               ">= 0 and <= 1 for each level above the first."), call. = FALSE)
+  }
+  if (sample_type == "discrete" && !is.null(total_indiv) &&
+      (!is.numeric(total_indiv) || any(total_indiv < 0) ||
+       length(total_indiv) != num_levels)) {
+    stop(paste("The total individuals parameter must be numeric with values",
+               ">= 0 for each level."), call. = FALSE)
+  } else if (sample_type == "continuous" && !is.null(total_indiv) &&
+             num_levels > 1 &&
+             (!is.numeric(total_indiv[-1]) || any(total_indiv[-1] <= 0) ||
+              length(total_indiv) != num_levels)) {
+    stop(paste("The total individuals parameter must be numeric with values",
+               ">= 0 for each level above the first."), call. = FALSE)
+  }
+  if (sample_type == "continuous" &&
+      (is.null(design_dens) || is.null(sample_area))) {
+    stop(paste("The design density and sample area parameters are required",
+               "for continuous sampling."), call. = FALSE)
+  }
+  if (!is.null(design_dens) && (!is.numeric(design_dens) || design_dens < 0)) {
+    stop("The design density parameter must be a numeric value >= 0.",
+         call. = FALSE)
+  }
+  if (!is.null(sample_area) && (!is.numeric(sample_area) || sample_area < 0)) {
+    stop("The sample area parameter must be a numeric value >= 0.",
+         call. = FALSE)
+  }
+  if (!is.null(sample_cost) &&
+      (!is.numeric(sample_cost) ||
+       !length(sample_cost) %in% c(1, num_levels))) {
+    stop(paste("The sample cost parameter must be a numeric vector with ",
+               "values for each level."), call. = FALSE)
   }
 
   # Resolve total_indiv when NULL or lowest level is NA
@@ -111,30 +170,19 @@ MultilevelSurvDesign.Context <- function(context,
     total_indiv[1] <- 0 # maximum resolved later
   }
 
-  # Build via base class
-  self <- SamplingSurvDesign(context = context,
-                             divisions = divisions,
-                             establish_pr = 1,
-                             sample_sens = sample_sens,
-                             sample_type = sample_type,
-                             prevalence = prevalence,
-                             total_indiv = total_indiv,
-                             design_dens = design_dens,
-                             sample_area = sample_area,
-                             optimal = "detection", # no separate mgmt costs
-                             sample_cost = sample_cost,
-                             confidence = confidence,
-                             class = "MultilevelSurvDesign", ...)
-
-  # Number of levels
-  nlevels <- divisions$get_parts()
+  # Resolve sample cost
+  if (length(sample_cost) == 1) {
+    sample_cost <- rep(sample_cost, num_levels)
+  } else if (is.null(sample_cost)) {
+    sample_cost <- rep(1, num_levels)
+  }
 
   # Function to calculate level sensitivities
   calculate_sensitivity <- function(n_alloc, multi = 1) {
 
     # Calculate sensitivity at each level
-    level_sens <- rep(NA, nlevels)
-    for (l in 1:nlevels) {
+    level_sens <- rep(NA, num_levels)
+    for (l in 1:num_levels) {
 
       # Resolve sample sensitivity p for level
       if (l == 1) {
@@ -164,7 +212,8 @@ MultilevelSurvDesign.Context <- function(context,
 
   # Function to calculate level costs
   calculate_cost <- function(n_alloc) {
-    sum(sapply(1:nlevels, function(l) prod(n_alloc[l:nlevels])*sample_cost[l]))
+    sum(sapply(1:num_levels,
+               function(l) prod(n_alloc[l:num_levels])*sample_cost[l]))
   }
 
   # Get the allocated surveillance resource values of the surveillance design
@@ -180,7 +229,7 @@ MultilevelSurvDesign.Context <- function(context,
       }
 
       # Initial minimum and maximum allocated n values
-      n_min <- rep(1, nlevels)
+      n_min <- rep(1, num_levels)
       n_max <- total_indiv
 
       # Resolve n_max when lowest level is zero
@@ -192,11 +241,11 @@ MultilevelSurvDesign.Context <- function(context,
 
       # Refine minimum allocated values and cost via confidence constraint
       cost_min <- calculate_cost(n_max)
-      for (l in 1:nlevels) {
+      for (l in 1:num_levels) {
         n_alloc <- n_max
-        decr <- rep(0, nlevels)
+        decr <- rep(0, num_levels)
         decr[l] <- 1
-        while (calculate_sensitivity(n_alloc - decr)[nlevels] >=
+        while (calculate_sensitivity(n_alloc - decr)[num_levels] >=
                confidence && n_alloc[l] - 1 >= n_min[l]) {
           n_alloc[l] <- n_alloc[l] - 1
         }
@@ -208,9 +257,9 @@ MultilevelSurvDesign.Context <- function(context,
       }
 
       # Refine maximum allocated values via minimum cost (so far)
-      for (l in 1:nlevels) {
+      for (l in 1:num_levels) {
         n_alloc <- n_min
-        incr <- rep(0, nlevels)
+        incr <- rep(0, num_levels)
         incr[l] <- 1
         while (calculate_cost(n_alloc + incr) < cost_min &&
                n_alloc[l] + 1 <= n_max[l]) {
@@ -220,12 +269,12 @@ MultilevelSurvDesign.Context <- function(context,
       }
 
       # Generate all combinations of allocated values between limits
-      n_comb <- lapply(1:nlevels, function(l) n_min[l]:n_max[l])
+      n_comb <- lapply(1:num_levels, function(l) n_min[l]:n_max[l])
       n_comb <- unname(as.matrix(expand.grid(n_comb)))
 
       # Select combinations satisfying the sensitivity constraint
       idx <- which(apply(n_comb, 1, function(n) {
-        calculate_sensitivity(n)[nlevels]}) >= confidence)
+        calculate_sensitivity(n)[num_levels]}) >= confidence)
       n_comb <- as.matrix(n_comb[idx,])
 
       # Select values of allocated values corresponding to minimum total cost
@@ -260,7 +309,7 @@ MultilevelSurvDesign.Context <- function(context,
       for (multi in growth) {
         sensitivity <- calculate_sensitivity(qty_alloc, multi)
         if (!is.null(sensitivity)) {
-          system_sens <- c(system_sens, sensitivity[nlevels])
+          system_sens <- c(system_sens, sensitivity[num_levels])
         }
       }
     }
