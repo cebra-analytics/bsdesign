@@ -47,7 +47,8 @@
 #'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
 #' @param exist_alloc A vector of existing surveillance resource quantities at
 #'   each division part (location, category, etc.) specified by
-#'   \code{divisions}. Default is \code{NULL}.
+#'   \code{divisions}. Should only be used to represent existing surveillance
+#'   designs when \code{optimal = "none"}. Default is \code{NULL}.
 #' @param exist_sens A vector, or list of vectors, of detection sensitivity
 #'   values of existing surveillance present at each division part (location,
 #'   category, etc.) specified by \code{divisions}. Multiple existing
@@ -57,9 +58,9 @@
 #'   for allocating resources, and calculating (unit and overall) detection
 #'   sensitivities:
 #'   \describe{
-#'     \item{\code{get_allocation()}}{Get allocated surveillance resources via
-#'       specified strategy, utilizing costs, benefits, budget constraints,
-#'       and/or desired detection confidence level.}
+#'     \item{\code{get_allocation()}}{Get allocated samples via specified
+#'       strategy, utilizing costs, benefits, budget constraints, and/or
+#'       desired detection confidence level.}
 #'     \item{\code{get_sensitivity()}}{Get the division part detection
 #'       sensitivities of the allocated surveillance design combined with any
 #'       existing sensitivities specified via \code{exist_sens}.}
@@ -187,8 +188,12 @@ SurveillanceDesign.Context <- function(context,
   if (!is.null(budget) && (!is.numeric(budget) || budget < 0)) {
     stop("The budget parameter must be numeric and >= 0.", call. = FALSE)
   }
+  if (!is.null(exist_alloc) && optimal != "none") {
+    stop(paste("The existing allocation parameter should only be specified",
+               "when the optimal parameter is 'none'."), call. = FALSE)
+  }
   if (!is.null(exist_alloc) &&
-      (!is.numeric(exist_alloc) || !length(exist_alloc) %in% c(1, parts))) {
+      (!is.numeric(exist_alloc) || !length(exist_alloc) == parts)) {
     stop(paste("The existing allocation parameter must be a numeric vector",
                "with values for each division part."), call. = FALSE)
   }

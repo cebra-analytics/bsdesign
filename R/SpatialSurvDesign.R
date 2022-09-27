@@ -28,8 +28,9 @@
 #'   to population growth over time.
 #' @param optimal The strategy used for finding an effective surveillance
 #'   resource allocation. One of (minimum) \code{"cost"}, (maximum)
-#'   \code{"benefit"}, or (maximum) \code{"detection"} sensitivity (up to
-#'   \code{"confidence"} level when specified).
+#'   \code{"benefit"}, (maximum) \code{"detection"} sensitivity (up to
+#'   \code{"confidence"} level when specified), or \code{"none"} for
+#'   representing existing surveillance designs only.
 #' @param mgmt_cost A list of vectors to represent estimated management costs
 #'   for when the incursion is detected and undetected. Each vector specifies
 #'   these costs at each spatial location specified by \code{divisions}. List
@@ -56,20 +57,26 @@
 #'   the \code{context}.
 #' @param confidence The desired (minimum) system sensitivity or detection
 #'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
-#' @param exist_sens A vector of detection sensitivity values of existing
-#'   surveillance present at each spatial location specified by
-#'   \code{divisions}. Default is \code{NULL}.
+#' @param exist_alloc A vector of existing surveillance resource quantities at
+#'   each spatial location specified by \code{divisions}. Should only be used
+#'   to represent existing surveillance designs when \code{optimal = "none"}.
+#'   Default is \code{NULL}.
+#' @param exist_sens A vector, or list of vectors, of detection sensitivity
+#'   values of existing surveillance present at each spatial location specified
+#'   by \code{divisions}. Multiple existing surveillance layers may be
+#'   specified in a list. Default is \code{NULL}.
 #' @param ... Additional parameters.
 #' @return A \code{SpatialSurvDesign} class object (list) containing inherited
 #'   and extended functions from the base \code{SurveillanceDesign} class for
 #'   for allocating resources, and calculating (location and overall) detection
 #'   sensitivities:
 #'   \describe{
-#'     \item{\code{get_allocation()}}{Get allocated surveillance resources via
-#'       specified strategy, utilizing costs, benefits, budget constraints,
-#'       and/or desired detection confidence level.}
-#'     \item{\code{get_sensitivity()}}{Get the location detection sensitivities
-#'       of the allocated surveillance design.}
+#'     \item{\code{get_allocation()}}{Get allocated samples via specified
+#'       strategy, utilizing costs, benefits, budget constraints, and/or
+#'       desired detection confidence level.}
+#'     \item{\code{get_sensitivity()}}{Get the division part detection
+#'       sensitivities of the allocated surveillance design combined with any
+#'       existing sensitivities specified via \code{exist_sens}.}
 #'     \item{\code{get_confidence(growth = NULL)}}{Get the overall system
 #'       sensitivity or detection confidence of the allocated surveillance
 #'       design. The optional \code{growth} parameter may provide a vector of
@@ -108,13 +115,15 @@ SpatialSurvDesign <- function(context,
                               establish_pr,
                               lambda,
                               prevalence = 1,
-                              optimal = c("cost", "benefit", "detection"),
+                              optimal = c("cost", "benefit", "detection",
+                                          "none"),
                               mgmt_cost = NULL,
                               benefit = NULL,
                               alloc_cost = NULL,
                               fixed_cost = NULL,
                               budget = NULL,
                               confidence = NULL,
+                              exist_alloc = NULL,
                               exist_sens = NULL,
                               class = character(), ...) {
   UseMethod("SpatialSurvDesign")
@@ -128,13 +137,14 @@ SpatialSurvDesign.Context <- function(context,
                                       lambda,
                                       prevalence = 1,
                                       optimal = c("cost", "benefit",
-                                                  "detection"),
+                                                  "detection", "none"),
                                       mgmt_cost = NULL,
                                       benefit = NULL,
                                       alloc_cost = NULL,
                                       fixed_cost = NULL,
                                       budget = NULL,
                                       confidence = NULL,
+                                      exist_alloc = NULL,
                                       exist_sens = NULL,
                                       class = character(), ...) {
 
@@ -149,6 +159,7 @@ SpatialSurvDesign.Context <- function(context,
                              fixed_cost = fixed_cost,
                              budget = budget,
                              confidence = confidence,
+                             exist_alloc = exist_alloc,
                              exist_sens = exist_sens,
                              class = "SpatialSurvDesign", ...)
 
@@ -190,6 +201,8 @@ SpatialSurvDesign.Context <- function(context,
   }
   if (is.null(exist_sens)) {
     exist_sens <- rep(0, parts)
+  } else {
+    exist_sens <- self$get_sensitivity() # combine via base class
   }
 
   # Check and resolve empty optimal strategy parameters
@@ -292,7 +305,7 @@ SpatialSurvDesign.Context <- function(context,
   # Get the allocated surveillance resource values of the surveillance design
   qty_alloc <- NULL
   self$get_allocation <- function() {
-    if (is.null(qty_alloc)) {
+    if (optimal != "none" && is.null(qty_alloc)) {
 
       # Get cost allocation x_alloc via Lagrange surveillance design
       lagrangeSurvDesign <- LagrangeSurvDesign(context,
@@ -317,11 +330,20 @@ SpatialSurvDesign.Context <- function(context,
     return(qty_alloc)
   }
 
+  # Function for calculating sensitivities
+  calculate_sensitivity <- function(n_alloc) {
+    return(1 - (1 - exist_sens)*exp(-1*lambda*n_alloc))
+  }
+
   # Get the location detection sensitivities of the surveillance design
   sensitivity <- NULL
   self$get_sensitivity <- function() {
-    if (is.null(sensitivity) && !is.null(qty_alloc)) {
-      sensitivity <<- 1 - (1 - exist_sens)*exp(-1*lambda*qty_alloc)
+    if (is.null(sensitivity)) {
+      if (optimal != "none" && !is.null(qty_alloc)) {
+        sensitivity <<- calculate_sensitivity(qty_alloc)
+      } else if (optimal == "none" && !is.null(exist_alloc)) {
+        sensitivity <<- calculate_sensitivity(exist_alloc)
+      }
     }
     return(sensitivity)
   }

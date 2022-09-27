@@ -13,7 +13,9 @@ AreaGrowthSurvDesign(
   growth_rate,
   size_class_max = 10,
   class_pops_max = 100,
-  f_area_growth = function(g, s) {     pi * (g * s)^2 },
+  f_area_growth = function(g, s) {
+     pi * (g * s)^2
+ },
   sample_sens = 1,
   mgmt_cost = list(),
   sample_cost = NULL,
@@ -29,7 +31,9 @@ AreaGrowthSurvDesign(
   growth_rate,
   size_class_max = 10,
   class_pops_max = 100,
-  f_area_growth = function(g, s) {     pi * (g * s)^2 },
+  f_area_growth = function(g, s) {
+     pi * (g * s)^2
+ },
   sample_sens = 1,
   mgmt_cost = list(),
   sample_cost = NULL,

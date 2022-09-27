@@ -91,7 +91,8 @@ confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
 
 \item{exist_alloc}{A vector of existing surveillance resource quantities at
 each division part (location, category, etc.) specified by
-\code{divisions}. Default is \code{NULL}.}
+\code{divisions}. Should only be used to represent existing surveillance
+designs when \code{optimal = "none"}. Default is \code{NULL}.}
 
 \item{exist_sens}{A vector, or list of vectors, of detection sensitivity
 values of existing surveillance present at each division part (location,
@@ -105,9 +106,9 @@ A \code{SurveillanceDesign} class object (list) containing functions
 for allocating resources, and calculating (unit and overall) detection
 sensitivities:
 \describe{
-\item{\code{get_allocation()}}{Get allocated surveillance resources via
-specified strategy, utilizing costs, benefits, budget constraints,
-and/or desired detection confidence level.}
+\item{\code{get_allocation()}}{Get allocated samples via specified
+strategy, utilizing costs, benefits, budget constraints, and/or
+desired detection confidence level.}
 \item{\code{get_sensitivity()}}{Get the division part detection
 sensitivities of the allocated surveillance design combined with any
 existing sensitivities specified via \code{exist_sens}.}
