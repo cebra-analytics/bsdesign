@@ -35,10 +35,11 @@
 #' @param sample_area The area of a single sample in a continuous sampling
 #'   design. Note that when set to \code{1}, the total number of samples will
 #'   be equivalent to the total area sampled. Default is \code{NULL}.
-#' @param optimal The strategy used for finding an effective sampling
-#'   allocation. One of (minimum) \code{"cost"}, (maximum) \code{"benefit"},
-#'   or (maximum) \code{"detection"} sensitivity (up to \code{"confidence"}
-#'   level when specified).
+#' @param optimal The strategy used for finding an effective surveillance
+#'   resource allocation. One of (minimum) \code{"cost"}, (maximum)
+#'   \code{"benefit"}, (maximum) \code{"detection"} sensitivity (up to
+#'   \code{"confidence"} level when specified), or \code{"none"} for
+#'   representing existing surveillance designs only.
 #' @param mgmt_cost A list of vectors to represent estimated management costs
 #'   for when the incursion is detected and undetected. Each vector specifies
 #'   costs at each division part (location, category, etc.) specified by
@@ -66,9 +67,14 @@
 #'   the \code{context} (e.g. traps or samples).
 #' @param confidence The desired (minimum) system sensitivity or detection
 #'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
-#' @param exist_sens A vector of detection sensitivity values of existing
-#'   surveillance present at each division part (location, category, etc.)
-#'   specified by \code{divisions}. Default is \code{NULL}.
+#' @param exist_alloc A vector of existing surveillance resource quantities at
+#'   each division part (location, category, etc.) specified by
+#'   \code{divisions}. Should only be used to represent existing surveillance
+#'   designs when \code{optimal = "none"}. Default is \code{NULL}.
+#' @param exist_sens A vector, or list of vectors, of detection sensitivity
+#'   values of existing surveillance present at each division part (location,
+#'   category, etc.) specified by \code{divisions}. Multiple existing
+#'   surveillance layers may be specified in a list. Default is \code{NULL}.
 #' @param ... Additional parameters.
 #' @return A \code{SamplingSurvDesign} class object (list) containing inherited
 #'   and extended functions from the base \code{SurveillanceDesign} class for
@@ -79,7 +85,8 @@
 #'       strategy, utilizing costs, benefits, budget constraints, and/or
 #'       desired detection confidence level.}
 #'     \item{\code{get_sensitivity()}}{Get the division part detection
-#'       sensitivities of the allocated surveillance design.}
+#'       sensitivities of the allocated surveillance design combined with any
+#'       existing sensitivities specified via \code{exist_sens}.}
 #'     \item{\code{get_confidence(growth = NULL)}}{Get the overall system
 #'       sensitivity or detection confidence of the allocated surveillance
 #'       design. The optional \code{growth} parameter may provide a vector of
@@ -112,13 +119,15 @@ SamplingSurvDesign <- function(context,
                                total_indiv = NULL,
                                design_dens = NULL,
                                sample_area = NULL,
-                               optimal = c("cost", "benefit", "detection"),
+                               optimal = c("cost", "benefit", "detection",
+                                           "none"),
                                mgmt_cost = list(),
                                benefit = NULL,
                                sample_cost = NULL,
                                fixed_cost = NULL,
                                budget = NULL,
                                confidence = NULL,
+                               exist_alloc = NULL,
                                exist_sens = NULL,
                                class = character(), ...) {
   UseMethod("SamplingSurvDesign")
@@ -137,13 +146,14 @@ SamplingSurvDesign.Context <- function(context,
                                        design_dens = NULL,
                                        sample_area = NULL,
                                        optimal = c("cost", "benefit",
-                                                   "detection"),
+                                                   "detection", "none"),
                                        mgmt_cost = list(),
                                        benefit = NULL,
                                        sample_cost = NULL,
                                        fixed_cost = NULL,
                                        budget = NULL,
                                        confidence = NULL,
+                                       exist_alloc = NULL,
                                        exist_sens = NULL,
                                        class = character(), ...) {
 
@@ -157,6 +167,7 @@ SamplingSurvDesign.Context <- function(context,
                              fixed_cost = fixed_cost,
                              budget = budget,
                              confidence = confidence,
+                             exist_alloc = exist_alloc,
                              exist_sens = exist_sens,
                              class = "SamplingSurvDesign", ...)
 
@@ -248,6 +259,8 @@ SamplingSurvDesign.Context <- function(context,
   }
   if (is.null(exist_sens)) {
     exist_sens <- rep(0, parts)
+  } else {
+    exist_sens <- self$get_sensitivity() # combine via base class
   }
 
   # Check and resolve empty optimal strategy parameters
@@ -443,12 +456,12 @@ SamplingSurvDesign.Context <- function(context,
   alpha_min <- min(f_deriv(fixed_cost))
 
   # Function for calculating unit sensitivity
-  f_unit_sens <- function(x_alloc) {
+  f_unit_sens <- function(x_alloc) { # TODO update for n/N > 1 ####
     return(1 - ((1 - exist_sens)*
                   exp(-1*lambda*(x_alloc - fixed_cost)/sample_cost)))
   }
 
-  # Function for calculating inverse of unit sensitivity
+  # Function for calculating inverse of unit sensitivity # TODO update for n/N > 1 ####
   f_inv_unit_sens <- function(unit_sens) {
     return(-1*sample_cost/lambda*log((1 - unit_sens)/(1 - exist_sens))
            + fixed_cost)
@@ -457,7 +470,7 @@ SamplingSurvDesign.Context <- function(context,
   # Get the allocated surveillance resource values of the surveillance design
   qty_alloc <- NULL
   self$get_allocation <- function() {
-    if (is.null(qty_alloc)) {
+    if (optimal != "none" && is.null(qty_alloc)) {
 
       # Get cost allocation x_alloc via Lagrange surveillance design
       lagrangeSurvDesign <- LagrangeSurvDesign(context,
@@ -482,30 +495,42 @@ SamplingSurvDesign.Context <- function(context,
     return(qty_alloc)
   }
 
-  # Get the detection sensitivities for each division part of the design
+  # Function for calculating sensitivities
   calculate_sensitivity <- function(multi = 1) { # internal version
+
+    # Generated or existing allocation?
+    n_alloc <- NULL
+    if (optimal != "none" && !is.null(qty_alloc)) {
+      n_alloc <- qty_alloc
+    } else if (optimal == "none" && !is.null(exist_alloc)) {
+      n_alloc <- exist_alloc
+    }
+
+    # Calculate sensitivities for allocation
     unit_sens <- NULL
-    if (!is.null(qty_alloc)) {
+    if (!is.null(n_alloc)) {
 
       # Check if discrete sample fraction n/N > 0.1
       if (sample_type == "discrete") {
-        if (is.numeric(total_indiv) && any(qty_alloc/total_indiv > 0.1)) {
+        if (is.numeric(total_indiv) && any(n_alloc/total_indiv > 0.1)) {
           unit_sens <-
-            1 - (1 - exist_sens)*((1 - sample_sens*qty_alloc/total_indiv)
+            1 - (1 - exist_sens)*((1 - sample_sens*n_alloc/total_indiv)
                                   ^(prevalence*multi*total_indiv))
         } else {
           unit_sens <-
-            1 - (1 - exist_sens)*(1 - sample_sens*prevalence*multi)^qty_alloc
+            1 - (1 - exist_sens)*(1 - sample_sens*prevalence*multi)^n_alloc
         }
       } else { # continuous
         unit_sens <-
           1 - ((1 - exist_sens)*
-                 exp(-1*sample_sens*sample_area*qty_alloc*design_dens*multi))
+                 exp(-1*sample_sens*sample_area*n_alloc*design_dens*multi))
       }
     }
 
     return(unit_sens)
   }
+
+  # Get the detection sensitivities for each division part of the design
   sensitivity <- NULL
   self$get_sensitivity <- function() { # class version
     if (is.null(sensitivity)) {

@@ -15,13 +15,14 @@ SamplingSurvDesign(
   total_indiv = NULL,
   design_dens = NULL,
   sample_area = NULL,
-  optimal = c("cost", "benefit", "detection"),
+  optimal = c("cost", "benefit", "detection", "none"),
   mgmt_cost = list(),
   benefit = NULL,
   sample_cost = NULL,
   fixed_cost = NULL,
   budget = NULL,
   confidence = NULL,
+  exist_alloc = NULL,
   exist_sens = NULL,
   class = character(),
   ...
@@ -37,13 +38,14 @@ SamplingSurvDesign(
   total_indiv = NULL,
   design_dens = NULL,
   sample_area = NULL,
-  optimal = c("cost", "benefit", "detection"),
+  optimal = c("cost", "benefit", "detection", "none"),
   mgmt_cost = list(),
   benefit = NULL,
   sample_cost = NULL,
   fixed_cost = NULL,
   budget = NULL,
   confidence = NULL,
+  exist_alloc = NULL,
   exist_sens = NULL,
   class = character(),
   ...
@@ -87,10 +89,11 @@ each division part (location, category, etc.). Default is \code{NULL}.}
 design. Note that when set to \code{1}, the total number of samples will
 be equivalent to the total area sampled. Default is \code{NULL}.}
 
-\item{optimal}{The strategy used for finding an effective sampling
-allocation. One of (minimum) \code{"cost"}, (maximum) \code{"benefit"},
-or (maximum) \code{"detection"} sensitivity (up to \code{"confidence"}
-level when specified).}
+\item{optimal}{The strategy used for finding an effective surveillance
+resource allocation. One of (minimum) \code{"cost"}, (maximum)
+\code{"benefit"}, (maximum) \code{"detection"} sensitivity (up to
+\code{"confidence"} level when specified), or \code{"none"} for
+representing existing surveillance designs only.}
 
 \item{mgmt_cost}{A list of vectors to represent estimated management costs
 for when the incursion is detected and undetected. Each vector specifies
@@ -125,9 +128,15 @@ the \code{context} (e.g. traps or samples).}
 \item{confidence}{The desired (minimum) system sensitivity or detection
 confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
 
-\item{exist_sens}{A vector of detection sensitivity values of existing
-surveillance present at each division part (location, category, etc.)
-specified by \code{divisions}. Default is \code{NULL}.}
+\item{exist_alloc}{A vector of existing surveillance resource quantities at
+each division part (location, category, etc.) specified by
+\code{divisions}. Should only be used to represent existing surveillance
+designs when \code{optimal = "none"}. Default is \code{NULL}.}
+
+\item{exist_sens}{A vector, or list of vectors, of detection sensitivity
+values of existing surveillance present at each division part (location,
+category, etc.) specified by \code{divisions}. Multiple existing
+surveillance layers may be specified in a list. Default is \code{NULL}.}
 
 \item{...}{Additional parameters.}
 }
@@ -141,7 +150,8 @@ sensitivities:
 strategy, utilizing costs, benefits, budget constraints, and/or
 desired detection confidence level.}
 \item{\code{get_sensitivity()}}{Get the division part detection
-sensitivities of the allocated surveillance design.}
+sensitivities of the allocated surveillance design combined with any
+existing sensitivities specified via \code{exist_sens}.}
 \item{\code{get_confidence(growth = NULL)}}{Get the overall system
 sensitivity or detection confidence of the allocated surveillance
 design. The optional \code{growth} parameter may provide a vector of

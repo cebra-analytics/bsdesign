@@ -128,9 +128,9 @@ sensitivities:
 \item{\code{get_allocation()}}{Get allocated samples via specified
 strategy, utilizing costs, benefits, budget constraints, and/or
 desired detection confidence level.}
-\item{\code{get_sensitivity()}}{Get the division part detection
-sensitivities of the allocated surveillance design combined with any
-existing sensitivities specified via \code{exist_sens}.}
+\item{\code{get_sensitivity()}}{Get the location detection sensitivities
+of the allocated surveillance design combined with any existing
+sensitivities specified via \code{exist_sens}.}
 \item{\code{get_confidence(growth = NULL)}}{Get the overall system
 sensitivity or detection confidence of the allocated surveillance
 design. The optional \code{growth} parameter may provide a vector of
