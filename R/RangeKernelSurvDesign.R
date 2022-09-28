@@ -36,30 +36,37 @@
 #'   invasive species if the region of interest specified by \code{divisions}
 #'   is infected. Default is \code{1}. Higher values can be used as a proxy
 #'   to population growth over time.
+#' @param optimal The strategy used for finding an effective surveillance
+#'   resource allocation. Either (maximum) \code{"detection"} sensitivity (up
+#'   to \code{"confidence"} level when specified), or \code{"none"} for
+#'   representing existing surveillance designs only.
 #' @param budget The budget or constraint for the number of surveillance
 #'   resource units or devices available for allocation in the surveillance
 #'   design. Default is \code{NULL}.
 #' @param confidence The desired (minimum) system sensitivity or detection
 #'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
-#' @param exist_sens A vector of detection sensitivity values of existing
-#'   surveillance present at each spatial location specified by
-#'   \code{divisions}. Default is \code{NULL}.
+#' @param exist_alloc A vector of existing surveillance resource quantities at
+#'   each spatial location specified by \code{divisions}, or a data frame
+#'   (or matrix) of resource location coordinates in longitude and latitude
+#'   (WGS84) with explicitly named columns "lon" and "lat". Should only be used
+#'   to represent existing surveillance designs when \code{optimal = "none"}.
+#'   Default is \code{NULL}.
+#' @param exist_sens A vector, or list of vectors, of detection sensitivity
+#'   values of existing surveillance present at each spatial location specified
+#'   by \code{divisions}. Multiple existing surveillance layers may be
+#'   specified in a list. Default is \code{NULL}.
 #' @param ... Additional parameters.
 #' @return A \code{RangeKernelSurvDesign} class object (list) containing
 #'   inherited and extended functions from the base \code{SurveillanceDesign}
 #'   class for for allocating resources, and calculating (location and overall)
 #'   detection sensitivities:
 #'   \describe{
-#'     \item{\code{get_allocation()}}{Get allocated surveillance resources
-#'       utilizing resource budget constraint and/or desired detection
-#'       confidence level.}
-#'     \item{\code{set_surv_locs(coords)}}{Set surveillance resource locations
-#'       via a data frame (or matrix) of resource location coordinates in
-#'       longitude and latitude (WGS84) with explicitly named columns "lon"
-#'       and "lat".}
-#'     \item{\code{get_surv_locs()}}{Get surveillance resource locations as a
-#'       data frame of resource location coordinates in longitude and latitude
-#'       (WGS84) with named columns "lon" and "lat".}
+#'     \item{\code{get_allocation(coords = FALSE)}}{Get allocated resources via
+#'       specified strategy, utilizing costs, benefits, budget constraints,
+#'       and/or desired detection confidence level. Returns resources at each
+#'       location when \code{coords = FALSE} (default), or resource location
+#'       coordinates in longitude and latitude (WGS84) when
+#'       \code{coords = TRUE}.}
 #'     \item{\code{get_sensitivity()}}{Get the location detection sensitivities
 #'       of the allocated surveillance design.}
 #'     \item{\code{get_confidence(growth = NULL)}}{Get the overall system
@@ -107,8 +114,10 @@ RangeKernelSurvDesign <- function(context,
                                   sigma,
                                   intervals,
                                   prevalence = 1,
+                                  optimal = c("detection", "none"),
                                   budget = NULL,
                                   confidence = NULL,
+                                  exist_alloc = NULL,
                                   exist_sens = NULL, ...) {
   UseMethod("RangeKernelSurvDesign")
 }
@@ -122,22 +131,72 @@ RangeKernelSurvDesign.Context <- function(context,
                                           sigma,
                                           intervals,
                                           prevalence = 1,
+                                          optimal = c("detection", "none"),
                                           budget = NULL,
                                           confidence = NULL,
+                                          exist_alloc = NULL,
                                           exist_sens = NULL, ...) {
 
-  # Allow budget and confidence to be empty for setting resource locations
+  # Allow budget and confidence to be empty for setting resource locations # ????? ####
   if (is.null(budget) && is.null(confidence)) {
     budget <- confidence <- 0
+  }
+
+  # Match optimal arguments
+  optimal <- match.arg(optimal)
+
+  # Check and resolve existing allocation when allowed (optimal is "none")
+  exist_vect <- NULL # existing allocation spatial points vector
+  if (optimal == "none" && !is.null(exist_alloc)) {
+
+    # Coordinate data, numeric vector, or invalid?
+    if ((is.data.frame(exist_alloc) || # presumed coordinate data
+         (is.matrix(exist_alloc) && ncol(exist_alloc) >= 2))) {
+
+      # Check coordinate data
+      exist_alloc <- as.data.frame(exist_alloc)
+      if (!all(c("lon", "lat") %in% names(exist_alloc))) {
+        stop(paste("When the existing allocation parameter is a data frame",
+                   "(or matrix) it should contain coordinate data with",
+                   "columns named 'lon' and 'lat'."), call. = FALSE)
+      }
+
+      # Set the existing allocation coordinates as spatial points
+      exist_vect <- terra::project(terra::vect(exist_alloc, crs = "EPSG:4326"),
+                                   divisions$get_template())
+
+    } else if (is.numeric(exist_alloc)) {
+
+      # Check allocation per location (cell)
+      if (!length(exist_alloc) == parts) {
+        stop(paste("When the existing allocation parameter is a numeric",
+                   "vector it should have a value for each cell location."),
+             call. = FALSE)
+      }
+
+      # Convert existing allocation to spatial points (also multiple per cell)
+      exist_vect <-
+        divisions$get_feat()[rep(which(exist_alloc > 0),
+                                 exist_alloc[which(exist_alloc > 0)])]
+
+    } else { # invalid
+      stop(paste("The existing allocation parameter must be either a numeric",
+                 "vector or a data frame (or matrix) of coordinates."),
+           call. = FALSE)
+    }
+
+    # Clear (numeric vector) allocation
+    exist_alloc <- NULL
   }
 
   # Build via base class (for checks and system sensitivity)
   self <- SurveillanceDesign(context = context,
                              divisions = divisions,
                              establish_pr = establish_pr,
-                             optimal = "detection",
+                             optimal = optimal,
                              budget = budget,
                              confidence = confidence,
+                             exist_alloc = exist_alloc,
                              exist_sens = exist_sens,
                              class = "RangeKernelSurvDesign", ...)
 
@@ -173,6 +232,8 @@ RangeKernelSurvDesign.Context <- function(context,
   # Resolve exist_sens
   if (is.null(exist_sens)) {
     exist_sens <- rep(0, parts)
+  } else {
+    exist_sens <- self$get_sensitivity() # combine via base class
   }
 
   # Function to calculate surveillance unit indices and pr(detection)
@@ -195,14 +256,10 @@ RangeKernelSurvDesign.Context <- function(context,
     return(surv_units)
   }
 
-  # Initialize allocated/specified resources, and unit sensitivities
-  qty_alloc <- NULL
-  surv_vect <- NULL
-  sensitivity <- NULL
-
   # Get the allocated surveillance resource values of the surveillance design
-  self$get_allocation <- function() {
-    if (is.null(qty_alloc) && is.null(surv_vect)) {
+  qty_alloc <- NULL
+  self$get_allocation <- function(coords = FALSE) {
+    if (optimal != "none" && is.null(qty_alloc)) {
 
       # Possible surveillance units with reachable indices and pr(detection)
       surv_units <- calc_surv_units()
@@ -268,60 +325,33 @@ RangeKernelSurvDesign.Context <- function(context,
       alloc_surv_units <<- surv_units[selected]
     }
 
-    return(qty_alloc)
-  }
-
-  # Set surveillance resource locations
-  self$set_surv_locs <- function(coords) {
-
-    # Only set when not already allocated
-    if (!is.null(qty_alloc)) {
-      stop("Surveillance resources have already been allocated.",
-           call. = FALSE)
+    # Return as coordinates or allocation vector?
+    if (coords) {
+      alloc_coords <- NULL
+      if (!is.null(qty_alloc)) {
+        alloc_coords <- as.data.frame(terra::crds(terra::project(
+          divisions$get_feat()[which(qty_alloc > 0)], "EPSG:4326")))
+        names(alloc_coords) <- c("lon", "lat")
+      }
+      return(alloc_coords)
+    } else {
+      return(qty_alloc)
     }
-
-    # Check coordinate data
-    coords <- as.data.frame(coords)
-    if (!all(c("lon", "lat") %in% names(coords))) {
-      stop("Coordinate data must contain columns named 'lon' and 'lat'.",
-           call. = FALSE)
-    }
-
-    # Convert the coordinates to spatial points
-    surv_vect <<- terra::project(terra::vect(coords, crs = "EPSG:4326"),
-                                 divisions$get_template())
-
-    # Reset unit sensitivities
-    sensitivity <<- NULL
-  }
-
-  # Get surveillance resource locations (lon/lat data)
-  self$get_surv_locs <- function() {
-    surv_locs <- NULL
-    if (!is.null(qty_alloc)) {
-      surv_locs <- as.data.frame(terra::crds(terra::project(
-        divisions$get_feat()[which(qty_alloc > 0)], "EPSG:4326")))
-      names(surv_locs) <- c("lon", "lat")
-    } else if (!is.null(surv_vect)) {
-      surv_locs <- as.data.frame(terra::crds(terra::project(
-        surv_vect, "EPSG:4326")))
-      names(surv_locs) <- c("lon", "lat")
-    }
-    return(surv_locs)
   }
 
   # Get the location detection sensitivities of the surveillance design
+  sensitivity <- NULL
   self$get_sensitivity <- function() {
     if (is.null(sensitivity)) {
 
       # Calculate sensitivities for allocated or specified locations
-      if (!is.null(qty_alloc) || !is.null(surv_vect)) {
+      if (!is.null(qty_alloc) || !is.null(exist_vect)) {
 
         # Calculate surveillance units with reachable indices and pr(detection)
-        if (!is.null(qty_alloc)) {
+        if (optimal != "none" && !is.null(qty_alloc)) {
           surv_units <- alloc_surv_units
-        } else if (!is.null(surv_vect)) {
-          surv_units <- calc_surv_units(surv_vect)
+        } else if (optimal == "none" && !is.null(exist_vect)) {
+          surv_units <- calc_surv_units(exist_vect)
         }
 
         # Calculate unit sensitivities

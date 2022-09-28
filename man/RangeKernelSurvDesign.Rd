@@ -13,8 +13,10 @@ RangeKernelSurvDesign(
   sigma,
   intervals,
   prevalence = 1,
+  optimal = c("detection", "none"),
   budget = NULL,
   confidence = NULL,
+  exist_alloc = NULL,
   exist_sens = NULL,
   ...
 )
@@ -27,8 +29,10 @@ RangeKernelSurvDesign(
   sigma,
   intervals,
   prevalence = 1,
+  optimal = c("detection", "none"),
   budget = NULL,
   confidence = NULL,
+  exist_alloc = NULL,
   exist_sens = NULL,
   ...
 )
@@ -71,6 +75,11 @@ invasive species if the region of interest specified by \code{divisions}
 is infected. Default is \code{1}. Higher values can be used as a proxy
 to population growth over time.}
 
+\item{optimal}{The strategy used for finding an effective surveillance
+resource allocation. Either (maximum) \code{"detection"} sensitivity (up
+to \code{"confidence"} level when specified), or \code{"none"} for
+representing existing surveillance designs only.}
+
 \item{budget}{The budget or constraint for the number of surveillance
 resource units or devices available for allocation in the surveillance
 design. Default is \code{NULL}.}
@@ -78,9 +87,17 @@ design. Default is \code{NULL}.}
 \item{confidence}{The desired (minimum) system sensitivity or detection
 confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
 
-\item{exist_sens}{A vector of detection sensitivity values of existing
-surveillance present at each spatial location specified by
-\code{divisions}. Default is \code{NULL}.}
+\item{exist_alloc}{A vector of existing surveillance resource quantities at
+each spatial location specified by \code{divisions}, or a data frame
+(or matrix) of resource location coordinates in longitude and latitude
+(WGS84) with explicitly named columns "lon" and "lat". Should only be used
+to represent existing surveillance designs when \code{optimal = "none"}.
+Default is \code{NULL}.}
+
+\item{exist_sens}{A vector, or list of vectors, of detection sensitivity
+values of existing surveillance present at each spatial location specified
+by \code{divisions}. Multiple existing surveillance layers may be
+specified in a list. Default is \code{NULL}.}
 
 \item{...}{Additional parameters.}
 }
@@ -90,16 +107,12 @@ inherited and extended functions from the base \code{SurveillanceDesign}
 class for for allocating resources, and calculating (location and overall)
 detection sensitivities:
 \describe{
-\item{\code{get_allocation()}}{Get allocated surveillance resources
-utilizing resource budget constraint and/or desired detection
-confidence level.}
-\item{\code{set_surv_locs(coords)}}{Set surveillance resource locations
-via a data frame (or matrix) of resource location coordinates in
-longitude and latitude (WGS84) with explicitly named columns "lon"
-and "lat".}
-\item{\code{get_surv_locs()}}{Get surveillance resource locations as a
-data frame of resource location coordinates in longitude and latitude
-(WGS84) with named columns "lon" and "lat".}
+\item{\code{get_allocation(coords = FALSE)}}{Get allocated resources via
+specified strategy, utilizing costs, benefits, budget constraints,
+and/or desired detection confidence level. Returns resources at each
+location when \code{coords = FALSE} (default), or resource location
+coordinates in longitude and latitude (WGS84) when
+\code{coords = TRUE}.}
 \item{\code{get_sensitivity()}}{Get the location detection sensitivities
 of the allocated surveillance design.}
 \item{\code{get_confidence(growth = NULL)}}{Get the overall system

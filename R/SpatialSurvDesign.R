@@ -71,7 +71,7 @@
 #'   for allocating resources, and calculating (location and overall) detection
 #'   sensitivities:
 #'   \describe{
-#'     \item{\code{get_allocation()}}{Get allocated samples via specified
+#'     \item{\code{get_allocation()}}{Get allocated resources via specified
 #'       strategy, utilizing costs, benefits, budget constraints, and/or
 #'       desired detection confidence level.}
 #'     \item{\code{get_sensitivity()}}{Get the location detection sensitivities
