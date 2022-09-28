@@ -456,15 +456,35 @@ SamplingSurvDesign.Context <- function(context,
   alpha_min <- min(f_deriv(fixed_cost))
 
   # Function for calculating unit sensitivity
-  f_unit_sens <- function(x_alloc) { # TODO update for n/N > 1 ####
-    return(1 - ((1 - exist_sens)*
-                  exp(-1*lambda*(x_alloc - fixed_cost)/sample_cost)))
+  f_unit_sens <- function(x_alloc) {
+    if (sample_type == "discrete" && sample_fract_gt_0_1) {
+
+      # Discrete sample fraction n/N > 0.1
+      return(1 - ((1 - exist_sens)*
+                    ((1 - (sample_sens*(x_alloc - fixed_cost)/sample_cost/
+                             total_indiv))^(prevalence*total_indiv))))
+    } else {
+
+      # Discrete sample fraction n/N <= 1 or continuous
+      return(1 - ((1 - exist_sens)*
+                    exp(-1*lambda*(x_alloc - fixed_cost)/sample_cost)))
+    }
   }
 
-  # Function for calculating inverse of unit sensitivity # TODO update for n/N > 1 ####
+  # Function for calculating inverse of unit sensitivity
   f_inv_unit_sens <- function(unit_sens) {
-    return(-1*sample_cost/lambda*log((1 - unit_sens)/(1 - exist_sens))
-           + fixed_cost)
+    if (sample_type == "discrete" && sample_fract_gt_0_1) {
+
+      # Discrete sample fraction n/N > 0.1
+      return(total_indiv*sample_cost/sample_sens*
+               ((1 - ((1 - unit_sens)/(1 - exist_sens))
+                 ^(1/(prevalence*total_indiv)))) + fixed_cost)
+    } else {
+
+      # Discrete sample fraction n/N <= 1 or continuous
+      return(-1*sample_cost/lambda*log((1 - unit_sens)/(1 - exist_sens))
+             + fixed_cost)
+    }
   }
 
   # Get the allocated surveillance resource values of the surveillance design
