@@ -137,10 +137,8 @@ RangeKernelSurvDesign.Context <- function(context,
                                           exist_alloc = NULL,
                                           exist_sens = NULL, ...) {
 
-  # Allow budget and confidence to be empty for setting resource locations # ????? ####
-  if (is.null(budget) && is.null(confidence)) {
-    budget <- confidence <- 0
-  }
+  # Number of division parts
+  parts <- divisions$get_parts()
 
   # Match optimal arguments
   optimal <- match.arg(optimal)
@@ -199,9 +197,6 @@ RangeKernelSurvDesign.Context <- function(context,
                              exist_alloc = exist_alloc,
                              exist_sens = exist_sens,
                              class = "RangeKernelSurvDesign", ...)
-
-  # Number of division parts
-  parts <- divisions$get_parts()
 
   # Resolve if establish_pr is relative
   if ((!is.null(attr(establish_pr, "relative")) &&
