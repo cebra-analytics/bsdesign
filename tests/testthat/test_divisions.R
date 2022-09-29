@@ -2,7 +2,7 @@ context("Divisions")
 
 test_that("initializes with planar CRS raster", {
   TEST_DIRECTORY <- test_path("test_inputs")
-  template <- terra::rast(file.path(TEST_DIRECTORY, "greater_melb.tif"))
+  template <- terra::rast(file.path(TEST_DIRECTORY, "template.tif"))
   expect_silent(parts <- Divisions(template))
   expect_is(parts, "Divisions")
   expect_equal(parts$get_type(), "grid")
@@ -10,7 +10,7 @@ test_that("initializes with planar CRS raster", {
   expect_true(parts$is_compatible(parts$get_template()))
   expect_equal(parts$get_indices(), which(is.finite(template[])))
   expect_equal(parts$get_res(), 1000)
-  expect_equal(parts$is_included(5922:5925), c(TRUE, FALSE, FALSE, TRUE))
+  expect_equal(parts$is_included(349:351), c(TRUE, FALSE, TRUE))
   expect_silent(features <- parts$get_feat())
   expect_is(features, "SpatVector")
   expect_length(features, parts$get_parts())
