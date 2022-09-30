@@ -14,38 +14,40 @@ test_that("initializes with context, divisions, and valid parameters", {
                paste("The establishment probability must be a numeric vector",
                      "with values >= 0 for each division part."))
   expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
+                                                 divisions = divisions,
+                                                 optimal = "cost",
+                                                 mgmt_cost = list()),
+               paste("The management cost parameter must be specified for",
+                     "optimal cost."))
+  expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
+                                                 divisions = divisions,
+                                                 optimal = "benefit",
+                                                 benefit = NULL),
+               "The benefit parameter must be specified for optimal benefit.")
+  expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
+                                                 divisions = divisions,
+                                                 optimal = "detection",
+                                                 budget = NULL,
+                                                 confidence = NULL),
+               paste("Either the budget or detection confidence parameter",
+                     "must be specified for optimal detection."))
+  expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
                                     divisions = divisions,
                                     mgmt_cost = list(a = 1:5)),
                paste("The management cost parameter must be a list of numeric",
                      "vectors with values for each division part."))
   expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
                                     divisions = divisions,
+                                    optimal = "benefit",
                                     benefit = 1:5),
                paste("The benefit parameter must be a numeric vector with",
                      "values for each division part."))
   expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
                                     divisions = divisions,
+                                    optimal = "detection",
                                     confidence = 1.5),
                paste("The detection confidence parameter must be numeric,",
                      ">= 0 and <= 1."))
-  expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
-                                    divisions = divisions,
-                                    optimal = "cost",
-                                    mgmt_cost = list()),
-               paste("The management cost parameter must be specified for",
-                     "optimal cost."))
-  expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
-                                    divisions = divisions,
-                                    optimal = "benefit",
-                                    benefit = NULL),
-               "The benefit parameter must be specified for optimal benefit.")
-  expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
-                                    divisions = divisions,
-                                    optimal = "detection",
-                                    budget = NULL,
-                                    confidence = NULL),
-               paste("Either the budget or detection confidence parameter",
-                     "must be specified for optimal detection."))
   expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
                                     divisions = divisions,
                                     optimal = "cost",

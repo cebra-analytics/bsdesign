@@ -144,6 +144,19 @@ SurveillanceDesign.Context <- function(context,
   # Match optimal arguments
   optimal <- match.arg(optimal)
 
+  # Ensure relevant parameters are present for optimal strategy
+  if (optimal == "cost" && length(mgmt_cost) == 0) {
+    stop("The management cost parameter must be specified for optimal cost.",
+         call. = FALSE)
+  } else if (optimal == "benefit" && is.null(benefit)) {
+    stop("The benefit parameter must be specified for optimal benefit.",
+         call. = FALSE)
+  } else if (optimal == "detection" &&
+             (is.null(budget) && is.null(confidence))) {
+    stop(paste("Either the budget or detection confidence parameter must be",
+               "specified for optimal detection."), call. = FALSE)
+  }
+
   # Check mgmt_cost, benefit, and confidence
   if (!is.list(mgmt_cost) ||
       !all(sapply(mgmt_cost, length) %in% c(1, parts))) {
@@ -159,19 +172,6 @@ SurveillanceDesign.Context <- function(context,
       (!is.numeric(confidence) || confidence < 0 || confidence > 1)) {
     stop("The detection confidence parameter must be numeric, >= 0 and <= 1.",
          call. = FALSE)
-  }
-
-  # Ensure relevant parameters are present for optimal strategy
-  if (optimal == "cost" && length(mgmt_cost) == 0) {
-    stop("The management cost parameter must be specified for optimal cost.",
-         call. = FALSE)
-  } else if (optimal == "benefit" && is.null(benefit)) {
-    stop("The benefit parameter must be specified for optimal benefit.",
-         call. = FALSE)
-  } else if (optimal == "detection" &&
-             (is.null(budget) && is.null(confidence))) {
-    stop(paste("Either the budget or detection confidence parameter must be",
-               "specified for optimal detection."), call. = FALSE)
   }
 
   # Check alloc_cost, fixed_cost, budget, exist_alloc, and exist_sens
