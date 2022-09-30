@@ -114,7 +114,7 @@ test_that("combines existing sensitivities via union", {
   expected_sensitivity <-
     1 - apply(cbind(exist_sens[[1]], exist_sens[[2]], exist_sens[[3]]), 1,
               function(s) prod(1 - s))
-  expect_equal(round(surv_design$get_sensitivity(), 10),
-               round(expected_sensitivity, 10))
+  expect_equal(round(surv_design$get_sensitivity(), 8),
+               round(expected_sensitivity, 8))
   expect_null(surv_design$get_confidence())
 })

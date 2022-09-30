@@ -117,7 +117,7 @@ SpatialSurvDesign <- function(context,
                               prevalence = 1,
                               optimal = c("cost", "benefit", "detection",
                                           "none"),
-                              mgmt_cost = NULL,
+                              mgmt_cost = list(),
                               benefit = NULL,
                               alloc_cost = NULL,
                               fixed_cost = NULL,
@@ -138,7 +138,7 @@ SpatialSurvDesign.Context <- function(context,
                                       prevalence = 1,
                                       optimal = c("cost", "benefit",
                                                   "detection", "none"),
-                                      mgmt_cost = NULL,
+                                      mgmt_cost = list(),
                                       benefit = NULL,
                                       alloc_cost = NULL,
                                       fixed_cost = NULL,
@@ -176,13 +176,13 @@ SpatialSurvDesign.Context <- function(context,
 
   # Check lambda and prevalence
   if (!is.numeric(lambda) || lambda < 0 || !length(lambda) %in% c(1, parts)) {
-    stop(paste("The lambda parameter must be numeric,  >= 0, and match the",
+    stop(paste("The lambda parameter must be numeric, >= 0, and match the",
                "number of division parts."), call. = FALSE)
   } else if (length(lambda) == 1) {
     lambda <- rep(lambda, parts)
   }
   if (!is.numeric(prevalence) || prevalence < 0) {
-    stop("The prevalence parameter must be numeric and  >= 0.", call. = FALSE)
+    stop("The prevalence parameter must be numeric and >= 0.", call. = FALSE)
   }
 
   # Match optimal arguments
