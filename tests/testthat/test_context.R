@@ -2,6 +2,7 @@ context("Context")
 
 test_that("initializes with parameters", {
   expect_silent(conteX <- Context("My species"))
+  expect_is(conteX, "Context")
   expect_equal(conteX$get_species_name(), "My species")
   expect_equal(conteX$get_species_type(), "pest")
   expect_equal(conteX$get_surveillance_purpose(), "early_detection")

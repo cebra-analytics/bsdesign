@@ -128,7 +128,7 @@ SurveillanceDesign.Context <- function(context,
       (!is.numeric(establish_pr) || any(establish_pr < 0) ||
        !length(establish_pr) %in% c(1, parts))) {
     stop(paste("The establishment probability must be a numeric vector with",
-               "values  >= 0 for each division part."), call. = FALSE)
+               "values >= 0 for each division part."), call. = FALSE)
   }
 
   # Resolve if establish_pr is relative
@@ -177,7 +177,7 @@ SurveillanceDesign.Context <- function(context,
   # Check alloc_cost, fixed_cost, budget, exist_alloc, and exist_sens
   if (!is.null(alloc_cost) &&
       (!is.numeric(alloc_cost) || !length(alloc_cost) %in% c(1, parts))) {
-    stop(paste("The allocation cost parameter must be a numeric vector with ",
+    stop(paste("The allocation cost parameter must be a numeric vector with",
                "values for each division part."), call. = FALSE)
   }
   if (!is.null(fixed_cost) &&
@@ -185,8 +185,8 @@ SurveillanceDesign.Context <- function(context,
     stop(paste("The fixed cost parameter must be a numeric vector with values",
                "for each division part."), call. = FALSE)
   }
-  if (!is.null(budget) && (!is.numeric(budget) || budget < 0)) {
-    stop("The budget parameter must be numeric and >= 0.", call. = FALSE)
+  if (!is.null(budget) && (!is.numeric(budget) || budget <= 0)) {
+    stop("The budget parameter must be numeric and > 0.", call. = FALSE)
   }
   if (!is.null(exist_alloc) && optimal != "none") {
     stop(paste("The existing allocation parameter should only be specified",
@@ -198,7 +198,7 @@ SurveillanceDesign.Context <- function(context,
                "with values for each division part."), call. = FALSE)
   }
   if (!is.null(exist_sens) &&
-      (!(is.numeric(exist_sens) || is.list(mgmt_cost)) ||
+      (!(is.numeric(exist_sens) || is.list(exist_sens)) ||
        (is.numeric(exist_sens) && !length(exist_sens) %in% c(1, parts)) ||
        (is.list(exist_sens) &&
         !all(sapply(exist_sens, length) %in% c(1, parts))))) {
