@@ -159,7 +159,8 @@ SurveillanceDesign.Context <- function(context,
 
   # Check mgmt_cost, benefit, and confidence
   if (!is.list(mgmt_cost) ||
-      !all(sapply(mgmt_cost, length) %in% c(1, parts))) {
+      (length(mgmt_cost) > 0 &&
+       !all(sapply(mgmt_cost, length) %in% c(1, parts)))) {
     stop(paste("The management cost parameter must be a list of numeric",
                "vectors with values for each division part."), call. = FALSE)
   }
