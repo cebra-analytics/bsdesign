@@ -79,3 +79,40 @@ test_that("allocates resources consistently with reference method", {
   expect_silent(confidence <- surv_design$get_confidence())
   expect_equal(confidence, expected_confidence)
 })
+
+test_that("facilitates existing allocations and sensitivities", {
+  TEST_DIRECTORY <- test_path("test_inputs")
+  template <- terra::rast(file.path(TEST_DIRECTORY, "template.tif"))
+  divisions <- Divisions(template)
+  test_ref <- readRDS(file.path(TEST_DIRECTORY, "Hauser2009_test.rds"))
+  expected_sensitivity <- 1 - exp(-1*test_ref$lambda*
+                                    test_ref$surv_effort$no_budget)
+  exist_alloc <- c(test_ref$surv_effort$no_budget[1:198], rep(0, 199))
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "none",
+    mgmt_cost = list(),
+    budget = NULL,
+    exist_alloc = exist_alloc))
+  expect_silent(exist_sens <- surv_design$get_sensitivity())
+  expect_equal(exist_sens, c(expected_sensitivity[1:198], rep(0, 199)))
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "cost",
+    mgmt_cost = list(undetected = test_ref$cost_undetected,
+                     detected = test_ref$cost_detected),
+    budget = NULL,
+    exist_sens = exist_sens))
+  expect_silent(half_alloc <- surv_design$get_allocation())
+  expect_equal(round(half_alloc, 8),
+               round(c(rep(0, 198),
+                       test_ref$surv_effort$no_budget[199:397]), 8))
+  expect_silent(sensitivity <- surv_design$get_sensitivity())
+  expect_equal(sensitivity, expected_sensitivity)
+})
