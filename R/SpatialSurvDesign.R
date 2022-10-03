@@ -233,11 +233,11 @@ SpatialSurvDesign.Context <- function(context,
     } else { # minimum cost or maximum benefit (benefit = 1 for detection)
       incl_x <- (optimal == "cost")
       return(
-        benefit*establish_pr*(1 - exist_sens)*
-          ((x_alloc < fixed_cost)*1 +
-             ((x_alloc >= fixed_cost)*
-                (x_alloc*incl_x + exp(-1*lambda* # cost only
-                                        (x_alloc - fixed_cost)/alloc_cost)))))
+        (benefit*establish_pr*(1 - exist_sens)*
+           ((x_alloc < fixed_cost)*1 +
+              ((x_alloc >= fixed_cost)*
+                 exp(-1*lambda*(x_alloc - fixed_cost)/alloc_cost)))) +
+          (x_alloc >= fixed_cost)*x_alloc*incl_x)
     }
   }
 

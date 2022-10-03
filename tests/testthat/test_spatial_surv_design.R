@@ -116,3 +116,26 @@ test_that("facilitates existing allocations and sensitivities", {
   expect_silent(sensitivity <- surv_design$get_sensitivity())
   expect_equal(sensitivity, expected_sensitivity)
 })
+
+test_that("allocates budget with fixed costs", {
+  TEST_DIRECTORY <- test_path("test_inputs")
+  template <- terra::rast(file.path(TEST_DIRECTORY, "template.tif"))
+  divisions <- Divisions(template)
+  test_ref <- readRDS(file.path(TEST_DIRECTORY, "Hauser2009_test.rds"))
+  fixed_cost <- c(rep(1, 200), rep(0, 197))
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "cost",
+    mgmt_cost = list(undetected = test_ref$cost_undetected*10,
+                     detected = test_ref$cost_detected*10),
+    budget = test_ref$budget*10,
+    alloc_cost = 10,
+    fixed_cost = fixed_cost))
+  expect_silent(budget_alloc <- surv_design$get_allocation())
+  expect_true(all(budget_alloc <= test_ref$surv_effort$with_budget))
+  expect_equal(sum(budget_alloc*10 + fixed_cost*(budget_alloc > 0)),
+               test_ref$budget*10)
+})
