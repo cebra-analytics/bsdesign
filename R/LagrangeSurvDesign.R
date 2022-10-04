@@ -242,7 +242,7 @@ LagrangeSurvDesign.Context <- function(context,
     if (is.numeric(budget) || is.numeric(confidence)) {
       interval <- (0:100)/100*alpha_min
       alpha_range <- range(interval)[2] - range(interval)[1]
-      precision <- 8 # for alpha
+      precision <- 8 - min(0, floor(log(abs(alpha_min), base = 10))) # alpha
       while (alpha_range > 10^(-1*precision)) {
         obj <- sapply(interval[-1], function(a) sum(f_obj(allocate(a))))
         i <- max(which(obj == min(obj))) # which.min(obj)

@@ -212,8 +212,8 @@ SamplingSurvDesign.Context <- function(context,
                ">= 0 for each division part."), call. = FALSE)
   }
   if (!is.null(sample_area) &&
-      (!is.numeric(sample_area) || any(sample_area < 0))) {
-    stop("The sample area parameter must be numeric with values >= 0.",
+      (!is.numeric(sample_area) || sample_area <= 0)) {
+    stop("The sample area parameter must be numeric with value > 0.",
          call. = FALSE)
   }
   if (!is.null(sample_cost) &&
@@ -304,19 +304,18 @@ SamplingSurvDesign.Context <- function(context,
                              ((1 - (sample_sens/total_indiv*
                                      (x_alloc - fixed_cost)/sample_cost))
                               ^(prevalence*total_indiv)))))))
-
-      log(1 - r*(1 - (1 - Se)*(1 - p/N*(x - f)/c)^(l)))
     } else if (sample_type == "discrete" && sample_fract_gt_0_1) {
       # Minimum cost or maximum benefit (benefit = 1 for detection)
       # for discrete sampling with n/N > 0.1
       incl_x <- (optimal == "cost")
       return(
-        benefit*establish_pr*(1 - exist_sens)*
-          ((x_alloc < fixed_cost)*1 +
-             ((x_alloc >= fixed_cost)*
-                (x_alloc*incl_x + ((1 - (sample_sens/total_indiv*
-                                           (x_alloc - fixed_cost)/sample_cost))
-                                   ^(prevalence*total_indiv))))))
+        (benefit*establish_pr*(1 - exist_sens)*
+           ((x_alloc < fixed_cost)*1 +
+              ((x_alloc >= fixed_cost)*
+                 ((1 - (sample_sens/total_indiv*
+                          (x_alloc - fixed_cost)/sample_cost))
+                  ^(prevalence*total_indiv))))) +
+          (x_alloc >= fixed_cost)*x_alloc*incl_x)
     } else if (optimal == "detection" && !relative_establish_pr) {
       # Maximum detection
       return(
@@ -329,11 +328,11 @@ SamplingSurvDesign.Context <- function(context,
       # Minimum cost or maximum benefit (benefit = 1 for detection)
       incl_x <- (optimal == "cost")
       return(
-        benefit*establish_pr*(1 - exist_sens)*
-          ((x_alloc < fixed_cost)*1 +
-             ((x_alloc >= fixed_cost)*
-                (x_alloc*incl_x + exp(-1*lambda* # cost only
-                                        (x_alloc - fixed_cost)/sample_cost)))))
+        (benefit*establish_pr*(1 - exist_sens)*
+           ((x_alloc < fixed_cost)*1 +
+              ((x_alloc >= fixed_cost)*
+                 exp(-1*lambda*(x_alloc - fixed_cost)/sample_cost)))) +
+          (x_alloc >= fixed_cost)*x_alloc*incl_x)
     }
   }
 
