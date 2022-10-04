@@ -243,9 +243,9 @@ LagrangeSurvDesign.Context <- function(context,
       interval <- (0:100)/100*alpha_min
       alpha_range <- range(interval)[2] - range(interval)[1]
       precision <- 8 # for alpha
-      while (alpha_range > abs(best_alpha*10^(-1*precision))) {
+      while (alpha_range > 10^(-1*precision)) {
         obj <- sapply(interval[-1], function(a) sum(f_obj(allocate(a))))
-        i <- which.min(obj)
+        i <- max(which(obj == min(obj))) # which.min(obj)
         best_alpha <- interval[i + 1]
         if (i < length(interval) - 1) {
           interval <- (0:100)/100*(interval[i + 2] - interval[i]) + interval[i]

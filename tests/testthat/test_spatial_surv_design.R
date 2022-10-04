@@ -139,3 +139,78 @@ test_that("allocates budget with fixed costs", {
   expect_equal(sum(budget_alloc*10 + fixed_cost*(budget_alloc > 0)),
                test_ref$budget*10)
 })
+
+test_that("allocates for optimal detection via budget or confidence", {
+  TEST_DIRECTORY <- test_path("test_inputs")
+  template <- terra::rast(file.path(TEST_DIRECTORY, "template.tif"))
+  divisions <- Divisions(template)
+  test_ref <- readRDS(file.path(TEST_DIRECTORY, "Hauser2009_test.rds"))
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "none",
+    exist_alloc = test_ref$surv_effort$with_budget))
+  expect_silent(cost_budget_sens <- surv_design$get_sensitivity())
+  expect_silent(cost_budget_conf <- surv_design$get_confidence())
+  cost_budget_tot <- sum((test_ref$establish_pr*
+                            (test_ref$cost_detected*cost_budget_sens +
+                               (test_ref$cost_undetected*
+                                  (1 - cost_budget_sens)))) +
+                           test_ref$surv_effort$with_budget)
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "detection",
+    budget = test_ref$budget))
+  expect_silent(detect_budget_alloc <- surv_design$get_allocation())
+  expect_silent(detect_budget_sens <- surv_design$get_sensitivity())
+  expect_silent(detect_budget_conf <- surv_design$get_confidence())
+  detect_budget_tot <- sum((test_ref$establish_pr*
+                              (test_ref$cost_detected*detect_budget_sens +
+                                 (test_ref$cost_undetected*
+                                    (1 - detect_budget_sens)))) +
+                             detect_budget_alloc)
+  expect_equal(sum(detect_budget_alloc), test_ref$budget)
+  expect_true(detect_budget_conf > cost_budget_conf)
+  expect_true(detect_budget_tot > cost_budget_tot)
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "cost",
+    mgmt_cost = list(undetected = test_ref$cost_undetected,
+                     detected = test_ref$cost_detected),
+    confidence = 0.99))
+  expect_silent(cost_99_alloc <- surv_design$get_allocation())
+  expect_silent(cost_99_sens <- surv_design$get_sensitivity())
+  expect_silent(cost_99_conf <- surv_design$get_confidence())
+  cost_99_tot <- sum((test_ref$establish_pr*
+                        (test_ref$cost_detected*cost_99_sens +
+                           (test_ref$cost_undetected*
+                              (1 - cost_99_sens)))) +
+                       cost_99_alloc)
+  expect_equal(cost_99_conf, 0.99)
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "detection",
+    confidence = 0.99))
+  expect_silent(detect_99_alloc <- surv_design$get_allocation())
+  expect_silent(detect_99_sens <- surv_design$get_sensitivity())
+  expect_silent(detect_99_conf <- surv_design$get_confidence())
+  detect_99_tot <- sum((test_ref$establish_pr*
+                          (test_ref$cost_detected*detect_99_sens +
+                             (test_ref$cost_undetected*
+                                (1 - detect_99_sens)))) +
+                         detect_99_alloc)
+  expect_equal(detect_99_conf, 0.99)
+  expect_true(sum(detect_99_alloc) < sum(cost_99_alloc))
+  expect_true(detect_99_tot > cost_99_tot)
+})
