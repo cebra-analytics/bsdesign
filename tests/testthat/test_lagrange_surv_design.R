@@ -2,7 +2,6 @@ context("LagrangeSurvDesign")
 
 test_that("initializes with context, divisions, and valid parameters", {
   TEST_DIRECTORY <- test_path("test_inputs")
-
   expect_error(surv_design <- LagrangeSurvDesign(
     context = Context("test"),
     divisions = 10,
