@@ -138,21 +138,35 @@ LagrangeSurvDesign.Context <- function(context,
   }
 
   # Check f_obj, f_deriv, f_pos, f_unit_sens, and f_inv_unit_sens
-  if (!is.function(f_obj)) {
-    stop("The objective function must be a function.", call. = FALSE)
-  }
-  if (!is.function(f_deriv)) {
-    stop("The derivative function must be a function.", call. = FALSE)
-  }
-  if (!is.function(f_pos)) {
-    stop("The The pseudo-inverse-derivative function must be a function.",
+  if (!is.function(f_obj) || length(formalArgs(f_obj)) != 1) {
+    stop("The objective function should have form function(x_alloc).",
          call. = FALSE)
   }
-  if (!is.function(f_unit_sens)) {
-    stop("The unit sensitivity function must be a function.", call. = FALSE)
+  if (!is.function(f_deriv) || length(formalArgs(f_deriv)) != 1) {
+    stop("The derivative function should have form function(x_alloc).",
+         call. = FALSE)
   }
-  if (!is.function(f_inv_unit_sens)) {
-    stop("The inverse unit sensitivity function must be a function.",
+  if (!is.function(f_pos) || length(formalArgs(f_pos)) != 1) {
+    stop(paste("The pseudo-inverse-derivative function should have form",
+               "function(alpha)."), call. = FALSE)
+  }
+  if (!is.function(f_unit_sens) || length(formalArgs(f_unit_sens)) != 1) {
+    stop("The unit sensitivity function should have form function(x_alloc).",
+         call. = FALSE)
+  }
+  if (!is.function(f_inv_unit_sens) ||
+      length(formalArgs(f_inv_unit_sens)) != 1) {
+    stop(paste("The inverse unit sensitivity function should have form",
+               "function(unit_sens)."), call. = FALSE)
+  }
+
+  # Check budget and confidence
+  if (!is.null(budget) && (!is.numeric(budget) || budget <= 0)) {
+    stop("The budget parameter must be numeric and > 0.", call. = FALSE)
+  }
+  if (!is.null(confidence) &&
+      (!is.numeric(confidence) || confidence < 0 || confidence > 1)) {
+    stop("The detection confidence parameter must be numeric, >= 0 and <= 1.",
          call. = FALSE)
   }
 
