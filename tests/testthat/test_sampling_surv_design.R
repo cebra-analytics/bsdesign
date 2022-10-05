@@ -146,3 +146,113 @@ test_that("allocates resources consistently with reference method", {
     budget = test_ref$budget))
   expect_equal(surv_design$get_allocation(), test_ref$expected_n$restricted)
 })
+
+test_that("allocates when sample fraction n/N <= 0.1 and > 0.1", {
+  TEST_DIRECTORY <- test_path("test_inputs")
+  test_ref <- readRDS(file.path(TEST_DIRECTORY, "Cannon2009_C_test.rds"))
+  divisions <- Divisions(as.matrix(test_ref$part))
+  expect_silent(surv_design <- SamplingSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    sample_sens = 1,
+    sample_type = "discrete",
+    prevalence = test_ref$prevalence,
+    total_indiv = c(5000, 2000, 8000, 6000, 4000), # n/N < 0.1
+    optimal = "detection",
+    budget = test_ref$budget$ind_95))
+  expect_equal(round(surv_design$get_allocation(), 4),
+               round(test_ref$expected_n$detection, 4))
+  total_indiv <- c(500, 200, 800, 600, 400) # n/N > 0.1
+  expect_silent(surv_design <- SamplingSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    sample_sens = 1,
+    sample_type = "discrete",
+    prevalence = test_ref$prevalence,
+    total_indiv = total_indiv,
+    optimal = "detection",
+    budget = test_ref$budget$ind_95))
+  expect_silent(alloc <- surv_design$get_allocation())
+  expect_true(all(round(alloc, 4) != round(test_ref$expected_n$detection, 4)))
+  expect_equal(round(sum(alloc)), test_ref$budget$ind_95)
+  expect_equal(surv_design$get_sensitivity(),
+               1 - (1 - 1*alloc/total_indiv)^(test_ref$prevalence*total_indiv))
+})
+
+test_that("facilitates existing allocations and sensitivities", {
+  TEST_DIRECTORY <- test_path("test_inputs")
+  test_ref <- readRDS(file.path(TEST_DIRECTORY, "Cannon2009_C_test.rds"))
+  divisions <- Divisions(as.matrix(test_ref$part))
+  exist_alloc <- test_ref$expected_n$detection*c(1, 1, 1, 0, 0)
+  establish_pr <- test_ref$establish_pr
+  expect_silent(surv_design <- SamplingSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = establish_pr,
+    sample_sens = 1,
+    sample_type = "discrete",
+    prevalence = test_ref$prevalence,
+    optimal = "none",
+    exist_alloc = exist_alloc))
+  expect_null(surv_design$get_allocation())
+  exist_sens <- 1 - (1 - 1*test_ref$prevalence)^exist_alloc
+  expect_equal(surv_design$get_sensitivity(), exist_sens)
+  expect_equal(surv_design$get_confidence(),
+               ((1 - prod(1 - establish_pr*exist_sens))/
+                  (1 - prod(1 - establish_pr))))
+  expect_silent(surv_design <- SamplingSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = establish_pr,
+    sample_sens = 1,
+    sample_type = "discrete",
+    prevalence = test_ref$prevalence,
+    optimal = "detection",
+    budget = test_ref$budget$ind_95 - sum(exist_alloc),
+    exist_sens = exist_sens))
+  expect_equal(round(surv_design$get_allocation(), 3),
+               round(test_ref$expected_n$detection, 3)*c(0, 0, 0, 1, 1))
+  expect_equal(round(surv_design$get_confidence(), 3),
+               test_ref$confidence$ind_95)
+})
+
+test_that("allocates budget with fixed costs", {
+  TEST_DIRECTORY <- test_path("test_inputs")
+  test_ref <- readRDS(file.path(TEST_DIRECTORY, "Cannon2009_C_test.rds"))
+  divisions <- Divisions(as.matrix(test_ref$part))
+  expect_silent(surv_design <- SamplingSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    sample_sens = 1,
+    sample_type = "discrete",
+    prevalence = test_ref$prevalence,
+    optimal = "detection",
+    fixed_cost = 10,
+    budget = test_ref$budget$ind_95 + 50))
+  expect_equal(round(surv_design$get_allocation(), 4),
+               round(test_ref$expected_n$detection, 4))
+})
+
+test_that("allocates continuous sampling consistently with reference method", {
+  TEST_DIRECTORY <- test_path("test_inputs")
+  template <- terra::rast(file.path(TEST_DIRECTORY, "template.tif"))
+  divisions <- Divisions(template)
+  test_ref <- readRDS(file.path(TEST_DIRECTORY, "Hauser2009_test.rds"))
+  expect_silent(surv_design <- SamplingSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    sample_sens = 1,
+    sample_type = "continuous",
+    design_dens = test_ref$lambda,
+    sample_area = 1, # samples = area
+    optimal = "cost",
+    mgmt_cost = list(undetected = test_ref$cost_undetected,
+                     detected = test_ref$cost_detected),
+    budget = NULL))
+  expect_silent(alloc <- surv_design$get_allocation())
+  expect_equal(round(alloc, 8), round(test_ref$surv_effort$no_budget, 8))
+})
