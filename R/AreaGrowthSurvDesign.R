@@ -127,31 +127,37 @@ AreaGrowthSurvDesign.Context <- function(context,
   subregions <- divisions$get_parts()
 
   # Check parameters (not checked in base class)
-  if (!is.numeric(subregion_area) || any(subregion_area < 0) ||
+  if (!is.numeric(subregion_area) || any(subregion_area <= 0) ||
        !length(subregion_area) %in% c(1, subregions)) {
     stop(paste("The sub-region area parameter must be a numeric vector with",
-               "values  >= 0 for each sub-region."), call. = FALSE)
+               "values > 0 for each sub-region."), call. = FALSE)
   }
   if (!is.numeric(establish_rate) || any(establish_rate < 0) ||
       !length(establish_rate) %in% c(1, subregions)) {
     stop(paste("The establishment rate must be a numeric vector with",
-               "values  >= 0 for each sub-region."), call. = FALSE)
+               "values >= 0 for each sub-region."), call. = FALSE)
   }
   if (!is.numeric(growth_rate) || any(growth_rate < 0) ||
       !length(growth_rate) %in% c(1, subregions)) {
     stop(paste("The growth rate parameter must be a numeric vector with",
-               "values  >= 0 for each sub-region."), call. = FALSE)
+               "values >= 0 for each sub-region."), call. = FALSE)
   }
-  if (!is.numeric(size_class_max) || size_class_max < 0) {
-    stop("The maximum size class parameter must be numeric and >= 0.",
+  if (!is.numeric(size_class_max) || size_class_max <= 0) {
+    stop("The maximum size class parameter must be numeric and > 0.",
          call. = FALSE)
   }
-  if (!is.numeric(class_pops_max) || class_pops_max < 0) {
+  if (!is.numeric(class_pops_max) || class_pops_max <= 0) {
     stop(paste("The maximum number of populations in a size class parameter",
-               "must be numeric and >= 0."), call. = FALSE)
+               "must be numeric and > 0."), call. = FALSE)
   }
-  if (!is.function(f_area_growth)) {
-    stop("The area growth function must be a function.", call. = FALSE)
+  if (!is.function(f_area_growth) || length(formalArgs(f_area_growth)) != 2) {
+    stop(paste("The area growth function should have form",
+               "function(growth_rate, size_class)."),
+         call. = FALSE)
+  }
+  if (!is.numeric(sample_sens) || sample_sens < 0 || sample_sens > 1) {
+    stop(paste("The sample sensitivity parameter must be a numeric value",
+               ">= 0 and <= 1."), call. = FALSE)
   }
 
   # Check and resolve mgmt_cost
