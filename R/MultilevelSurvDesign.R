@@ -149,12 +149,14 @@ MultilevelSurvDesign.Context <- function(context,
     stop(paste("The design density and sample area parameters are required",
                "for continuous sampling."), call. = FALSE)
   }
-  if (!is.null(design_dens) && (!is.numeric(design_dens) || design_dens < 0)) {
-    stop("The design density parameter must be a numeric value >= 0.",
+  if (!is.null(design_dens) &&
+      (!is.numeric(design_dens) || design_dens <= 0)) {
+    stop("The design density parameter must be a numeric value > 0.",
          call. = FALSE)
   }
-  if (!is.null(sample_area) && (!is.numeric(sample_area) || sample_area < 0)) {
-    stop("The sample area parameter must be a numeric value >= 0.",
+  if (!is.null(sample_area) &&
+      (!is.numeric(sample_area) || sample_area <= 0)) {
+    stop("The sample area parameter must be a numeric value > 0.",
          call. = FALSE)
   }
   if (!is.null(sample_cost) &&
