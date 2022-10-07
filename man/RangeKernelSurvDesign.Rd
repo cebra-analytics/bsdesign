@@ -56,7 +56,7 @@ is achieved when a surveillance resource is placed in the center of the
 home range of an invasive species individual or colony. Detection/capture
 rate decays with distance via an exponential kernel such that the
 detection/capture probability of each allocated resource can be expressed
-via \code{1 - (1 - lambda*exp(-distance^2/(2sigma^2))^intervals)} for a
+via \code{1 - (1 - lambda*exp(-distance^2/(2*sigma^2))^intervals)} for a
 given number of time \code{intervals} and up to a maximum distance of
 \code{4*sigma}, where \code{sigma} is the home range decay parameter.}
 

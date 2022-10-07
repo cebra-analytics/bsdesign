@@ -21,7 +21,7 @@
 #'   home range of an invasive species individual or colony. Detection/capture
 #'   rate decays with distance via an exponential kernel such that the
 #'   detection/capture probability of each allocated resource can be expressed
-#'   via \code{1 - (1 - lambda*exp(-distance^2/(2sigma^2))^intervals)} for a
+#'   via \code{1 - (1 - lambda*exp(-distance^2/(2*sigma^2))^intervals)} for a
 #'   given number of time \code{intervals} and up to a maximum distance of
 #'   \code{4*sigma}, where \code{sigma} is the home range decay parameter.
 #' @param sigma The spatial decay parameter for the (half-Normal) home range
@@ -137,11 +137,52 @@ RangeKernelSurvDesign.Context <- function(context,
                                           exist_alloc = NULL,
                                           exist_sens = NULL, ...) {
 
+  # Build via base class (for checks and system sensitivity)
+  self <- SurveillanceDesign(context = context,
+                             divisions = divisions,
+                             establish_pr = establish_pr,
+                             optimal = optimal,
+                             budget = budget,
+                             confidence = confidence,
+                             exist_sens = exist_sens,
+                             class = "RangeKernelSurvDesign", ...)
+
+  # Ensure divisions are grids
+  if (divisions$get_type() != "grid") {
+    stop("Divisions must be spatial grid type.", call. = FALSE)
+  }
+
   # Number of division parts
   parts <- divisions$get_parts()
 
   # Match optimal arguments
   optimal <- match.arg(optimal)
+
+  # Resolve if establish_pr is relative
+  if ((!is.null(attr(establish_pr, "relative")) &&
+       as.logical(attr(establish_pr, "relative"))) || max(establish_pr) > 1) {
+    relative_establish_pr <- TRUE
+  } else {
+    relative_establish_pr <- FALSE
+  }
+
+  # Check lambda, sigma, intervals, and prevalence
+  if (!is.numeric(lambda) || lambda < 0 || !length(lambda) %in% c(1, parts)) {
+    stop(paste("The lambda parameter must be numeric, >= 0, and match the",
+               "number of division parts."), call. = FALSE)
+  } else if (length(lambda) == 1) {
+    lambda <- rep(lambda, parts)
+  }
+  if (!is.numeric(sigma) || sigma <= 0) {
+    stop("The sigma parameter must be numeric and > 0.", call. = FALSE)
+  }
+  if (!is.numeric(intervals) || intervals <= 0) {
+    stop("The time intervals parameter must be numeric and > 0.",
+         call. = FALSE)
+  }
+  if (!is.numeric(prevalence) || prevalence <= 0) {
+    stop("The prevalence parameter must be numeric and > 0.", call. = FALSE)
+  }
 
   # Check and resolve existing allocation when allowed (optimal is "none")
   exist_vect <- NULL # existing allocation spatial points vector
@@ -185,43 +226,6 @@ RangeKernelSurvDesign.Context <- function(context,
 
     # Clear (numeric vector) allocation
     exist_alloc <- NULL
-  }
-
-  # Build via base class (for checks and system sensitivity)
-  self <- SurveillanceDesign(context = context,
-                             divisions = divisions,
-                             establish_pr = establish_pr,
-                             optimal = optimal,
-                             budget = budget,
-                             confidence = confidence,
-                             exist_alloc = exist_alloc,
-                             exist_sens = exist_sens,
-                             class = "RangeKernelSurvDesign", ...)
-
-  # Resolve if establish_pr is relative
-  if ((!is.null(attr(establish_pr, "relative")) &&
-       as.logical(attr(establish_pr, "relative"))) || max(establish_pr) > 1) {
-    relative_establish_pr <- TRUE
-  } else {
-    relative_establish_pr <- FALSE
-  }
-
-  # Check lambda, sigma, intervals, and prevalence
-  if (!is.numeric(lambda) || lambda < 0 || !length(lambda) %in% c(1, parts)) {
-    stop(paste("The lambda parameter must be numeric,  >= 0, and match the",
-               "number of division parts."), call. = FALSE)
-  } else if (length(lambda) == 1) {
-    lambda <- rep(lambda, parts)
-  }
-  if (!is.numeric(sigma) || sigma < 0) {
-    stop("The sigma parameter must be numeric and  >= 0.", call. = FALSE)
-  }
-  if (!is.numeric(intervals) || intervals < 0) {
-    stop("The time intervals parameter must be numeric and  >= 0.",
-         call. = FALSE)
-  }
-  if (!is.numeric(prevalence) || prevalence < 0) {
-    stop("The prevalence parameter must be numeric and  >= 0.", call. = FALSE)
   }
 
   # Resolve exist_sens
@@ -284,10 +288,10 @@ RangeKernelSurvDesign.Context <- function(context,
               new_unit_contrib[i] <-
                 (sum(establish_pr[idx]*new_unit_sens) -
                    sum(establish_pr[idx]*unit_sens[idx]))
-            } else {
+            } else { # inverted ratio for maximum
               new_unit_contrib[i] <-
-                ((1 - prod(1 - establish_pr[idx]*new_unit_sens)) -
-                   (1 - prod(1 - establish_pr[idx]*unit_sens[idx])))
+                (prod(1 - establish_pr[idx]*unit_sens[idx])/
+                   prod(1 - establish_pr[idx]*new_unit_sens))
             }
           }
         }
