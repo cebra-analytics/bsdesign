@@ -145,8 +145,7 @@ test_that("allocates effectively with near optimal detection confidence", {
   expect_true(confidence >= max(rand_alloc_conf))
 })
 
-test_that(paste("calculates sensitivity/confidence consistently with",
-                "reference method"), {
+test_that("calculates sensitivity consistently with reference method", {
   TEST_DIRECTORY <- test_path("test_inputs")
   template <- terra::rast(file.path(TEST_DIRECTORY, "template.tif"))
   divisions <- Divisions(template)
@@ -172,4 +171,51 @@ test_that(paste("calculates sensitivity/confidence consistently with",
   expect_silent(confidence <- surv_design$get_confidence())
   expect_equal(confidence, expect_conf)
   expect_true(abs(test_ref$calc_conf - confidence)/test_ref$calc_conf < 0.05)
+})
+
+test_that("facilitates existing allocations and sensitivities", {
+  TEST_DIRECTORY <- test_path("test_inputs")
+  template <- terra::rast(file.path(TEST_DIRECTORY, "template.tif"))
+  divisions <- Divisions(template)
+  test_ref <- readRDS(file.path(TEST_DIRECTORY, "Anderson2013_22_test.rds"))
+  idx <- which(test_ref$alloc)
+  exist_alloc_1_4 <- rep(0, divisions$get_parts())
+  exist_alloc_1_4[idx[1:(length(idx)/4)]] <- 1
+  expect_silent(surv_design <- RangeKernelSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    sigma = test_ref$sigma,
+    intervals = test_ref$intervals,
+    prevalence = test_ref$prevalence,
+    optimal = "none",
+    exist_alloc = exist_alloc_1_4))
+  expect_silent(exist_sens <- surv_design$get_sensitivity())
+  exist_alloc_2_4 <- rep(0, divisions$get_parts())
+  exist_alloc_2_4[idx[(length(idx)/4 + 1):(length(idx)/2)]] <- 1
+  expect_silent(surv_design <- RangeKernelSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    sigma = test_ref$sigma,
+    intervals = test_ref$intervals,
+    prevalence = test_ref$prevalence,
+    optimal = "none",
+    exist_alloc = exist_alloc_2_4))
+  expect_silent(exist_sens <- list(exist_sens, surv_design$get_sensitivity()))
+  expect_silent(surv_design <- RangeKernelSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    sigma = test_ref$sigma,
+    intervals = test_ref$intervals,
+    prevalence = test_ref$prevalence,
+    optimal = "detection",
+    budget = test_ref$budget/2,
+    exist_sens = exist_sens))
+  expect_silent(alloc_3_4 <- surv_design$get_allocation())
+  expect_equal(exist_alloc_1_4 + exist_alloc_2_4 + alloc_3_4, test_ref$alloc*1)
 })
