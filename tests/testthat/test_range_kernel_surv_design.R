@@ -171,6 +171,11 @@ test_that("calculates sensitivity consistently with reference method", {
   expect_silent(confidence <- surv_design$get_confidence())
   expect_equal(confidence, expect_conf)
   expect_true(abs(test_ref$calc_conf - confidence)/test_ref$calc_conf < 0.05)
+  expect_conf <- 1 - (1 - expect_conf)^(1.1^(0:4))
+  expect_silent(confidence <- surv_design$get_confidence(growth = 1.1^(0:4)))
+  expect_equal(confidence, expect_conf)
+  expect_true(all(abs(test_ref$calc_conf_growth - confidence)/
+                    test_ref$calc_conf_growth < 0.05))
 })
 
 test_that("facilitates existing allocations and sensitivities", {
