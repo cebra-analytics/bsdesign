@@ -79,7 +79,7 @@ AreaFreedomDesign.Context <- function(context,
 
   # Check parameters
   detected <- as.logical(detected)
-  if (any(is.na(detected)) && length(detected) < 1) {
+  if (any(is.na(detected)) || length(detected) < 1) {
     stop(paste("The temporal detected parameter should be a logical vector",
                "with length >= 1."), call. = FALSE)
   }
