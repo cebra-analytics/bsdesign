@@ -175,7 +175,8 @@ SpatialSurvDesign.Context <- function(context,
   }
 
   # Check lambda and prevalence
-  if (!is.numeric(lambda) || lambda < 0 || !length(lambda) %in% c(1, parts)) {
+  if (!is.numeric(lambda) || any(lambda < 0) ||
+      !length(lambda) %in% c(1, parts)) {
     stop(paste("The lambda parameter must be numeric, >= 0, and match the",
                "number of division parts."), call. = FALSE)
   } else if (length(lambda) == 1) {
