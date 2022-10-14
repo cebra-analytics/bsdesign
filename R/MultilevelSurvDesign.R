@@ -263,7 +263,7 @@ MultilevelSurvDesign.Context <- function(context,
         n_alloc <- n_min
         incr <- rep(0, num_levels)
         incr[l] <- 1
-        while (calculate_cost(n_alloc + incr) < cost_min &&
+        while (calculate_cost(n_alloc + incr) <= cost_min &&
                n_alloc[l] + 1 <= n_max[l]) {
           n_alloc[l] <- n_alloc[l] + 1
         }
