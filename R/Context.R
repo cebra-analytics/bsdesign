@@ -27,7 +27,7 @@
 #'   intervals when applicable. One of \code{"years"}, \code{"months"},
 #'   \code{"weeks"}, \code{"days"}, \code{"hours"}, or user specified.
 #' @param dist_unit The descriptive unit to describe spatial distances (and
-#'   areas) when applicable. One of \code{"meters"}, \code{"kilometers"},
+#'   areas) when applicable. One of \code{"metres"}, \code{"kilometres"},
 #'   or user specified.
 #' @param incursion_status The status of the invasive species presence. One of
 #'   \code{"never_detected"}, \code{"detected"}, \code{"delimited"},
@@ -59,7 +59,7 @@
 #'       intervals: "years", "months", "weeks", "days" "hours", or user
 #'       specified.}
 #'     \item{\code{get_dist_unit()}}{Get the unit for spatial distances (and
-#'        areas): "meters", "kilometers", or user specified.}
+#'        areas): "metres", "kilometres", or user specified.}
 #'     \item{\code{get_incursion_status()}}{Get the incursion status:
 #'       "never_detected", "detected", "delimited", "contained", or
 #'       "eradicated".}
@@ -97,8 +97,8 @@ Context <- function(species_name,
                                   "days",
                                   "hours",
                                   "user"),
-                    dist_unit = c("meters",
-                                  "kilometers",
+                    dist_unit = c("metres",
+                                  "kilometres",
                                   "user"),
                     incursion_status = c("never_detected",
                                          "detected",
@@ -143,8 +143,8 @@ Context.default <- function(species_name,
                                           "days",
                                           "hours",
                                           "user"),
-                            dist_unit = c("meters",
-                                          "kilometers",
+                            dist_unit = c("metres",
+                                          "kilometres",
                                           "user"),
                             incursion_status = c("never_detected",
                                                  "detected",
