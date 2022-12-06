@@ -61,7 +61,7 @@
 #'   (Diptera: Glossinidae). \emph{Bulletin Of Entomological Research}
 #'   \emph{(London)}, 95(1), 1–12. \doi{10.1079/BER2004331}
 #'
-#'   Regan, T. J., McCarthy, M. A., Baxter, P. W., Dane Panetta, F., &
+#'   Regan, T. J., McCarthy, M. A., Baxter, P. W., Panetta, F. D., &
 #'   Possingham, H. P. (2006). Optimal eradication: when to stop looking for
 #'   an invasive plant. \emph{Ecology Letters}, 9(7), 759–766.
 #'   \doi{10.1111/j.1461-0248.2006.00920.x}
@@ -101,6 +101,9 @@ HypothTestFreedomDesign.Context <- function(context,
                             pr_persist = pr_persist,
                             iterations = iterations,
                             class = "HypothTestFreedomDesign", ...)
+
+  # Logical detection record
+  detected <- as.logical(detected)
 
   # Check class parameters
   if (!is.null(p_value) &&

@@ -112,6 +112,9 @@ BayesianFreedomDesign.Context <- function(context,
                             iterations = iterations,
                             class = "BayesianFreedomDesign", ...)
 
+  # Logical detection record
+  detected <- as.logical(detected)
+
   # Check class parameters
   if (!is.null(pr_freedom) &&
       (!is.numeric(pr_freedom) || pr_freedom < 0 || pr_freedom > 1)) {

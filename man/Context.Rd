@@ -13,7 +13,7 @@ Context(
   surv_qty_unit = c("units", "hours", "traps", "detectors", "samples", "user"),
   cost_unit = c("$", "hours", "user"),
   time_unit = c("years", "months", "weeks", "days", "hours", "user"),
-  dist_unit = c("meters", "kilometers", "user"),
+  dist_unit = c("metres", "kilometres", "user"),
   incursion_status = c("never_detected", "detected", "delimited", "contained",
     "eradicated"),
   area_freedom = FALSE,
@@ -30,7 +30,7 @@ Context(
   surv_qty_unit = c("units", "hours", "traps", "detectors", "samples", "user"),
   cost_unit = c("$", "hours", "user"),
   time_unit = c("years", "months", "weeks", "days", "hours", "user"),
-  dist_unit = c("meters", "kilometers", "user"),
+  dist_unit = c("metres", "kilometres", "user"),
   incursion_status = c("never_detected", "detected", "delimited", "contained",
     "eradicated"),
   area_freedom = FALSE,
@@ -67,7 +67,7 @@ intervals when applicable. One of \code{"years"}, \code{"months"},
 \code{"weeks"}, \code{"days"}, \code{"hours"}, or user specified.}
 
 \item{dist_unit}{The descriptive unit to describe spatial distances (and
-areas) when applicable. One of \code{"meters"}, \code{"kilometers"},
+areas) when applicable. One of \code{"metres"}, \code{"kilometres"},
 or user specified.}
 
 \item{incursion_status}{The status of the invasive species presence. One of
@@ -106,7 +106,7 @@ and/or benefit costs/savings: "$", "hours", or user specified.}
 intervals: "years", "months", "weeks", "days" "hours", or user
 specified.}
 \item{\code{get_dist_unit()}}{Get the unit for spatial distances (and
-areas): "meters", "kilometers", or user specified.}
+areas): "metres", "kilometres", or user specified.}
 \item{\code{get_incursion_status()}}{Get the incursion status:
 "never_detected", "detected", "delimited", "contained", or
 "eradicated".}
