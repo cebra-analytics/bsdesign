@@ -179,12 +179,12 @@ Context.default <- function(species_name,
   # Create a class structure
   self <- structure(list(), class = "Context")
 
-  # Get the type of invasive species
+  # Get the invasive species name
   self$get_species_name <- function() {
     return(species_name)
   }
 
-  # Get the invasive species name
+  # Get the type of invasive species
   self$get_species_type <- function() {
     return(species_type)
   }
