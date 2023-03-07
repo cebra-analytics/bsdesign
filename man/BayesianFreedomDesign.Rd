@@ -120,5 +120,5 @@ Cambridge: Cambridge University Press.
 \doi{doi.org/10.1017/9781139019606.017}
 
 Solow, A. R. (1993). Inferring Extinction from Sighting Data.
-\emph{Ecology}, 74(3), 962–964. https://doi.org/10.2307/1940821
+\emph{Ecology}, 74(3), 962–964. \doi{10.2307/1940821}
 }
