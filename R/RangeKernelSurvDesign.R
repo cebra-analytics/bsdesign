@@ -77,6 +77,9 @@
 #'       repeated surveillance efforts, which provide a proxy for invasive
 #'       species growth. When present, increasing system sensitivity values are
 #'       returned for each multiplier or time/repeat.}
+#'     \item{\code{set_cores(cores)}}{Set the number of cores available for
+#'       parallel processing and thus enable parallel processing for
+#'       calculating optimal resource allocation.}
 #'   }
 #' @references
 #'   Anderson, D. P., Ramsey, D. S. L., Nugent, G., Bosson, M., Livingstone,
@@ -105,6 +108,8 @@
 #'   survey effort over space and time.
 #'   \emph{Methods in Ecology and Evolution}, 7(8), 891–899.
 #'   \doi{10.1111/2041-210X.12564}
+#' @importFrom foreach foreach
+#' @importFrom foreach %dopar%
 #' @include SurveillanceDesign.R
 #' @export
 RangeKernelSurvDesign <- function(context,
@@ -236,22 +241,50 @@ RangeKernelSurvDesign.Context <- function(context,
     exist_sens <- self$get_sensitivity() # combine via base class
   }
 
+  # Set the number of cores available for parallel processing
+  parallel_cores <- NULL
+  self$set_cores <- function(cores) {
+    parallel_cores <<- cores
+  }
+
   # Function to calculate surveillance unit indices and pr(detection)
   alloc_surv_units <- NULL
   calc_surv_units <- function(loc_vect = divisions$get_feat()) {
     if (is.null(alloc_surv_units)) {
-      surv_units <- terra::nearby(loc_vect, divisions$get_feat(),
-                                   distance = sigma*4)
-      surv_units <- lapply(1:length(loc_vect), function(i) {
-        surv_unit <- list(idx = surv_units[which(surv_units[,1] == i), 2])
-        if (length(surv_unit$idx)) {
-          d <- terra::distance(loc_vect[i],
-                               divisions$get_feat()[surv_unit$idx])[1,]
-          surv_unit$detect <-
-            (1 - (1 - lambda[surv_unit$idx]*exp(-1*d^2/(2*sigma^2)))^intervals)
-        }
-        return(surv_unit)
-      })
+      if (is.numeric(parallel_cores) && min(parallel_cores, parts) > 1) {
+        doParallel::registerDoParallel(cores = min(parallel_cores, parts))
+        surv_units <- foreach(
+          i = 1:length(loc_vect),
+          .errorhandling = c("stop"),
+          .noexport = c()) %dopar% {
+            surv_unit <- list(
+              idx = terra::nearby(loc_vect[i], divisions$get_feat(),
+                                  distance = sigma*4, symmetrical = FALSE)[,2])
+            if (length(surv_unit$idx)) {
+              d <- terra::distance(loc_vect[i],
+                                   divisions$get_feat()[surv_unit$idx])[1,]
+              surv_unit$detect <-
+                (1 - (1 - (lambda[surv_unit$idx]*
+                             exp(-1*d^2/(2*sigma^2))))^intervals)
+            }
+            return(surv_unit)
+          }
+        doParallel::stopImplicitCluster()
+      } else { # serial
+        surv_units <- lapply(1:length(loc_vect), function(i) {
+          surv_unit <- list(
+            idx = terra::nearby(loc_vect[i], divisions$get_feat(),
+                                distance = sigma*4, symmetrical = FALSE)[,2])
+          if (length(surv_unit$idx)) {
+            d <- terra::distance(loc_vect[i],
+                                 divisions$get_feat()[surv_unit$idx])[1,]
+            surv_unit$detect <-
+              (1 - (1 - (lambda[surv_unit$idx]*
+                           exp(-1*d^2/(2*sigma^2))))^intervals)
+          }
+          return(surv_unit)
+        })
+      }
     }
     return(surv_units)
   }
@@ -274,25 +307,23 @@ RangeKernelSurvDesign.Context <- function(context,
              (is.null(confidence) || system_conf < confidence)) {
 
         # Calculate additional (local) detection confidence for each unit
+        new_unit_sens <- lapply(1:parts, function(i) {
+          1 - (1 - unit_sens[surv_units[[i]]$idx])*(1 - surv_units[[i]]$detect)
+        })
         new_unit_contrib <- numeric(parts)
         for (i in 1:parts) {
           if (!i %in% selected) {
 
-            # New sensitivity for unit i
-            idx <- surv_units[[i]]$idx
-            new_unit_sens <- sapply(1:length(idx), function(j) {
-              1 - prod(1 - c(unit_sens[idx[j]], surv_units[[i]]$detect[j]))
-            })
-
             # New unit (scaled) contribution towards detection confidence
+            idx <- surv_units[[i]]$idx
             if (relative_establish_pr) {
               new_unit_contrib[i] <-
-                (sum(establish_pr[idx]*new_unit_sens) -
+                (sum(establish_pr[idx]*new_unit_sens[[i]]) -
                    sum(establish_pr[idx]*unit_sens[idx]))
             } else { # inverted ratio for maximum
               new_unit_contrib[i] <-
                 (prod(1 - establish_pr[idx]*unit_sens[idx])/
-                   prod(1 - establish_pr[idx]*new_unit_sens))
+                   prod(1 - establish_pr[idx]*new_unit_sens[[i]]))
             }
           }
         }

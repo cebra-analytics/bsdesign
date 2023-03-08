@@ -123,6 +123,9 @@ cell-level design \code{prevalence} over time or a sequence of
 repeated surveillance efforts, which provide a proxy for invasive
 species growth. When present, increasing system sensitivity values are
 returned for each multiplier or time/repeat.}
+\item{\code{set_cores(cores)}}{Set the number of cores available for
+parallel processing and thus enable parallel processing for
+calculating optimal resource allocation.}
 }
 }
 \description{
