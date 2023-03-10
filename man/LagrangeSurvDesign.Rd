@@ -18,6 +18,7 @@ LagrangeSurvDesign(
   f_inv_unit_sens,
   budget = NULL,
   confidence = NULL,
+  search_alpha = FALSE,
   ...
 )
 
@@ -34,6 +35,7 @@ LagrangeSurvDesign(
   f_inv_unit_sens,
   budget = NULL,
   confidence = NULL,
+  search_alpha = FALSE,
   ...
 )
 }
@@ -69,7 +71,7 @@ category, etc.) specified by \code{divisions}.}
 
 \item{alpha_unconstr}{The marginal benefit value to utilize when the search
 for the optimal resource allocation is not constrained via a \code{budget}
-or a desired \code{confidence} (both \code{NULL}).}
+or a desired \code{confidence}.}
 
 \item{alpha_min}{The minimum marginal benefit value to utilize when
 searching for the optimal resource allocation.}
@@ -91,6 +93,11 @@ the surveillance design. Default is \code{NULL}.}
 
 \item{confidence}{The desired (minimum) system sensitivity or detection
 confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
+
+\item{search_alpha}{A logical indicator to search for the optimal resource
+allocation, even when it is not constrained (via \code{budget} or
+\code{confidence}), such as when fixed costs are present. Default is
+\code{FALSE} indicates that search only occurs when constrained.}
 
 \item{...}{Additional parameters.}
 }

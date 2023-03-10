@@ -57,6 +57,10 @@
 #'   the \code{context}.
 #' @param confidence The desired (minimum) system sensitivity or detection
 #'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
+#' @param min_alloc A vector of minimum permissible allocated surveillance
+#'   resource quantities at each spatial location specified by
+#'   \code{divisions}. Used to avoid impractically low allocation quantities.
+#'   Default is \code{NULL}.
 #' @param exist_alloc A vector of existing surveillance resource quantities at
 #'   each spatial location specified by \code{divisions}. Should only be used
 #'   to represent existing surveillance designs when \code{optimal = "none"}.
@@ -123,6 +127,7 @@ SpatialSurvDesign <- function(context,
                               fixed_cost = NULL,
                               budget = NULL,
                               confidence = NULL,
+                              min_alloc = NULL,
                               exist_alloc = NULL,
                               exist_sens = NULL,
                               class = character(), ...) {
@@ -144,6 +149,7 @@ SpatialSurvDesign.Context <- function(context,
                                       fixed_cost = NULL,
                                       budget = NULL,
                                       confidence = NULL,
+                                      min_alloc = NULL,
                                       exist_alloc = NULL,
                                       exist_sens = NULL,
                                       class = character(), ...) {
@@ -159,6 +165,7 @@ SpatialSurvDesign.Context <- function(context,
                              fixed_cost = fixed_cost,
                              budget = budget,
                              confidence = confidence,
+                             min_alloc = min_alloc,
                              exist_alloc = exist_alloc,
                              exist_sens = exist_sens,
                              class = "SpatialSurvDesign", ...)
@@ -189,7 +196,7 @@ SpatialSurvDesign.Context <- function(context,
   # Match optimal arguments
   optimal <- match.arg(optimal)
 
-  # Resolve alloc_cost, fixed_cost, and exist_sens
+  # Resolve alloc_cost, fixed_cost, min_alloc, and exist_sens
   if (length(alloc_cost) == 1) {
     alloc_cost <- rep(alloc_cost, parts)
   } else if (is.null(alloc_cost)) {
@@ -199,6 +206,10 @@ SpatialSurvDesign.Context <- function(context,
     fixed_cost <- rep(fixed_cost, parts)
   } else if (is.null(fixed_cost)) {
     fixed_cost <- rep(0, parts)
+  }
+  if (!is.null(min_alloc)) { # add to fixed cost
+    attr(fixed_cost, "original") <- fixed_cost
+    fixed_cost <- fixed_cost + min_alloc*alloc_cost
   }
   if (is.null(exist_sens)) {
     exist_sens <- rep(0, parts)
@@ -222,86 +233,115 @@ SpatialSurvDesign.Context <- function(context,
   ## given the surveillance resource quantity allocation qty_alloc
   ## where qty_alloc = (x_alloc - fixed_cost)/alloc_cost
 
-  # Objective function
-  f_obj <- function(x_alloc) {
-    if (optimal == "detection" && !relative_establish_pr) { # maximum detection
-      return(
-        (x_alloc >= fixed_cost)*
-          log(1 - (establish_pr*
-                     (1 - ((1 - exist_sens)*
-                             exp(-1*lambda*
-                                   (x_alloc - fixed_cost)/alloc_cost))))))
-    } else { # minimum cost or maximum benefit (benefit = 1 for detection)
-      incl_x <- (optimal == "cost")
-      return(
-        (benefit*establish_pr*(1 - exist_sens)*
-           ((x_alloc < fixed_cost)*1 +
-              ((x_alloc >= fixed_cost)*
-                 exp(-1*lambda*(x_alloc - fixed_cost)/alloc_cost)))) +
-          (x_alloc >= fixed_cost)*x_alloc*incl_x)
+  # Lagrange optimization parameters/functions
+  f_obj <- NULL # Objective function
+  f_deriv <- NULL # Derivative of objective function
+  f_pos <- NULL # Pseudo-inverse of derivative given marginal benefit alpha
+  alpha_unconstr <- NULL # Unconstrained marginal benefit alpha
+  alpha_min <- NULL # Minimum marginal benefit alpha
+  f_unit_sens <- NULL # Unit sensitivity calculation function
+  f_inv_unit_sens <- NULL # Inverse of unit sensitivity calculation function
+  search_alpha <- NULL # Search alpha for optimal objective
+  set_lagrange_params <- function() {
+
+    # Objective function
+    f_obj <<- function(x_alloc) {
+      if (optimal == "detection" && !relative_establish_pr) {
+
+        # maximum detection
+        return(
+          (x_alloc >= fixed_cost)*
+            log(1 - (establish_pr*
+                       (1 - ((1 - exist_sens)*
+                               exp(-1*lambda*
+                                     (x_alloc - fixed_cost)/alloc_cost))))))
+      } else {
+
+        # minimum cost or maximum benefit (benefit = 1 for detection)
+        incl_x <- (optimal == "cost")
+        return(
+          (benefit*establish_pr*(1 - exist_sens)*
+             ((x_alloc < fixed_cost)*1 +
+                ((x_alloc >= fixed_cost)*
+                   exp(-1*lambda*(x_alloc - fixed_cost)/alloc_cost)))) +
+            (x_alloc >= fixed_cost)*x_alloc*incl_x)
+      }
     }
-  }
 
-  # Derivative of objective function
-  f_deriv <- function(x_alloc) {
-    if (optimal == "detection" && !relative_establish_pr) { # maximum detection
-      return(
-        (x_alloc >= fixed_cost)*-1*establish_pr*(1 - exist_sens)*
-          lambda/alloc_cost*exp(-1*lambda*(x_alloc - fixed_cost)/alloc_cost)/
-          (1 - (establish_pr*
-                  (1 - ((1 - exist_sens)*
-                          exp(-1*lambda*
-                                (x_alloc - fixed_cost)/alloc_cost))))))
-    } else { # minimum cost or maximum benefit (benefit = 1 for detection)
-      incl_x <- (optimal == "cost")
-      return(
-        (x_alloc >= fixed_cost)*
-          (1*incl_x - (benefit*establish_pr*(1 - exist_sens)*
-                         lambda/alloc_cost*
-                         exp(-1*lambda*(x_alloc - fixed_cost)/alloc_cost))))
+    # Derivative of objective function
+    f_deriv <<- function(x_alloc) {
+      if (optimal == "detection" && !relative_establish_pr) {
+
+        # maximum detection
+        return(
+          (x_alloc >= fixed_cost)*-1*establish_pr*(1 - exist_sens)*
+            lambda/alloc_cost*exp(-1*lambda*(x_alloc - fixed_cost)/alloc_cost)/
+            (1 - (establish_pr*
+                    (1 - ((1 - exist_sens)*
+                            exp(-1*lambda*
+                                  (x_alloc - fixed_cost)/alloc_cost))))))
+      } else {
+
+        # minimum cost or maximum benefit (benefit = 1 for detection)
+        incl_x <- (optimal == "cost")
+        return(
+          (x_alloc >= fixed_cost)*
+            (1*incl_x - (benefit*establish_pr*(1 - exist_sens)*
+                           lambda/alloc_cost*
+                           exp(-1*lambda*(x_alloc - fixed_cost)/alloc_cost))))
+      }
     }
-  }
 
-  # Pseudo-inverse of derivative given marginal benefit alpha
-  f_pos <- function(alpha) {
-    values <- lambda/alloc_cost*benefit*establish_pr*(1 - exist_sens)
-    idx <- which(values > 0)
-    values[-idx] <- 0
-    if (optimal == "detection" && !relative_establish_pr) { # maximum detection
-      values[idx] <-
-        pmax(0, ((alpha > -1*lambda[idx]/alloc_cost[idx])*
-                   (alloc_cost[idx]/lambda[idx]*
-                      (log(-1*lambda[idx]/alloc_cost[idx]/alpha - 1) -
-                         log(1/establish_pr[idx] - 1) +
-                         log(1 - exist_sens[idx])) +
-                      fixed_cost[idx])))
-    } else { # minimum cost or maximum benefit (benefit = 1 for detection)
-      incl_x <- (optimal == "cost")
-      values[idx] <-
-        (((alpha - 1*incl_x) >= -1*values[idx])*
-           (-1*alloc_cost[idx]/lambda[idx]*
-              log(-1*(alpha - 1*incl_x)/(values[idx])) + fixed_cost[idx]))
+    # Pseudo-inverse of derivative given marginal benefit alpha
+    f_pos <<- function(alpha) {
+      values <- lambda/alloc_cost*benefit*establish_pr*(1 - exist_sens)
+      idx <- which(values > 0)
+      values[-idx] <- 0
+      if (optimal == "detection" && !relative_establish_pr) {
+
+        # maximum detection
+        values[idx] <-
+          pmax(0, ((alpha > -1*lambda[idx]/alloc_cost[idx])*
+                     (alloc_cost[idx]/lambda[idx]*
+                        (log(-1*lambda[idx]/alloc_cost[idx]/alpha - 1) -
+                           log(1/establish_pr[idx] - 1) +
+                           log(1 - exist_sens[idx])) +
+                        fixed_cost[idx])))
+      } else {
+
+        # minimum cost or maximum benefit (benefit = 1 for detection)
+        incl_x <- (optimal == "cost")
+        values[idx] <-
+          (((alpha - 1*incl_x) >= -1*values[idx])*
+             (-1*alloc_cost[idx]/lambda[idx]*
+                log(-1*(alpha - 1*incl_x)/(values[idx])) + fixed_cost[idx]))
+      }
+
+      return(values)
     }
-    return(values)
+
+    # Unconstrained marginal benefit alpha
+    alpha_unconstr <<- (optimal == "cost") - 1
+
+    # Minimum marginal benefit alpha
+    alpha_min <<- min(f_deriv(fixed_cost))
+
+    # Function for calculating unit sensitivity
+    f_unit_sens <<- function(x_alloc) {
+      return(1 - ((1 - exist_sens)*
+                    exp(-1*lambda*(x_alloc - fixed_cost)/alloc_cost)))
+    }
+
+    # Function for calculating inverse of unit sensitivity
+    f_inv_unit_sens <<- function(unit_sens) {
+      return(-1*alloc_cost/lambda*log((1 - unit_sens)/(1 - exist_sens))
+             + fixed_cost)
+    }
+
+    # Search alpha for optimal objective (even when no constraints)
+    search_alpha <<- any(fixed_cost > 0)
   }
-
-  # Unconstrained marginal benefit alpha
-  alpha_unconstr <- (optimal == "cost") - 1
-
-  # Minimum marginal benefit alpha
-  alpha_min <- min(f_deriv(fixed_cost))
-
-  # Function for calculating unit sensitivity
-  f_unit_sens <- function(x_alloc) {
-    return(1 - ((1 - exist_sens)*
-                  exp(-1*lambda*(x_alloc - fixed_cost)/alloc_cost)))
-  }
-
-  # Function for calculating inverse of unit sensitivity
-  f_inv_unit_sens <- function(unit_sens) {
-    return(-1*alloc_cost/lambda*log((1 - unit_sens)/(1 - exist_sens))
-           + fixed_cost)
-  }
+  set_lagrange_params()
 
   # Get the allocated surveillance resource values of the surveillance design
   qty_alloc <- NULL
@@ -320,7 +360,8 @@ SpatialSurvDesign.Context <- function(context,
                                                f_unit_sens,
                                                f_inv_unit_sens,
                                                budget = budget,
-                                               confidence = confidence)
+                                               confidence = confidence,
+                                               search_alpha = search_alpha)
       x_alloc <- lagrangeSurvDesign$get_cost_allocation()
 
       # Optimal resource allocation

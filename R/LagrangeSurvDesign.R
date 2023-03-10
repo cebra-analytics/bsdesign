@@ -32,7 +32,7 @@
 #'   category, etc.) specified by \code{divisions}.
 #' @param alpha_unconstr The marginal benefit value to utilize when the search
 #'   for the optimal resource allocation is not constrained via a \code{budget}
-#'   or a desired \code{confidence} (both \code{NULL}).
+#'   or a desired \code{confidence}.
 #' @param alpha_min The minimum marginal benefit value to utilize when
 #'   searching for the optimal resource allocation.
 #' @param f_unit_sens A function for calculating the unit (division part)
@@ -49,6 +49,10 @@
 #'   the surveillance design. Default is \code{NULL}.
 #' @param confidence The desired (minimum) system sensitivity or detection
 #'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
+#' @param search_alpha A logical indicator to search for the optimal resource
+#'   allocation, even when it is not constrained (via \code{budget} or
+#'   \code{confidence}), such as when fixed costs are present. Default is
+#'   \code{FALSE} indicates that search only occurs when constrained.
 #' @param ... Additional parameters.
 #' @return A \code{LagrangeSurvDesign} class object (list) containing functions
 #'   for allocating resource costs:
@@ -88,7 +92,8 @@ LagrangeSurvDesign <- function(context,
                                f_unit_sens,
                                f_inv_unit_sens,
                                budget = NULL,
-                               confidence = NULL, ...) {
+                               confidence = NULL,
+                               search_alpha = FALSE, ...) {
   UseMethod("LagrangeSurvDesign")
 }
 
@@ -105,7 +110,8 @@ LagrangeSurvDesign.Context <- function(context,
                                        f_unit_sens,
                                        f_inv_unit_sens,
                                        budget = NULL,
-                                       confidence = NULL, ...) {
+                                       confidence = NULL,
+                                       search_alpha = FALSE, ...) {
 
   # Check divisions
   if (!inherits(divisions, "Divisions")) {
@@ -160,13 +166,17 @@ LagrangeSurvDesign.Context <- function(context,
                "function(unit_sens)."), call. = FALSE)
   }
 
-  # Check budget and confidence
+  # Check budget, confidence, and search alpha (indicator)
   if (!is.null(budget) && (!is.numeric(budget) || budget <= 0)) {
     stop("The budget parameter must be numeric and > 0.", call. = FALSE)
   }
   if (!is.null(confidence) &&
       (!is.numeric(confidence) || confidence < 0 || confidence > 1)) {
     stop("The detection confidence parameter must be numeric, >= 0 and <= 1.",
+         call. = FALSE)
+  }
+  if (!is.logical(search_alpha)) {
+    stop("The search alpha indicator parameter must be logical.",
          call. = FALSE)
   }
 
@@ -253,7 +263,7 @@ LagrangeSurvDesign.Context <- function(context,
     best_alpha <- alpha_unconstr
 
     # Search for minimum objective via marginal benefit (alpha) values
-    if (is.numeric(budget) || is.numeric(confidence)) {
+    if (is.numeric(budget) || is.numeric(confidence) || search_alpha) {
       interval <- (0:100)/100*alpha_min
       alpha_range <- range(interval)[2] - range(interval)[1]
       precision <- 8 # for alpha

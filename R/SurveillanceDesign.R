@@ -45,6 +45,10 @@
 #'   the \code{context}.
 #' @param confidence The desired (minimum) system sensitivity or detection
 #'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
+#' @param min_alloc A vector of minimum permissible allocated surveillance
+#'   resource quantities at each spatial location specified by
+#'   \code{divisions}. Used to avoid impractically low allocation quantities.
+#'   Default is \code{NULL}.
 #' @param exist_alloc A vector of existing surveillance resource quantities at
 #'   each division part (location, category, etc.) specified by
 #'   \code{divisions}. Should only be used to represent existing surveillance
@@ -91,6 +95,7 @@ SurveillanceDesign <- function(context,
                                fixed_cost = NULL,
                                budget = NULL,
                                confidence = NULL,
+                               min_alloc = NULL,
                                exist_alloc = NULL,
                                exist_sens = NULL,
                                class = character(), ...) {
@@ -110,6 +115,7 @@ SurveillanceDesign.Context <- function(context,
                                        fixed_cost = NULL,
                                        budget = NULL,
                                        confidence = NULL,
+                                       min_alloc = NULL,
                                        exist_alloc = NULL,
                                        exist_sens = NULL,
                                        class = character(), ...) {
@@ -175,7 +181,7 @@ SurveillanceDesign.Context <- function(context,
                "specified for optimal detection."), call. = FALSE)
   }
 
-  # Check alloc_cost, fixed_cost, budget, exist_alloc, and exist_sens
+  # Check alloc_cost, fixed_cost, budget, min_alloc, exist_alloc, & exist_sens
   if (!is.null(alloc_cost) &&
       (!is.numeric(alloc_cost) || !length(alloc_cost) %in% c(1, parts))) {
     stop(paste("The allocation cost parameter must be a numeric vector with",
@@ -188,6 +194,11 @@ SurveillanceDesign.Context <- function(context,
   }
   if (!is.null(budget) && (!is.numeric(budget) || budget <= 0)) {
     stop("The budget parameter must be numeric and > 0.", call. = FALSE)
+  }
+  if (!is.null(min_alloc) &&
+      (!is.numeric(min_alloc) || !length(min_alloc) %in% c(1, parts))) {
+    stop(paste("The minimum allocation parameter must be a numeric vector",
+               "with values for each division part."), call. = FALSE)
   }
   if (!is.null(exist_alloc) && optimal != "none") {
     stop(paste("The existing allocation parameter should only be specified",
