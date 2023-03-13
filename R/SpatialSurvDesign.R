@@ -207,9 +207,12 @@ SpatialSurvDesign.Context <- function(context,
   } else if (is.null(fixed_cost)) {
     fixed_cost <- rep(0, parts)
   }
-  if (!is.null(min_alloc)) { # add to fixed cost
-    attr(fixed_cost, "original") <- fixed_cost
-    fixed_cost <- fixed_cost + min_alloc*alloc_cost
+  if (!is.null(min_alloc)) { # LATER -> discrete ####
+    if (length(min_alloc) == 1) {
+      min_alloc <- rep(min_alloc, parts)
+    }
+  } else {
+    min_alloc <- rep(0, parts)
   }
   if (is.null(exist_sens)) {
     exist_sens <- rep(0, parts)
@@ -246,49 +249,50 @@ SpatialSurvDesign.Context <- function(context,
 
     # Objective function
     f_obj <<- function(x_alloc) {
+
+      # Minimum cost allocation
+      min_x_alloc <- min_alloc*alloc_cost + fixed_cost
+
+      # Quantity allocation (units)
+      n_alloc <- (x_alloc >= min_x_alloc)*(x_alloc - fixed_cost)/alloc_cost
+
       if (optimal == "detection" && !relative_establish_pr) {
 
         # maximum detection
-        return(
-          (x_alloc >= fixed_cost)*
-            log(1 - (establish_pr*
-                       (1 - ((1 - exist_sens)*
-                               exp(-1*lambda*
-                                     (x_alloc - fixed_cost)/alloc_cost))))))
+        return(log(1 - (establish_pr*
+                          (1 - ((1 - exist_sens)*exp(-1*lambda*n_alloc))))))
       } else {
 
         # minimum cost or maximum benefit (benefit = 1 for detection)
         incl_x <- (optimal == "cost")
-        return(
-          (benefit*establish_pr*(1 - exist_sens)*
-             ((x_alloc < fixed_cost)*1 +
-                ((x_alloc >= fixed_cost)*
-                   exp(-1*lambda*(x_alloc - fixed_cost)/alloc_cost)))) +
-            (x_alloc >= fixed_cost)*x_alloc*incl_x)
+        return(benefit*establish_pr*(1 - exist_sens)*exp(-1*lambda*n_alloc) +
+                 (n_alloc > 0)*x_alloc*incl_x)
       }
     }
 
     # Derivative of objective function
     f_deriv <<- function(x_alloc) {
+
+      # Minimum cost allocation
+      min_x_alloc <- min_alloc*alloc_cost + fixed_cost
+
+      # Quantity allocation (units)
+      n_alloc <- (x_alloc >= min_x_alloc)*(x_alloc - fixed_cost)/alloc_cost
+
       if (optimal == "detection" && !relative_establish_pr) {
 
         # maximum detection
-        return(
-          (x_alloc >= fixed_cost)*-1*establish_pr*(1 - exist_sens)*
-            lambda/alloc_cost*exp(-1*lambda*(x_alloc - fixed_cost)/alloc_cost)/
-            (1 - (establish_pr*
-                    (1 - ((1 - exist_sens)*
-                            exp(-1*lambda*
-                                  (x_alloc - fixed_cost)/alloc_cost))))))
+        return(-1*establish_pr*(1 - exist_sens)*
+                 lambda/alloc_cost*exp(-1*lambda*n_alloc)/
+                 (1 - (establish_pr*
+                         (1 - ((1 - exist_sens)*exp(-1*lambda*n_alloc))))))
       } else {
 
         # minimum cost or maximum benefit (benefit = 1 for detection)
         incl_x <- (optimal == "cost")
-        return(
-          (x_alloc >= fixed_cost)*
-            (1*incl_x - (benefit*establish_pr*(1 - exist_sens)*
-                           lambda/alloc_cost*
-                           exp(-1*lambda*(x_alloc - fixed_cost)/alloc_cost))))
+        return((n_alloc > 0)*incl_x -
+                 (benefit*establish_pr*(1 - exist_sens)*
+                    lambda/alloc_cost*exp(-1*lambda*n_alloc)))
       }
     }
 
@@ -317,6 +321,10 @@ SpatialSurvDesign.Context <- function(context,
                 log(-1*(alpha - 1*incl_x)/(values[idx])) + fixed_cost[idx]))
       }
 
+      # Satisfy minimum cost allocation
+      min_x_alloc <- min_alloc*alloc_cost + fixed_cost
+      values <- (values >= min_x_alloc)*values
+
       return(values)
     }
 
@@ -339,7 +347,7 @@ SpatialSurvDesign.Context <- function(context,
     }
 
     # Search alpha for optimal objective (even when no constraints)
-    search_alpha <<- any(fixed_cost > 0)
+    search_alpha <<- any((min_alloc*alloc_cost + fixed_cost) > 0)
   }
   set_lagrange_params()
 
