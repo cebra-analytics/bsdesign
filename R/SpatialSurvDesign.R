@@ -250,11 +250,8 @@ SpatialSurvDesign.Context <- function(context,
     # Objective function
     f_obj <<- function(x_alloc) {
 
-      # Minimum cost allocation
-      min_x_alloc <- min_alloc*alloc_cost + fixed_cost
-
       # Quantity allocation (units)
-      n_alloc <- (x_alloc >= min_x_alloc)*(x_alloc - fixed_cost)/alloc_cost
+      n_alloc <- (x_alloc >= fixed_cost)*(x_alloc - fixed_cost)/alloc_cost
 
       if (optimal == "detection" && !relative_establish_pr) {
 
@@ -273,11 +270,8 @@ SpatialSurvDesign.Context <- function(context,
     # Derivative of objective function
     f_deriv <<- function(x_alloc) {
 
-      # Minimum cost allocation
-      min_x_alloc <- min_alloc*alloc_cost + fixed_cost
-
       # Quantity allocation (units)
-      n_alloc <- (x_alloc >= min_x_alloc)*(x_alloc - fixed_cost)/alloc_cost
+      n_alloc <- (x_alloc >= fixed_cost)*(x_alloc - fixed_cost)/alloc_cost
 
       if (optimal == "detection" && !relative_establish_pr) {
 
@@ -319,11 +313,16 @@ SpatialSurvDesign.Context <- function(context,
           (((alpha - 1*incl_x) >= -1*values[idx])*
              (-1*alloc_cost[idx]/lambda[idx]*
                 log(-1*(alpha - 1*incl_x)/(values[idx])) + fixed_cost[idx]))
+
+        # limit to zero cost allocation via f_obj(0)
+        if (optimal == "cost") {
+          values <- (values < benefit*establish_pr*(1 - exist_sens))*values
+        }
       }
 
-      # Satisfy minimum cost allocation
-      min_x_alloc <- min_alloc*alloc_cost + fixed_cost
-      values <- (values >= min_x_alloc)*values
+      # # Satisfy minimum cost allocation
+      # min_x_alloc <- min_alloc*alloc_cost + fixed_cost
+      # values <- (values >= min_x_alloc)*values
 
       return(values)
     }
@@ -347,7 +346,7 @@ SpatialSurvDesign.Context <- function(context,
     }
 
     # Search alpha for optimal objective (even when no constraints)
-    search_alpha <<- any((min_alloc*alloc_cost + fixed_cost) > 0)
+    search_alpha <<- any(min_alloc > 0)
   }
   set_lagrange_params()
 
