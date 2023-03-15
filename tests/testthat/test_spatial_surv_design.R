@@ -117,7 +117,7 @@ test_that("facilitates existing allocations and sensitivities", {
   expect_equal(sensitivity, expected_sensitivity)
 })
 
-test_that("allocates budget with fixed costs", {
+test_that("allocates with fixed costs with and without budget", {
   TEST_DIRECTORY <- test_path("test_inputs")
   template <- terra::rast(file.path(TEST_DIRECTORY, "template.tif"))
   divisions <- Divisions(template)
@@ -138,6 +138,36 @@ test_that("allocates budget with fixed costs", {
   expect_true(all(budget_alloc <= test_ref$surv_effort$with_budget))
   expect_equal(sum(budget_alloc*10 + fixed_cost*(budget_alloc > 0)),
                test_ref$budget*10)
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "cost",
+    mgmt_cost = list(undetected = test_ref$cost_undetected,
+                     detected = test_ref$cost_detected),
+    budget = NULL,
+    fixed_cost = fixed_cost*10))
+  expect_silent(no_budget_alloc <- surv_design$get_allocation())
+  mask <- (test_ref$surv_effort$no_budget + fixed_cost*10 <
+             ((test_ref$cost_undetected - test_ref$cost_detected)*
+                test_ref$establish_pr))
+  expect_true(sum(mask) < divisions$get_parts())
+  expect_equal(round(no_budget_alloc, 8),
+               round(test_ref$surv_effort$no_budget*mask, 8))
+  no_budget_cost <- sum(no_budget_alloc + (no_budget_alloc > 0)*fixed_cost*10)
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "cost",
+    mgmt_cost = list(undetected = test_ref$cost_undetected,
+                     detected = test_ref$cost_detected),
+    budget = no_budget_cost,
+    fixed_cost = fixed_cost*10))
+  expect_silent(with_budget_alloc <- surv_design$get_allocation())
+  expect_equal(round(with_budget_alloc, 6), round(no_budget_alloc, 6))
 })
 
 test_that("allocates for optimal detection via budget or confidence", {
