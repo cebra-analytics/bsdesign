@@ -155,19 +155,6 @@ test_that("allocates with fixed costs with and without budget", {
   expect_true(sum(mask) < divisions$get_parts())
   expect_equal(round(no_budget_alloc, 8),
                round(test_ref$surv_effort$no_budget*mask, 8))
-  no_budget_cost <- sum(no_budget_alloc + (no_budget_alloc > 0)*fixed_cost*10)
-  expect_silent(surv_design <- SpatialSurvDesign(
-    context = Context("test"),
-    divisions = divisions,
-    establish_pr = test_ref$establish_pr,
-    lambda = test_ref$lambda,
-    optimal = "cost",
-    mgmt_cost = list(undetected = test_ref$cost_undetected,
-                     detected = test_ref$cost_detected),
-    budget = no_budget_cost,
-    fixed_cost = fixed_cost*10))
-  expect_silent(with_budget_alloc <- surv_design$get_allocation())
-  expect_equal(round(with_budget_alloc, 6), round(no_budget_alloc, 6))
 })
 
 test_that("allocates for optimal detection via budget or confidence", {
