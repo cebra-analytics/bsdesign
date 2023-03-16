@@ -346,7 +346,7 @@ SpatialSurvDesign.Context <- function(context,
     }
 
     # Search alpha for optimal objective (even when no constraints)
-    search_alpha <<- any(min_alloc > 0)
+    search_alpha <<- any((min_alloc + fixed_cost) > 0)
   }
   set_lagrange_params()
 
