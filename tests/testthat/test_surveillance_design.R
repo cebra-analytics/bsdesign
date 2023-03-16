@@ -40,6 +40,14 @@ test_that("initializes with context, divisions, and valid parameters", {
                                     benefit = NULL),
                "The benefit parameter must be specified for optimal benefit.")
   expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
+                                                 divisions = divisions,
+                                                 optimal = "benefit",
+                                                 benefit = 1,
+                                                 budget = NULL,
+                                                 confidence = NULL),
+               paste("Either the budget or detection confidence parameter",
+                     "must be specified for optimal benefit."))
+  expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
                                     divisions = divisions,
                                     optimal = "detection",
                                     budget = NULL,

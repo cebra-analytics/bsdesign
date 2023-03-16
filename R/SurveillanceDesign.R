@@ -175,6 +175,10 @@ SurveillanceDesign.Context <- function(context,
   } else if (optimal == "benefit" && is.null(benefit)) {
     stop("The benefit parameter must be specified for optimal benefit.",
          call. = FALSE)
+  } else if (optimal == "benefit" &&
+             (is.null(budget) && is.null(confidence))) {
+    stop(paste("Either the budget or detection confidence parameter must be",
+               "specified for optimal benefit."), call. = FALSE)
   } else if (optimal == "detection" &&
              (is.null(budget) && is.null(confidence))) {
     stop(paste("Either the budget or detection confidence parameter must be",
