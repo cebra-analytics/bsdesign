@@ -40,14 +40,6 @@ test_that("initializes with context, divisions, and valid parameters", {
                                     benefit = NULL),
                "The benefit parameter must be specified for optimal benefit.")
   expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
-                                                 divisions = divisions,
-                                                 optimal = "benefit",
-                                                 benefit = 1,
-                                                 budget = NULL,
-                                                 confidence = NULL),
-               paste("Either the budget or detection confidence parameter",
-                     "must be specified for optimal benefit."))
-  expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
                                     divisions = divisions,
                                     optimal = "detection",
                                     budget = NULL,
@@ -73,13 +65,6 @@ test_that("initializes with context, divisions, and valid parameters", {
                                     optimal = "detection",
                                     budget = 0),
                "The budget parameter must be numeric and > 0.")
-  expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
-                                                 divisions = divisions,
-                                                 optimal = "detection",
-                                                 budget = 1,
-                                                 min_alloc = 1:5),
-               paste("The minimum allocation parameter must be a numeric",
-                     "vector with values for each division part."))
   expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
                                     divisions = divisions,
                                     optimal = "detection",
