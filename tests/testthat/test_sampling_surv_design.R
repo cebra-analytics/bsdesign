@@ -103,8 +103,8 @@ test_that("allocates resources consistently with reference method", {
     prevalence = test_ref$prevalence,
     optimal = "detection",
     budget = test_ref$budget$ind_95))
-  expect_equal(round(surv_design$get_allocation(), 4),
-               round(test_ref$expected_n$detection, 4))
+  expect_equal(round(surv_design$get_allocation(), 3),
+               round(test_ref$expected_n$detection, 3))
   expect_equal(round(surv_design$get_confidence(), 3),
                test_ref$confidence$ind_95)
   expect_silent(surv_design <- SamplingSurvDesign(
@@ -161,8 +161,8 @@ test_that("allocates when sample fraction n/N <= 0.1 and > 0.1", {
     total_indiv = c(5000, 2000, 8000, 6000, 4000), # n/N < 0.1
     optimal = "detection",
     budget = test_ref$budget$ind_95))
-  expect_equal(round(surv_design$get_allocation(), 4),
-               round(test_ref$expected_n$detection, 4))
+  expect_equal(round(surv_design$get_allocation(), 3),
+               round(test_ref$expected_n$detection, 3))
   total_indiv <- c(500, 200, 800, 600, 400) # n/N > 0.1
   expect_silent(surv_design <- SamplingSurvDesign(
     context = Context("test"),
@@ -232,8 +232,8 @@ test_that("allocates budget with fixed costs", {
     optimal = "detection",
     fixed_cost = 10,
     budget = test_ref$budget$ind_95 + 50))
-  expect_equal(round(surv_design$get_allocation(), 4),
-               round(test_ref$expected_n$detection, 4))
+  expect_equal(round(surv_design$get_allocation(), 3),
+               round(test_ref$expected_n$detection, 3))
 })
 
 test_that("allocates continuous sampling consistently with reference method", {

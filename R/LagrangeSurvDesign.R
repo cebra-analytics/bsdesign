@@ -194,7 +194,7 @@ LagrangeSurvDesign.Context <- function(context,
     if (is.numeric(budget) || is.numeric(confidence)) {
 
       # Order by f(f+(a))/f+(a)
-      rank_values <- f_obj(x_alloc)/x_alloc
+      rank_values <- abs(f_obj(x_alloc)/x_alloc)
       rank_values[which(!is.finite(rank_values))] <- 0
       idx <- order(rank_values, decreasing = TRUE)
 
@@ -206,9 +206,10 @@ LagrangeSurvDesign.Context <- function(context,
         cum_cost <- cumsum(x_alloc[idx][nonzero])
         over_budget <- which(cum_cost > budget)
         if (length(over_budget)) {
-          x_alloc[idx][over_budget[1]] <-
-            x_alloc[idx][over_budget[1]] - (cum_cost[over_budget[1]] - budget)
-          x_alloc[idx][over_budget[-1]] <- 0
+          x_alloc[idx][nonzero][over_budget[1]] <-
+            (x_alloc[idx][nonzero][over_budget[1]] -
+               (cum_cost[over_budget[1]] - budget))
+          x_alloc[idx][nonzero][over_budget[-1]] <- 0
         }
       }
 
@@ -269,7 +270,15 @@ LagrangeSurvDesign.Context <- function(context,
       precision <- 8 # for alpha
       while (alpha_range > abs(best_alpha*10^(-1*precision))) {
         obj <- sapply(interval[-1], function(a) sum(f_obj(allocate(a))))
-        i <- max(which(obj == min(obj)))
+        if (is.numeric(confidence)) { # choose last repeated minimum objective
+          if (min(obj) < 0) {
+            i <- max(which(obj <= min(obj)*(1 - 10^(-1*precision))))
+          } else {
+            i <- max(which(obj <= min(obj)*(1 + 10^(-1*precision))))
+          }
+        } else {
+          i <- max(which(obj <= min(obj)))
+        }
         best_alpha <- interval[i + 1]
         if (i < length(interval) - 1) {
           interval <- (0:100)/100*(interval[i + 2] - interval[i]) + interval[i]
