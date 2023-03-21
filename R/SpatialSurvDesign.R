@@ -57,6 +57,10 @@
 #'   the \code{context}.
 #' @param confidence The desired (minimum) system sensitivity or detection
 #'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
+#' @param min_alloc A vector of minimum permissible allocated surveillance
+#'   resource quantities at each spatial location specified by
+#'   \code{divisions}. Used to avoid impractically low allocation quantities.
+#'   Default is \code{NULL}.
 #' @param exist_alloc A vector of existing surveillance resource quantities at
 #'   each spatial location specified by \code{divisions}. Should only be used
 #'   to represent existing surveillance designs when \code{optimal = "none"}.
@@ -123,6 +127,7 @@ SpatialSurvDesign <- function(context,
                               fixed_cost = NULL,
                               budget = NULL,
                               confidence = NULL,
+                              min_alloc = NULL,
                               exist_alloc = NULL,
                               exist_sens = NULL,
                               class = character(), ...) {
@@ -144,6 +149,7 @@ SpatialSurvDesign.Context <- function(context,
                                       fixed_cost = NULL,
                                       budget = NULL,
                                       confidence = NULL,
+                                      min_alloc = NULL,
                                       exist_alloc = NULL,
                                       exist_sens = NULL,
                                       class = character(), ...) {
@@ -189,7 +195,7 @@ SpatialSurvDesign.Context <- function(context,
   # Match optimal arguments
   optimal <- match.arg(optimal)
 
-  # Resolve alloc_cost, fixed_cost, and exist_sens
+  # Resolve alloc_cost, fixed_cost, min_alloc, and exist_sens
   if (length(alloc_cost) == 1) {
     alloc_cost <- rep(alloc_cost, parts)
   } else if (is.null(alloc_cost)) {
@@ -199,6 +205,13 @@ SpatialSurvDesign.Context <- function(context,
     fixed_cost <- rep(fixed_cost, parts)
   } else if (is.null(fixed_cost)) {
     fixed_cost <- rep(0, parts)
+  }
+  if (!is.null(min_alloc)) { # LATER -> discrete ####
+    if (length(min_alloc) == 1) {
+      min_alloc <- rep(min_alloc, parts)
+    }
+  } else {
+    min_alloc <- rep(0, parts)
   }
   if (is.null(exist_sens)) {
     exist_sens <- rep(0, parts)
@@ -284,21 +297,25 @@ SpatialSurvDesign.Context <- function(context,
       if (optimal == "detection" && !relative_establish_pr) {
 
         # maximum detection
-        values[idx] <-
-          pmax(0, ((alpha > -1*lambda[idx]/alloc_cost[idx])*
-                     (alloc_cost[idx]/lambda[idx]*
-                        (log(-1*lambda[idx]/alloc_cost[idx]/alpha - 1) -
-                           log(1/establish_pr[idx] - 1) +
-                           log(1 - exist_sens[idx])) +
-                        fixed_cost[idx])))
+        values[idx] <- pmax(
+          ((alpha > -1*lambda[idx]/alloc_cost[idx])*
+             (alloc_cost[idx]/lambda[idx]*
+                (log(-1*lambda[idx]/alloc_cost[idx]/alpha - 1) -
+                   log(1/establish_pr[idx] - 1) +
+                   log(1 - exist_sens[idx])))), 0)
+        idx <- which(values > 0)
+        values[idx] <- pmax(min_alloc[idx], values[idx]) + fixed_cost[idx]
+
       } else {
 
         # minimum cost or maximum benefit (benefit = 1 for detection)
         incl_x <- (optimal == "cost")
         values[idx] <-
           (((alpha - 1*incl_x) >= -1*values[idx])*
-             (-1*alloc_cost[idx]/lambda[idx]*
-                log(-1*(alpha - 1*incl_x)/(values[idx])) + fixed_cost[idx]))
+             (pmax(min_alloc[idx],
+                   (-1*alloc_cost[idx]/lambda[idx]*
+                      log(-1*(alpha - 1*incl_x)/values[idx]))) +
+                fixed_cost[idx]))
 
         # limit to zero cost allocation via f_obj(0)
         if (optimal == "cost") {
@@ -328,7 +345,7 @@ SpatialSurvDesign.Context <- function(context,
     }
 
     # Search alpha for optimal objective (even when no constraints)
-    search_alpha <<- any(fixed_cost > 0)
+    search_alpha <<- any(fixed_cost > 0 | min_alloc > 0)
   }
   set_lagrange_params()
 

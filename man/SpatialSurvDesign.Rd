@@ -18,6 +18,7 @@ SpatialSurvDesign(
   fixed_cost = NULL,
   budget = NULL,
   confidence = NULL,
+  min_alloc = NULL,
   exist_alloc = NULL,
   exist_sens = NULL,
   class = character(),
@@ -37,6 +38,7 @@ SpatialSurvDesign(
   fixed_cost = NULL,
   budget = NULL,
   confidence = NULL,
+  min_alloc = NULL,
   exist_alloc = NULL,
   exist_sens = NULL,
   class = character(),
@@ -106,6 +108,11 @@ the \code{context}.}
 
 \item{confidence}{The desired (minimum) system sensitivity or detection
 confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
+
+\item{min_alloc}{A vector of minimum permissible allocated surveillance
+resource quantities at each spatial location specified by
+\code{divisions}. Used to avoid impractically low allocation quantities.
+Default is \code{NULL}.}
 
 \item{exist_alloc}{A vector of existing surveillance resource quantities at
 each spatial location specified by \code{divisions}. Should only be used
