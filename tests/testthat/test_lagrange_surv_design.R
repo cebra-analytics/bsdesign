@@ -154,6 +154,20 @@ test_that("initializes with context, divisions, and valid parameters", {
     alpha_min = -1,
     f_unit_sens = function(x) 0,
     f_inv_unit_sens = function(s) 0,
+    min_alloc = 1:5),
+    paste("The minimum allocation parameter must be a numeric vector with",
+          "values for each division part."))
+  expect_error(surv_design <- LagrangeSurvDesign(
+    context = Context("test"),
+    divisions = Divisions(matrix(1:10)),
+    establish_pr = 1:10,
+    f_obj = function(x) 0,
+    f_deriv = function(x) 0,
+    f_pos = function(a) 0,
+    alpha_unconstr = 0,
+    alpha_min = -1,
+    f_unit_sens = function(x) 0,
+    f_inv_unit_sens = function(s) 0,
     search_alpha = 0),
     "The search alpha indicator parameter must be logical.")
   expect_silent(surv_design <- LagrangeSurvDesign(

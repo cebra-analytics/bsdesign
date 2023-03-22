@@ -18,6 +18,7 @@ LagrangeSurvDesign(
   f_inv_unit_sens,
   budget = NULL,
   confidence = NULL,
+  min_alloc = NULL,
   search_alpha = FALSE,
   ...
 )
@@ -35,6 +36,7 @@ LagrangeSurvDesign(
   f_inv_unit_sens,
   budget = NULL,
   confidence = NULL,
+  min_alloc = NULL,
   search_alpha = FALSE,
   ...
 )
@@ -93,6 +95,11 @@ the surveillance design. Default is \code{NULL}.}
 
 \item{confidence}{The desired (minimum) system sensitivity or detection
 confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
+
+\item{min_alloc}{A vector of minimum permissible allocated surveillance
+resource quantities at each division part (location, category, etc.)
+specified by \code{divisions}. Used to avoid impractically low allocation
+quantities. Default is \code{NULL}.}
 
 \item{search_alpha}{A logical indicator to search for the optimal resource
 allocation, even when it is not constrained (via \code{budget} or

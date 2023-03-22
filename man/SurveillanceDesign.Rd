@@ -92,9 +92,9 @@ the \code{context}.}
 confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
 
 \item{min_alloc}{A vector of minimum permissible allocated surveillance
-resource quantities at each spatial location specified by
-\code{divisions}. Used to avoid impractically low allocation quantities.
-Default is \code{NULL}.}
+resource quantities at each division part (location, category, etc.)
+specified by \code{divisions}. Used to avoid impractically low allocation
+quantities. Default is \code{NULL}.}
 
 \item{exist_alloc}{A vector of existing surveillance resource quantities at
 each division part (location, category, etc.) specified by

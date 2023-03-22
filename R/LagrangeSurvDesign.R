@@ -49,6 +49,10 @@
 #'   the surveillance design. Default is \code{NULL}.
 #' @param confidence The desired (minimum) system sensitivity or detection
 #'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
+#' @param min_alloc A vector of minimum permissible allocated surveillance
+#'   resource quantities at each division part (location, category, etc.)
+#'   specified by \code{divisions}. Used to avoid impractically low allocation
+#'   quantities. Default is \code{NULL}.
 #' @param search_alpha A logical indicator to search for the optimal resource
 #'   allocation, even when it is not constrained (via \code{budget} or
 #'   \code{confidence}), such as when fixed costs are present. Default is
@@ -93,6 +97,7 @@ LagrangeSurvDesign <- function(context,
                                f_inv_unit_sens,
                                budget = NULL,
                                confidence = NULL,
+                               min_alloc = NULL,
                                search_alpha = FALSE, ...) {
   UseMethod("LagrangeSurvDesign")
 }
@@ -111,6 +116,7 @@ LagrangeSurvDesign.Context <- function(context,
                                        f_inv_unit_sens,
                                        budget = NULL,
                                        confidence = NULL,
+                                       min_alloc = NULL,
                                        search_alpha = FALSE, ...) {
 
   # Check divisions
@@ -166,7 +172,7 @@ LagrangeSurvDesign.Context <- function(context,
                "function(unit_sens)."), call. = FALSE)
   }
 
-  # Check budget, confidence, and search alpha (indicator)
+  # Check budget, confidence, min_alloc, and search_alpha (indicator)
   if (!is.null(budget) && (!is.numeric(budget) || budget <= 0)) {
     stop("The budget parameter must be numeric and > 0.", call. = FALSE)
   }
@@ -175,9 +181,23 @@ LagrangeSurvDesign.Context <- function(context,
     stop("The detection confidence parameter must be numeric, >= 0 and <= 1.",
          call. = FALSE)
   }
+  if (!is.null(min_alloc) &&
+      (!is.numeric(min_alloc) || !length(min_alloc) %in% c(1, parts))) {
+    stop(paste("The minimum allocation parameter must be a numeric vector",
+               "with values for each division part."), call. = FALSE)
+  }
   if (!is.logical(search_alpha)) {
     stop("The search alpha indicator parameter must be logical.",
          call. = FALSE)
+  }
+
+  # Resolve min_alloc
+  if (!is.null(min_alloc)) { # LATER -> discrete ####
+    if (length(min_alloc) == 1) {
+      min_alloc <- rep(min_alloc, parts)
+    }
+  } else {
+    min_alloc <- rep(0, parts)
   }
 
   ## Lagrange optimization of allocated cost per division part x_alloc
@@ -208,7 +228,8 @@ LagrangeSurvDesign.Context <- function(context,
         if (length(over_budget)) {
           x_alloc[idx][nonzero][over_budget[1]] <-
             (x_alloc[idx][nonzero][over_budget[1]] -
-               (cum_cost[over_budget[1]] - budget))
+               max(cum_cost[over_budget[1]] - budget,
+                   min_alloc[idx][nonzero][over_budget[1]]))
           x_alloc[idx][nonzero][over_budget[-1]] <- 0
         }
       }
@@ -220,36 +241,59 @@ LagrangeSurvDesign.Context <- function(context,
         new_sens <- f_unit_sens(x_alloc)
 
         # Calculate confidence
-        if (relative_establish_pr) {
-          cum_conf <- (cumsum((establish_pr*new_sens)[idx][nonzero])/
-                         sum(establish_pr))
+        if (length(nonzero)) {
+          if (relative_establish_pr) {
+            cum_conf <- (cumsum((establish_pr*new_sens)[idx][nonzero])/
+                           sum(establish_pr))
+          } else {
+            cum_conf <-
+              ((1 - cumprod((1 - establish_pr*new_sens)[idx][nonzero]))/
+                 (1 - prod(1 - establish_pr)))
+          }
         } else {
-          cum_conf <-
-            ((1 - cumprod((1 - establish_pr*new_sens)[idx][nonzero]))/
-               (1 - prod(1 - establish_pr)))
+          cum_conf <- 0
         }
 
         # Select allocation up to confidence level
         over_conf <- which(cum_conf > confidence)
         if (length(over_conf)) {
-          if (relative_establish_pr) {
-            adj_sens <-
-              (confidence*sum(establish_pr) -
-                 sum((establish_pr*new_sens)[idx][nonzero][-over_conf]))/
-              establish_pr[idx][nonzero][over_conf[1]]
+          if (min_alloc[idx][nonzero][over_conf[1]] > 0) {
+            x_alloc[idx][nonzero][over_conf[1]] <-
+              min_alloc[idx][nonzero][over_conf[1]]
           } else {
-            adj_sens <-
-              (1 - ((1 - confidence*(1 - prod(1 - establish_pr)))/
-                      prod((1 - establish_pr*new_sens)
-                           [idx][nonzero][-over_conf])))/
-              establish_pr[idx][nonzero][over_conf[1]]
+            if (relative_establish_pr) {
+              adj_sens <-
+                (confidence*sum(establish_pr) -
+                   sum((establish_pr*new_sens)[idx][nonzero][-over_conf]))/
+                establish_pr[idx][nonzero][over_conf[1]]
+            } else {
+              adj_sens <-
+                (1 - ((1 - confidence*(1 - prod(1 - establish_pr)))/
+                        prod((1 - establish_pr*new_sens)
+                             [idx][nonzero][-over_conf])))/
+                establish_pr[idx][nonzero][over_conf[1]]
+            }
+            x_alloc[idx][nonzero][over_conf[1]] <-
+              f_inv_unit_sens(adj_sens)[idx][nonzero][over_conf[1]]
           }
-          x_alloc[idx][nonzero][over_conf[1]] <-
-            f_inv_unit_sens(adj_sens)[idx][nonzero][over_conf[1]]
           x_alloc[idx][nonzero][over_conf[-1]] <- 0
         }
+
+        # Add confidence as an attribute
+        if (relative_establish_pr) {
+          conf <- (sum((establish_pr*f_unit_sens(x_alloc))[idx][nonzero])/
+                     sum(establish_pr))
+        } else {
+          conf <-
+            ((1 - prod((1 - establish_pr*f_unit_sens(x_alloc))[idx][nonzero]))/
+               (1 - prod(1 - establish_pr)))
+        }
+        attr(x_alloc, "confidence") <- conf
       }
     }
+
+    # Add total as an attribute
+    attr(x_alloc, "total") <- sum(x_alloc)
 
     return(x_alloc)
   }
@@ -269,17 +313,30 @@ LagrangeSurvDesign.Context <- function(context,
       alpha_range <- range(interval)[2] - range(interval)[1]
       precision <- 8 # for alpha
       while (alpha_range > abs(best_alpha*10^(-1*precision))) {
-        obj <- sapply(interval[-1], function(a) sum(f_obj(allocate(a))))
-        if (is.numeric(confidence)) { # choose last repeated minimum objective
-          if (min(obj) < 0) {
-            i <- max(which(obj <= min(obj)*(1 - 10^(-1*precision))))
+
+        # Get allocation for each alpha in interval
+        alloc <- as.data.frame(t(sapply(interval[-1], function(a) {
+          alloc <- allocate(a)
+          c(obj = sum(f_obj(alloc)), total = attr(alloc, "total"),
+            confidence = attr(alloc, "confidence"))})))
+
+        # Choose alpha corresponding to the last repeated minimum objective
+        if (is.numeric(confidence) && max(alloc$confidence) >= confidence) {
+          idx <- which(alloc$confidence >= confidence)
+          idx <- idx[which(alloc$total[idx] <= min(alloc$total[idx]))]
+          if (min(alloc$obj) < 0) {
+            i <- max(idx[which(alloc$obj[idx] <=
+                                 min(alloc$obj[idx])*(1 - 10^(-1*precision)))])
           } else {
-            i <- max(which(obj <= min(obj)*(1 + 10^(-1*precision))))
+            i <- max(idx[which(alloc$obj[idx] <=
+                                 min(alloc$obj[idx])*(1 + 10^(-1*precision)))])
           }
         } else {
-          i <- max(which(obj <= min(obj)))
+          i <- max(which(alloc$obj <= min(alloc$obj)))
         }
         best_alpha <- interval[i + 1]
+
+        # Update interval and range for next iteration
         if (i < length(interval) - 1) {
           interval <- (0:100)/100*(interval[i + 2] - interval[i]) + interval[i]
         } else {
@@ -289,7 +346,7 @@ LagrangeSurvDesign.Context <- function(context,
       }
     }
 
-    return(allocate(best_alpha))
+    return(as.numeric(allocate(best_alpha)))
   }
 
   return(self)
