@@ -157,6 +157,47 @@ test_that("allocates with fixed costs with and without budget", {
                round(test_ref$surv_effort$no_budget*mask, 8))
 })
 
+test_that("allocates with minimum allocation", {
+  TEST_DIRECTORY <- test_path("test_inputs")
+  template <- terra::rast(file.path(TEST_DIRECTORY, "template.tif"))
+  divisions <- Divisions(template)
+  test_ref <- readRDS(file.path(TEST_DIRECTORY, "Hauser2009_test.rds"))
+  min_alloc <- c(rep(1, 200), rep(0, 197))
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "cost",
+    mgmt_cost = list(undetected = test_ref$cost_undetected,
+                     detected = test_ref$cost_detected),
+    budget = NULL,
+    min_alloc = min_alloc))
+  expect_silent(min_alloc_no_budget <- surv_design$get_allocation())
+  expect_equal(min_alloc_no_budget[1:200],
+               1*(test_ref$establish_pr[1:200] > 0))
+  expect_equal(round(min_alloc_no_budget[201:397], 6),
+               round(test_ref$surv_effort$no_budget[201:397], 6))
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "cost",
+    mgmt_cost = list(undetected = test_ref$cost_undetected,
+                     detected = test_ref$cost_detected),
+    budget = test_ref$budget,
+    min_alloc = 0.04))
+  expect_silent(min_alloc_with_budget <- surv_design$get_allocation())
+  expect_equal(sum(min_alloc_with_budget), test_ref$budget)
+  expect_equal(min(min_alloc_with_budget[which(min_alloc_with_budget > 0)]),
+               0.04)
+  below_idx <- which(test_ref$surv_effort$with_budget <= 0.04)
+  expect_true(all(min_alloc_with_budget[below_idx] %in% c(0, 0.04)))
+  above_idx <- which(test_ref$surv_effort$with_budget > 0.04)
+  expect_true(all(min_alloc_with_budget[above_idx] >= 0.04))
+})
+
 test_that("allocates for optimal detection via budget or confidence", {
   TEST_DIRECTORY <- test_path("test_inputs")
   template <- terra::rast(file.path(TEST_DIRECTORY, "template.tif"))
