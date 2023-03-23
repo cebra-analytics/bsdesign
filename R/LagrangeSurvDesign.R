@@ -243,11 +243,16 @@ LagrangeSurvDesign.Context <- function(context,
         # Calculate confidence
         if (length(nonzero)) {
           if (relative_establish_pr) {
-            cum_conf <- (cumsum((establish_pr*new_sens)[idx][nonzero])/
+            cum_conf <- ((sum(establish_pr*exist_sens) +
+                            cumsum((establish_pr*
+                                      (new_sens - exist_sens))[idx][nonzero]))/
                            sum(establish_pr))
           } else {
             cum_conf <-
-              ((1 - cumprod((1 - establish_pr*new_sens)[idx][nonzero]))/
+              ((1 - (prod(1 - (establish_pr*exist_sens))*
+                       cumprod(
+                         ((1 - establish_pr*new_sens)/
+                            (1 - establish_pr*exist_sens))[idx][nonzero])))/
                  (1 - prod(1 - establish_pr)))
           }
         } else {
@@ -281,12 +286,10 @@ LagrangeSurvDesign.Context <- function(context,
 
         # Add confidence as an attribute
         if (relative_establish_pr) {
-          conf <- (sum((establish_pr*f_unit_sens(x_alloc))[idx][nonzero])/
-                     sum(establish_pr))
+          conf <- (sum(establish_pr*f_unit_sens(x_alloc))/sum(establish_pr))
         } else {
-          conf <-
-            ((1 - prod((1 - establish_pr*f_unit_sens(x_alloc))[idx][nonzero]))/
-               (1 - prod(1 - establish_pr)))
+          conf <- ((1 - prod(1 - establish_pr*f_unit_sens(x_alloc)))/
+                     (1 - prod(1 - establish_pr)))
         }
         attr(x_alloc, "confidence") <- conf
       }
