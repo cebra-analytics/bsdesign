@@ -165,6 +165,7 @@ SpatialSurvDesign.Context <- function(context,
                              fixed_cost = fixed_cost,
                              budget = budget,
                              confidence = confidence,
+                             min_alloc = min_alloc,
                              exist_alloc = exist_alloc,
                              exist_sens = exist_sens,
                              class = "SpatialSurvDesign", ...)
