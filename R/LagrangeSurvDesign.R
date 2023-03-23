@@ -267,16 +267,16 @@ LagrangeSurvDesign.Context <- function(context,
             x_alloc[idx][nonzero][over_conf[1]] <-
               min_alloc[idx][nonzero][over_conf[1]]
           } else {
-            if (relative_establish_pr) { # TODO exist_sens ####
+            if (relative_establish_pr) {
               adj_sens <-
                 (confidence*sum(establish_pr) -
-                   sum((establish_pr*new_sens)[idx][nonzero][-over_conf]))/
+                   sum((establish_pr*new_sens)[idx][-nonzero[over_conf]]))/
                 establish_pr[idx][nonzero][over_conf[1]]
-            } else { # TODO exist_sens ####
+            } else {
               adj_sens <-
                 (1 - ((1 - confidence*(1 - prod(1 - establish_pr)))/
                         prod((1 - establish_pr*new_sens)
-                             [idx][nonzero][-over_conf])))/
+                             [idx][-nonzero[over_conf]])))/
                 establish_pr[idx][nonzero][over_conf[1]]
             }
             x_alloc[idx][nonzero][over_conf[1]] <-

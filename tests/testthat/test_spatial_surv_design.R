@@ -115,6 +115,21 @@ test_that("facilitates existing allocations and sensitivities", {
                        test_ref$surv_effort$no_budget[199:397]), 8))
   expect_silent(sensitivity <- surv_design$get_sensitivity())
   expect_equal(sensitivity, expected_sensitivity)
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "cost",
+    mgmt_cost = list(undetected = test_ref$cost_undetected,
+                     detected = test_ref$cost_detected),
+    budget = NULL,
+    confidence = 0.9999,
+    exist_sens = exist_sens))
+  expect_silent(part_alloc <- surv_design$get_allocation())
+  expect_true(all(part_alloc[1:198] == 0))
+  expect_true(all(which(part_alloc > 0) %in% 199:divisions$get_parts()))
+  expect_equal(surv_design$get_confidence(), 0.9999)
 })
 
 test_that("allocates with fixed costs with and without budget", {
