@@ -238,6 +238,7 @@ LagrangeSurvDesign.Context <- function(context,
       if (is.numeric(confidence)) {
 
         # Unit sensitivity
+        exist_sens <- f_unit_sens(0)
         new_sens <- f_unit_sens(x_alloc)
 
         # Calculate confidence
@@ -266,12 +267,12 @@ LagrangeSurvDesign.Context <- function(context,
             x_alloc[idx][nonzero][over_conf[1]] <-
               min_alloc[idx][nonzero][over_conf[1]]
           } else {
-            if (relative_establish_pr) {
+            if (relative_establish_pr) { # TODO exist_sens ####
               adj_sens <-
                 (confidence*sum(establish_pr) -
                    sum((establish_pr*new_sens)[idx][nonzero][-over_conf]))/
                 establish_pr[idx][nonzero][over_conf[1]]
-            } else {
+            } else { # TODO exist_sens ####
               adj_sens <-
                 (1 - ((1 - confidence*(1 - prod(1 - establish_pr)))/
                         prod((1 - establish_pr*new_sens)
