@@ -49,6 +49,11 @@
 #'   resource quantities at each division part (location, category, etc.)
 #'   specified by \code{divisions}. Used to avoid impractically low allocation
 #'   quantities. Default is \code{NULL}.
+#' @param discrete_alloc A logical to indicate that the allocated surveillance
+#'   resource quantities at each division part (location, category, etc.)
+#'   specified by \code{divisions} should be discrete integers. Used to
+#'   allocate discrete surveillance units, such as traps or detectors. Default
+#'   is \code{FALSE} for continuous resources quantities, such as survey hours.
 #' @param exist_alloc A vector of existing surveillance resource quantities at
 #'   each division part (location, category, etc.) specified by
 #'   \code{divisions}. Should only be used to represent existing surveillance
@@ -96,6 +101,7 @@ SurveillanceDesign <- function(context,
                                budget = NULL,
                                confidence = NULL,
                                min_alloc = NULL,
+                               discrete_alloc = FALSE,
                                exist_alloc = NULL,
                                exist_sens = NULL,
                                class = character(), ...) {
@@ -116,6 +122,7 @@ SurveillanceDesign.Context <- function(context,
                                        budget = NULL,
                                        confidence = NULL,
                                        min_alloc = NULL,
+                                       discrete_alloc = FALSE,
                                        exist_alloc = NULL,
                                        exist_sens = NULL,
                                        class = character(), ...) {
@@ -199,6 +206,10 @@ SurveillanceDesign.Context <- function(context,
       (!is.numeric(min_alloc) || !length(min_alloc) %in% c(1, parts))) {
     stop(paste("The minimum allocation parameter must be a numeric vector",
                "with values for each division part."), call. = FALSE)
+  }
+  if (!is.logical(discrete_alloc)) {
+    stop("The discrete allocation indicator parameter must be logical.",
+         call. = FALSE)
   }
   if (!is.null(exist_alloc) && optimal != "none") {
     stop(paste("The existing allocation parameter should only be specified",
