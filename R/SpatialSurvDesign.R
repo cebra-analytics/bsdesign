@@ -61,6 +61,11 @@
 #'   resource quantities at each spatial location specified by
 #'   \code{divisions}. Used to avoid impractically low allocation quantities.
 #'   Default is \code{NULL}.
+#' @param discrete_alloc A logical to indicate that the allocated surveillance
+#'   resource quantities at each division part (location, category, etc.)
+#'   specified by \code{divisions} should be discrete integers. Used to
+#'   allocate discrete surveillance units, such as traps or detectors. Default
+#'   is \code{FALSE} for continuous resources quantities, such as survey hours.
 #' @param exist_alloc A vector of existing surveillance resource quantities at
 #'   each spatial location specified by \code{divisions}. Should only be used
 #'   to represent existing surveillance designs when \code{optimal = "none"}.
@@ -128,6 +133,7 @@ SpatialSurvDesign <- function(context,
                               budget = NULL,
                               confidence = NULL,
                               min_alloc = NULL,
+                              discrete_alloc = FALSE,
                               exist_alloc = NULL,
                               exist_sens = NULL,
                               class = character(), ...) {
@@ -150,6 +156,7 @@ SpatialSurvDesign.Context <- function(context,
                                       budget = NULL,
                                       confidence = NULL,
                                       min_alloc = NULL,
+                                      discrete_alloc = FALSE,
                                       exist_alloc = NULL,
                                       exist_sens = NULL,
                                       class = character(), ...) {
@@ -166,6 +173,7 @@ SpatialSurvDesign.Context <- function(context,
                              budget = budget,
                              confidence = confidence,
                              min_alloc = min_alloc,
+                             discrete_alloc = discrete_alloc,
                              exist_alloc = exist_alloc,
                              exist_sens = exist_sens,
                              class = "SpatialSurvDesign", ...)
@@ -207,12 +215,19 @@ SpatialSurvDesign.Context <- function(context,
   } else if (is.null(fixed_cost)) {
     fixed_cost <- rep(0, parts)
   }
-  if (!is.null(min_alloc)) { # LATER -> discrete ####
+  if (!is.null(min_alloc)) {
     if (length(min_alloc) == 1) {
       min_alloc <- rep(min_alloc, parts)
     }
+    if (discrete_alloc) {
+      min_alloc <- pmax(ceiling(min_alloc), 1)
+    }
   } else {
-    min_alloc <- rep(0, parts)
+    if (discrete_alloc) {
+      min_alloc <- rep(1, parts)
+    } else {
+      min_alloc <- rep(0, parts)
+    }
   }
   if (is.null(exist_sens)) {
     exist_sens <- rep(0, parts)
@@ -305,7 +320,8 @@ SpatialSurvDesign.Context <- function(context,
                    log(1/establish_pr[idx] - 1) +
                    log(1 - exist_sens[idx])))), 0)
         idx <- which(values > 0)
-        values[idx] <- pmax(min_alloc[idx], values[idx]) + fixed_cost[idx]
+        values[idx] <- (pmax(min_alloc[idx]*alloc_cost[idx], values[idx]) +
+                          fixed_cost[idx])
 
       } else {
 
@@ -313,7 +329,7 @@ SpatialSurvDesign.Context <- function(context,
         incl_x <- (optimal == "cost")
         values[idx] <-
           (((alpha - 1*incl_x) >= -1*values[idx])*
-             (pmax(min_alloc[idx],
+             (pmax(min_alloc[idx]*alloc_cost[idx],
                    (-1*alloc_cost[idx]/lambda[idx]*
                       log(-1*(alpha - 1*incl_x)/values[idx]))) +
                 fixed_cost[idx]))
@@ -350,39 +366,106 @@ SpatialSurvDesign.Context <- function(context,
   }
   set_lagrange_params()
 
+  # Function for calculating sensitivities
+  calculate_sensitivity <- function(n_alloc) {
+    return(1 - (1 - exist_sens)*exp(-1*lambda*n_alloc))
+  }
+
+  # Function for calculating detection confidence
+  calculate_confidence <- function(sensitivity) {
+    if (relative_establish_pr) {
+      return(sum(establish_pr*sensitivity)/sum(establish_pr))
+    } else {
+      return((1 - prod(1 - establish_pr*sensitivity))/
+               (1 - prod(1 - establish_pr)))
+    }
+  }
+
   # Get the allocated surveillance resource values of the surveillance design
   qty_alloc <- NULL
   self$get_allocation <- function() {
     if (optimal != "none" && is.null(qty_alloc)) {
 
-      # Get cost allocation x_alloc via Lagrange surveillance design
-      lagrangeSurvDesign <- LagrangeSurvDesign(context,
-                                               divisions,
-                                               establish_pr,
-                                               f_obj,
-                                               f_deriv,
-                                               f_pos,
-                                               alpha_unconstr,
-                                               alpha_min,
-                                               f_unit_sens,
-                                               f_inv_unit_sens,
-                                               budget = budget,
-                                               confidence = confidence,
-                                               min_alloc = min_alloc,
-                                               search_alpha = search_alpha)
-      x_alloc <- lagrangeSurvDesign$get_cost_allocation()
+      if (discrete_alloc) {
 
-      # Optimal resource allocation
-      qty_alloc <<- (x_alloc - fixed_cost)/alloc_cost
-      qty_alloc[which(qty_alloc < 0)] <<- 0
+        # Make a copy of altered parameters
+        fixed_cost_orig <- fixed_cost
+        budget_orig <- budget
+        min_alloc_orig <- min_alloc
+        exist_sens_orig <- exist_sens
+
+        # Initial allocation
+        qty_alloc <<- rep(0, parts)
+      }
+
+      # Iterative addition of discrete allocations or single continuous
+      add_allocation <- TRUE
+      while (add_allocation) {
+
+        # Get cost allocation x_alloc via Lagrange surveillance design
+        lagrangeSurvDesign <- LagrangeSurvDesign(context,
+                                                 divisions,
+                                                 establish_pr,
+                                                 f_obj,
+                                                 f_deriv,
+                                                 f_pos,
+                                                 alpha_unconstr,
+                                                 alpha_min,
+                                                 f_unit_sens,
+                                                 f_inv_unit_sens,
+                                                 budget = budget,
+                                                 confidence = confidence,
+                                                 min_alloc = min_alloc,
+                                                 search_alpha = search_alpha)
+        x_alloc <- lagrangeSurvDesign$get_cost_allocation()
+
+        # Optimal resource allocation
+        if (discrete_alloc) {
+
+          # Add discrete allocation
+          n_alloc <- floor((x_alloc >= fixed_cost)*
+                             (x_alloc - fixed_cost)/alloc_cost)
+          # n_alloc <- (n_alloc*alloc_cost > fixed_cost)*n_alloc
+          qty_alloc <<- qty_alloc + n_alloc
+
+          # Alter parameters and indicate further allocation required
+          fixed_cost[which(qty_alloc > 0)] <<- 0
+          exist_sens <<- calculate_sensitivity(n_alloc)
+          add_allocation <- (sum(x_alloc) > 0)
+          if (is.numeric(budget)) {
+            total_x_alloc <- sum(qty_alloc*alloc_cost +
+                                   (qty_alloc > 0)*fixed_cost_orig)
+            budget <<- budget - total_x_alloc
+            add_allocation <- (total_x_alloc < budget && add_allocation)
+          }
+          if (is.numeric(confidence)) {
+            add_allocation <- (calculate_confidence(exist_sens) < confidence &&
+                                 add_allocation)
+          }
+          min_alloc[which(qty_alloc > 0)] <<- 1
+
+          # Reset Lagrange parameters
+          set_lagrange_params()
+
+        } else {
+
+          # Continuous allocation
+          qty_alloc <<- ((x_alloc >= fixed_cost)*
+                           (x_alloc - fixed_cost)/alloc_cost)
+          add_allocation <- FALSE
+        }
+      }
+
+      # Return altered parameters to their original values
+      if (discrete_alloc) {
+        fixed_cost <<- fixed_cost_orig
+        budget <<- budget_orig
+        min_alloc <<- min_alloc_orig
+        exist_sens <<- exist_sens_orig
+      }
     }
 
     return(qty_alloc)
-  }
-
-  # Function for calculating sensitivities
-  calculate_sensitivity <- function(n_alloc) {
-    return(1 - (1 - exist_sens)*exp(-1*lambda*n_alloc))
   }
 
   # Get the location detection sensitivities of the surveillance design
@@ -408,12 +491,7 @@ SpatialSurvDesign.Context <- function(context,
       if (parts == 1) {
         system_sens <- sensitivity
       } else if (!is.null(establish_pr)) {
-        if (relative_establish_pr) {
-          system_sens <- sum(establish_pr*sensitivity)/sum(establish_pr)
-        } else {
-          system_sens <- ((1 - prod(1 - establish_pr*sensitivity))/
-                            (1 - prod(1 - establish_pr)))
-        }
+        system_sens <- calculate_confidence(sensitivity)
       }
 
       # Apply prevalence with growth if present
