@@ -460,13 +460,15 @@ SamplingSurvDesign.Context <- function(context,
 
       # Discrete sample fraction n/N > 0.1
       return(1 - ((1 - exist_sens)*
-                    ((1 - (sample_sens*(x_alloc - fixed_cost)/sample_cost/
-                             total_indiv))^(prevalence*total_indiv))))
+                    ((1 - (sample_sens*(x_alloc - (x_alloc > 0)*fixed_cost)/
+                             sample_cost/total_indiv))^
+                       (prevalence*total_indiv))))
     } else {
 
       # Discrete sample fraction n/N <= 1 or continuous
       return(1 - ((1 - exist_sens)*
-                    exp(-1*lambda*(x_alloc - fixed_cost)/sample_cost)))
+                    exp((-1*lambda*(x_alloc - (x_alloc > 0)*fixed_cost)/
+                           sample_cost))))
     }
   }
 
@@ -475,15 +477,16 @@ SamplingSurvDesign.Context <- function(context,
     if (sample_type == "discrete" && sample_fract_gt_0_1) {
 
       # Discrete sample fraction n/N > 0.1
-      return(total_indiv*sample_cost/sample_sens*
-               ((1 - ((1 - unit_sens)/(1 - exist_sens))
-                 ^(1/(prevalence*total_indiv)))) + fixed_cost)
+      x_alloc <- (total_indiv*sample_cost/sample_sens*
+                    ((1 - ((1 - unit_sens)/(1 - exist_sens))^
+                        (1/(prevalence*total_indiv)))))
     } else {
 
       # Discrete sample fraction n/N <= 1 or continuous
-      return(-1*sample_cost/lambda*log((1 - unit_sens)/(1 - exist_sens))
-             + fixed_cost)
+      x_alloc <- -1*sample_cost/lambda*log((1 - unit_sens)/(1 - exist_sens))
     }
+
+    return(x_alloc + (x_alloc > 0)*fixed_cost)
   }
 
   # Get the allocated surveillance resource values of the surveillance design

@@ -213,6 +213,91 @@ test_that("allocates with minimum allocation", {
   expect_true(all(min_alloc_with_budget[above_idx] >= 0.04))
 })
 
+test_that("allocates discrete integer allocations", {
+  TEST_DIRECTORY <- test_path("test_inputs")
+  template <- terra::rast(file.path(TEST_DIRECTORY, "template.tif"))
+  divisions <- Divisions(template)
+  test_ref <- readRDS(file.path(TEST_DIRECTORY, "Hauser2009_test.rds"))
+  continuous_alloc <- test_ref$surv_effort$no_budget*100
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda/100,
+    optimal = "cost",
+    mgmt_cost = list(undetected = test_ref$cost_undetected*100,
+                     detected = test_ref$cost_detected*100),
+    discrete_alloc = TRUE))
+  expect_silent(discrete_alloc <- surv_design$get_allocation())
+  expect_true(all(discrete_alloc %in% 0:ceiling(max(continuous_alloc))))
+  expect_true(all(discrete_alloc >= floor(continuous_alloc)))
+  expect_true(all(discrete_alloc <= ceiling(continuous_alloc)))
+  continuous_alloc <- test_ref$surv_effort$with_budget*100
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda/100,
+    optimal = "cost",
+    mgmt_cost = list(undetected = test_ref$cost_undetected*100,
+                     detected = test_ref$cost_detected*100),
+    budget = test_ref$budget*100,
+    discrete_alloc = TRUE))
+  expect_silent(discrete_alloc <- surv_design$get_allocation())
+  expect_true(all(discrete_alloc %in% 0:ceiling(max(continuous_alloc))))
+  expect_true(all(discrete_alloc >= floor(continuous_alloc)))
+  expect_true(all(discrete_alloc <= ceiling(continuous_alloc)))
+  expect_equal(sum(discrete_alloc), test_ref$budget*100)
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda/100,
+    optimal = "cost",
+    mgmt_cost = list(undetected = test_ref$cost_undetected*100,
+                     detected = test_ref$cost_detected*100),
+    confidence = 0.999999,
+    discrete_alloc = FALSE))
+  expect_silent(continuous_alloc <- surv_design$get_allocation())
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda/100,
+    optimal = "cost",
+    mgmt_cost = list(undetected = test_ref$cost_undetected*100,
+                     detected = test_ref$cost_detected*100),
+    confidence = 0.999999,
+    discrete_alloc = TRUE))
+  expect_silent(discrete_alloc <- surv_design$get_allocation())
+  expect_true(all(discrete_alloc %in% 0:ceiling(max(continuous_alloc))))
+  expect_true(all(discrete_alloc >= floor(continuous_alloc)))
+  expect_true(all(discrete_alloc <= ceiling(continuous_alloc)))
+  expect_true(round(surv_design$get_confidence(), 8) == 0.999999)
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda/100,
+    optimal = "detection",
+    confidence = 0.999999,
+    discrete_alloc = FALSE))
+  expect_silent(continuous_alloc <- surv_design$get_allocation())
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda/100,
+    optimal = "detection",
+    confidence = 0.999999,
+    discrete_alloc = TRUE))
+  expect_silent(discrete_alloc <- surv_design$get_allocation())
+  expect_true(all(discrete_alloc %in% 0:ceiling(max(continuous_alloc))))
+  expect_true(sum(discrete_alloc >= floor(continuous_alloc)) >= divisions$get_parts() - 1)
+  expect_true(all(discrete_alloc <= ceiling(continuous_alloc)))
+  expect_true(round(surv_design$get_confidence(), 8) == 0.999999)
+})
+
 test_that("allocates for optimal detection via budget or confidence", {
   TEST_DIRECTORY <- test_path("test_inputs")
   template <- terra::rast(file.path(TEST_DIRECTORY, "template.tif"))

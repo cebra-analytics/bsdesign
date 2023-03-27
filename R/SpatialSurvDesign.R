@@ -352,13 +352,14 @@ SpatialSurvDesign.Context <- function(context,
     # Function for calculating unit sensitivity
     f_unit_sens <<- function(x_alloc) {
       return(1 - ((1 - exist_sens)*
-                    exp(-1*lambda*(x_alloc - fixed_cost)/alloc_cost)))
+                    exp((-1*lambda*(x_alloc - (x_alloc > 0)*fixed_cost)/
+                           alloc_cost))))
     }
 
     # Function for calculating inverse of unit sensitivity
     f_inv_unit_sens <<- function(unit_sens) {
-      return(-1*alloc_cost/lambda*log((1 - unit_sens)/(1 - exist_sens))
-             + fixed_cost)
+      x_alloc <- -1*alloc_cost/lambda*log((1 - unit_sens)/(1 - exist_sens))
+      return(x_alloc + (x_alloc > 0)*fixed_cost)
     }
 
     # Search alpha for optimal objective (even when no constraints)
@@ -435,8 +436,8 @@ SpatialSurvDesign.Context <- function(context,
           if (is.numeric(budget)) {
             total_x_alloc <- sum(qty_alloc*alloc_cost +
                                    (qty_alloc > 0)*fixed_cost_orig)
-            budget <<- budget - total_x_alloc
             add_allocation <- (total_x_alloc < budget && add_allocation)
+            budget <<- budget - total_x_alloc
           }
           if (is.numeric(confidence)) {
             add_allocation <- (calculate_confidence(exist_sens) < confidence &&
