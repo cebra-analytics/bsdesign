@@ -83,6 +83,9 @@ for area freedom. The value returned will be either the specified
 \code{iterations} parameter, or the iterations recorded when the
 specified threshold probability \code{p_value} for rejecting the null
 hypothesis of presence given no detection is reached.}
+\item{\code{save_design()}}{Save the area freedom design as a
+comma-separated value (CSV) file containing iterative evidence for
+area freedom.}
 }
 }
 \description{

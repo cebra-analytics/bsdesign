@@ -65,6 +65,13 @@
 #'       of repeated surveillance efforts, which provide a proxy for invasive
 #'       species growth. When present, increasing system sensitivity values are
 #'       returned for each multiplier or time/repeat.}
+#'     \item{\code{save_design()}}{Save the surveillance design as a
+#'       collection of comma-separated value (CSV) files, including the
+#'       surveillance allocation densities and numbers, surveillance,
+#'       eradication, damage, penalty, and costs, and the sensitivities for
+#'       each sub-region of the \code{design}; as well as a \code{summary} of
+#'       total allocations, total costs, and the system sensitivity across the
+#'       entire region.}
 #'     \item{\code{set_cores(cores)}}{Set the number of cores available for
 #'       parallel processing and thus enable parallel processing for
 #'       calculating optimal sample density allocation.}
@@ -403,7 +410,7 @@ AreaGrowthSurvDesign.Context <- function(context,
 
       # Extract sample density and add costs as an attribute
       sample_density <<- optim_alloc$sample_density
-      attr(sample_density, "costs") <- optim_alloc[-1]
+      attr(sample_density, "costs") <<- optim_alloc[-1]
     }
 
     return(sample_density)
@@ -414,7 +421,8 @@ AreaGrowthSurvDesign.Context <- function(context,
   calculate_sensitivity <- function(multi = 1) { # internal version
     unit_sens <- NULL
     if (!is.null(sample_density)) {
-      unit_sens <- 1 - exp(-1*sample_sens*subregion_area*sample_density*multi)
+      unit_sens <- 1 - exp(-1*sample_sens*subregion_area*
+                             as.numeric(sample_density)*multi)
     }
     return(unit_sens)
   }
@@ -449,6 +457,28 @@ AreaGrowthSurvDesign.Context <- function(context,
     }
 
     return(system_sens)
+  }
+
+  # Save the surveillance design as a collection of appropriate files
+  self$save_design <- function() {
+
+    # Save allocation, costs, and sensitivity
+    design_data <- cbind(divisions$get_data(),
+                         alloc_density = self$get_allocation(),
+                         alloc_number = self$get_allocation()*subregion_area,
+                         attr(self$get_allocation(), "costs"),
+                         sensitivity = self$get_sensitivity())
+    write.csv(design_data, file = "design.csv", row.names = FALSE)
+
+    # Save summary
+    summary_data <- data.frame(cbind(
+      t(colSums(design_data[,c("alloc_number", "survey_cost", "damage_cost",
+                             "penalty_cost", "total_cost")])),
+      system_sensitivity = self$get_confidence()))
+    names(summary_data)[1:4] <- paste0("total_", names(summary_data)[1:4])
+    write.csv(summary_data, file = "summary.csv", row.names = FALSE)
+
+    return(summary_data)
   }
 
   return(self)

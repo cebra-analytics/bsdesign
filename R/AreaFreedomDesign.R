@@ -50,6 +50,9 @@
 #'       specified stopping criteria for the freedom evidence has been
 #'       satisfied, such as a threshold probability or target confidence in
 #'       freedom (see inherited classes).}
+#'     \item{\code{save_design()}}{Save the area freedom design as a
+#'       comma-separated value (CSV) file containing iterative evidence for
+#'       area freedom.}
 #'   }
 #' @references
 #'   Rout, T. (2017). Declaring Eradication of an Invasive Species. In
@@ -109,6 +112,11 @@ AreaFreedomDesign.Context <- function(context,
 
   # Get the number of time intervals or surveillance system sequences
   self$get_iterations <- function() {
+    # overridden in inherited classes
+  }
+
+  # Save the iterative area freedom
+  self$save_design <- function(...) {
     # overridden in inherited classes
   }
 

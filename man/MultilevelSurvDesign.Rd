@@ -98,6 +98,11 @@ discrete sampling design \code{prevalence} over time or a sequence of
 repeated surveillance efforts, which provide a proxy for invasive
 species growth. When present, increasing system sensitivity values are
 returned for each multiplier or time/repeat.}
+\item{\code{save_design()}}{Save the surveillance design as a
+collection of comma-separated value (CSV) files, including the
+surveillance \code{allocation}, \code{sensitivity}, and a
+\code{summary} of sample costs (when applicable), and the system
+sensitivity (detection confidence).}
 }
 }
 \description{

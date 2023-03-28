@@ -55,6 +55,11 @@
 #'       repeated surveillance efforts, which provide a proxy for invasive
 #'       species growth. When present, increasing system sensitivity values are
 #'       returned for each multiplier or time/repeat.}
+#'     \item{\code{save_design()}}{Save the surveillance design as a
+#'       collection of comma-separated value (CSV) files, including the
+#'       surveillance \code{allocation}, \code{sensitivity}, and a
+#'       \code{summary} of sample costs (when applicable), and the system
+#'       sensitivity (detection confidence).}
 #'   }
 #' @references
 #'   Cannon, R. M. (2009). Inspecting and monitoring on a restricted budget -
@@ -317,6 +322,28 @@ MultilevelSurvDesign.Context <- function(context,
     }
 
     return(system_sens)
+  }
+
+  # Save the surveillance design as a collection of appropriate files
+  self$save_design <- function() {
+
+    # Save allocation and sensitivity
+    write.csv(cbind(divisions$get_data(),
+                    samples = self$get_allocation(),
+                    sensitivity = self$get_sensitivity()),
+              file = "design.csv", row.names = FALSE)
+
+    # Save summary
+    if (!all(sample_cost == 1)) {
+      summary_data <- data.frame(
+        sample_cost = sum(self$get_allocation()*sample_cost),
+        system_sensitivity = self$get_confidence())
+    } else {
+      summary_data <- data.frame(system_sensitivity = self$get_confidence())
+    }
+    write.csv(summary_data, file = "summary.csv", row.names = FALSE)
+
+    return(summary_data)
   }
 
   return(self)

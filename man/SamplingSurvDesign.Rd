@@ -161,6 +161,13 @@ design density (\code{design_dens}), over time or a sequence of
 repeated surveillance efforts, which provide a proxy for invasive
 species growth. When present, increasing system sensitivity values are
 returned for each multiplier or time/repeat.}
+\item{\code{save_design(...)}}{Save the surveillance design as a
+collection of raster TIF and/or comma-separated value (CSV) files,
+appropriate for the \code{divisions} type, including the surveillance
+\code{allocation}, \code{sensitivity}, and a \code{summary} (CSV) of
+the total allocation, total costs (when applicable), and the
+detection confidence (system sensitivity). \code{Terra} raster write
+options may be passed to the function for saving grid-based designs.}
 }
 }
 \description{

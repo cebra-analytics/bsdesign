@@ -55,6 +55,9 @@
 #'       \code{iterations} parameter, or the iterations recorded when the
 #'       specified target \code{confidence} level for absence given no
 #'       detection is reached.}
+#'     \item{\code{save_design()}}{Save the area freedom design as a
+#'       comma-separated value (CSV) file containing iterative evidence for
+#'       area freedom.}
 #'   }
 #' @references
 #'   Anderson, D. P., Ramsey, D. S. L., Nugent, G., Bosson, M., Livingstone,
@@ -199,6 +202,17 @@ BayesianFreedomDesign.Context <- function(context,
       n_iter <- length(conf_freedom)
     }
     return(n_iter)
+  }
+
+  # Save the area freedom design evidence
+  self$save_design <- function() {
+
+    # Save evidence
+    evidence <- data.frame(iterations = 1:self$get_iterations(),
+                           confidence = self$get_evidence())
+    write.csv(evidence, file = "confidence.csv", row.names = FALSE)
+
+    return(evidence)
   }
 
   return(self)

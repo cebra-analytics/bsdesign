@@ -77,6 +77,13 @@
 #'       repeated surveillance efforts, which provide a proxy for invasive
 #'       species growth. When present, increasing system sensitivity values are
 #'       returned for each multiplier or time/repeat.}
+#'     \item{\code{save_design(...)}}{Save the surveillance design as a
+#'       collection of raster TIF and comma-separated value (CSV) files,
+#'       including the surveillance \code{allocation} cells (TIF) and
+#'       coordinates (CSV), \code{sensitivity} (TIF), and a \code{summary}
+#'       (CSV) of the total allocation and the detection confidence (system
+#'       sensitivity). \code{Terra} raster write options may be passed to the
+#'       function for saving grid-based designs.}
 #'     \item{\code{set_cores(cores)}}{Set the number of cores available for
 #'       parallel processing and thus enable parallel processing for
 #'       calculating optimal resource allocation.}
@@ -425,6 +432,25 @@ RangeKernelSurvDesign.Context <- function(context,
     }
 
     return(system_sens)
+  }
+
+  # Save the surveillance design as a collection of appropriate files
+  self$save_design <- function(...) {
+
+    # Save allocation and sensitivity
+    terra::writeRaster(divisions$get_rast(self$get_allocation()),
+                       "allocation_cells.tif", ...)
+    write.csv(self$get_allocation(coords = TRUE),
+              file = "allocation_coords.csv", row.names = FALSE)
+    terra::writeRaster(divisions$get_rast(self$get_sensitivity()),
+                       "sensitivity.tif", ...)
+
+    # Save summary
+    summary_data <- data.frame(total_allocation = sum(self$get_allocation()),
+                               detection_confidence = self$get_confidence())
+    write.csv(summary_data, file = "summary.csv", row.names = FALSE)
+
+    return(summary_data)
   }
 
   return(self)

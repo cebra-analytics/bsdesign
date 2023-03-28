@@ -87,6 +87,9 @@ for area freedom. The value returned will be either the specified
 \code{iterations} parameter, or the iterations recorded when the
 specified target \code{confidence} level for absence given no
 detection is reached.}
+\item{\code{save_design()}}{Save the area freedom design as a
+comma-separated value (CSV) file containing iterative evidence for
+area freedom.}
 }
 }
 \description{

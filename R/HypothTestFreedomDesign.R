@@ -54,6 +54,9 @@
 #'       \code{iterations} parameter, or the iterations recorded when the
 #'       specified threshold probability \code{p_value} for rejecting the null
 #'       hypothesis of presence given no detection is reached.}
+#'     \item{\code{save_design()}}{Save the area freedom design as a
+#'       comma-separated value (CSV) file containing iterative evidence for
+#'       area freedom.}
 #'   }
 #' @references
 #'   Barclay, H. J., & Hargrove, J. W. (2005). Probability models to facilitate
@@ -180,6 +183,17 @@ HypothTestFreedomDesign.Context <- function(context,
       n_iter <- length(pr_undetected)
     }
     return(n_iter)
+  }
+
+  # Save the area freedom design evidence (confidence)
+  self$save_design <- function() {
+
+    # Save evidence
+    evidence <- data.frame(iterations = 1:self$get_iterations(),
+                           evidence = self$get_evidence())
+    write.csv(evidence, file = "evidence.csv", row.names = FALSE)
+
+    return(evidence)
   }
 
   return(self)

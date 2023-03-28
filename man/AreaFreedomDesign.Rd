@@ -78,6 +78,9 @@ of area freedom. The value returned will be either the specified
 specified stopping criteria for the freedom evidence has been
 satisfied, such as a threshold probability or target confidence in
 freedom (see inherited classes).}
+\item{\code{save_design()}}{Save the area freedom design as a
+comma-separated value (CSV) file containing iterative evidence for
+area freedom.}
 }
 }
 \description{

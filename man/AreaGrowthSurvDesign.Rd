@@ -115,6 +115,13 @@ sampling design density implied by the method over time or a sequence
 of repeated surveillance efforts, which provide a proxy for invasive
 species growth. When present, increasing system sensitivity values are
 returned for each multiplier or time/repeat.}
+\item{\code{save_design()}}{Save the surveillance design as a
+collection of comma-separated value (CSV) files, including the
+surveillance allocation densities and numbers, surveillance,
+eradication, damage, penalty, and costs, and the sensitivities for
+each sub-region of the \code{design}; as well as a \code{summary} of
+total allocations, total costs, and the system sensitivity across the
+entire region.}
 \item{\code{set_cores(cores)}}{Set the number of cores available for
 parallel processing and thus enable parallel processing for
 calculating optimal sample density allocation.}
