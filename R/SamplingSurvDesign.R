@@ -645,12 +645,44 @@ SamplingSurvDesign.Context <- function(context,
   # Save the area freedom design evidence
   self$save_design <- function() {
 
-    # Save evidence
-    evidence <- data.frame(iterations = 1:self$get_iterations(),
-                           evidence = self$get_evidence())
-    write.csv(evidence, file = "evidence.csv", row.names = FALSE)
+    # Save allocation and sensitivity
+    if (divisions$get_type() == "grid") {
+      terra::writeRaster(divisions$get_rast(self$get_allocation()),
+                         "allocation.tif", ...)
+      terra::writeRaster(divisions$get_rast(self$get_sensitivity()),
+                         "sensitivity.tif", ...)
+    } else if (divisions$get_type() == "patch") {
+      write.csv(cbind(divisions$get_coords(extra_cols = TRUE),
+                      allocation = self$get_allocation(),
+                      sensitivity = self$get_sensitivity()),
+                file = "design.csv", row.names = FALSE)
+    } else if (divisions$get_type() == "other") {
+      write.csv(cbind(divisions$get_data(),
+                      allocation = self$get_allocation(),
+                      sensitivity = self$get_sensitivity()),
+                file = "design.csv", row.names = FALSE)
+    }
 
-    return(evidence)
+    # Save summary
+    summary_data <- data.frame(total_allocation = sum(self$get_allocation()))
+    if (!all(sample_cost == 1)) {
+      summary_data$allocation_cost <- sum(self$get_allocation()*sample_cost)
+    }
+    if (!all(fixed_cost == 0)) {
+      summary_data$fixed_cost <- sum((self$get_allocation() > 0)*fixed_cost)
+    }
+    if (optimal == "cost") {
+      summary_data$mgmt_cost <- sum(
+        establish_pr*(mgmt_cost$detected*self$get_sensitivity() +
+                        mgmt_cost$undetected*(1 - self$get_sensitivity())))
+      summary_data$total_cost <-
+        (summary_data$mgmt_cost +  sum(self$get_allocation()*sample_cost) +
+           sum((self$get_allocation() > 0)*fixed_cost))
+    }
+    summary_data$detection_confidence <- self$get_confidence()
+    write.csv(summary_data, file = "summary.csv", row.names = FALSE)
+
+    return(summary_data)
   }
 
   return(self)
