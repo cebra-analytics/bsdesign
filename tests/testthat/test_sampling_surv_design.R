@@ -128,7 +128,7 @@ test_that("allocates resources consistently with reference method", {
     sample_sens = 1,
     sample_type = "discrete",
     prevalence = test_ref$prevalence,
-    optimal = "benefit",
+    optimal = "saving",
     benefit = test_ref$benefit,
     sample_cost = test_ref$sample_cost,
     budget = NULL))
@@ -140,11 +140,42 @@ test_that("allocates resources consistently with reference method", {
     sample_sens = 1,
     sample_type = "discrete",
     prevalence = test_ref$prevalence,
-    optimal = "benefit",
+    optimal = "saving",
     benefit = test_ref$benefit,
     sample_cost = test_ref$sample_cost,
     budget = test_ref$budget))
-  expect_equal(surv_design$get_allocation(), test_ref$expected_n$restricted)
+  expect_silent(saving_budget_alloc <- surv_design$get_allocation())
+  saving_budget_alloc # test_ref$expected_n$restricted
+  expect_equal(saving_budget_alloc, test_ref$expected_n$restricted)
+  expect_equal(sum(saving_budget_alloc*test_ref$sample_cost), test_ref$budget)
+  expect_silent(surv_design <- SamplingSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    sample_sens = 1,
+    sample_type = "discrete",
+    prevalence = test_ref$prevalence,
+    optimal = "saving",
+    benefit = test_ref$benefit/4,
+    sample_cost = test_ref$sample_cost,
+    budget = test_ref$budget))
+  expect_silent(saving_budget_alloc <- surv_design$get_allocation())
+  expect_true(all(saving_budget_alloc < test_ref$expected_n$restricted))
+  expect_true(sum(saving_budget_alloc*test_ref$sample_cost) < test_ref$budget)
+  expect_silent(surv_design <- SamplingSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    sample_sens = 1,
+    sample_type = "discrete",
+    prevalence = test_ref$prevalence,
+    optimal = "benefit",
+    benefit = test_ref$benefit/4,
+    sample_cost = test_ref$sample_cost,
+    budget = test_ref$budget))
+  expect_silent(benefit_budget_alloc <- surv_design$get_allocation())
+  expect_equal(benefit_budget_alloc, test_ref$expected_n$restricted)
+  expect_equal(sum(benefit_budget_alloc*test_ref$sample_cost), test_ref$budget)
 })
 
 test_that("allocates when sample fraction n/N <= 0.1 and > 0.1", {

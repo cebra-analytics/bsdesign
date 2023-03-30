@@ -37,19 +37,22 @@
 #'   be equivalent to the total area sampled. Default is \code{NULL}.
 #' @param optimal The strategy used for finding an effective surveillance
 #'   resource allocation. One of (minimum) \code{"cost"}, (maximum)
-#'   \code{"benefit"}, (maximum) \code{"detection"} sensitivity (up to
-#'   \code{"confidence"} level when specified), or \code{"none"} for
-#'   representing existing surveillance designs only.
+#'   \code{"saving"} (or cost-dependent benefit), (maximum) \code{"benefit"}
+#'   (independent of surveillance costs), or (maximum) \code{"detection"}
+#'   sensitivity, or \code{"none"} for representing existing
+#'   surveillance designs only.
 #' @param mgmt_cost A list of vectors to represent estimated management costs
 #'   for when the incursion is detected and undetected. Each vector specifies
 #'   costs at each division part (location, category, etc.) specified by
 #'   \code{divisions}. List elements should be named \code{detected} and
 #'   \code{undetected}. Default is an empty list. Units should be consistent
 #'   with the \code{cost_unit} parameter specified in the \code{context}.
-#' @param benefit A vector of values quantifying the benefit of detection
-#'   at each division part (location, category, etc.) specified by
-#'   \code{divisions}. Default is \code{NULL}. Units should be consistent with
-#'   the \code{cost_unit} parameter specified in the \code{context}.
+#' @param benefit A vector of values quantifying the benefit (or cost-based
+#'   saving) associated with detection at each division part (location,
+#'   category, etc.) specified by \code{divisions}. Default is \code{NULL}.
+#'   When the benefit refers to cost-based savings (i.e. \code{optimal} is
+#'   \code{"saving"}), then the units should be consistent with the
+#'   \code{cost_unit} parameter specified in the \code{context}.
 #' @param sample_cost A vector of cost per sample of allocated surveillance
 #'   resources at each division part (location, category, etc.) specified by
 #'   \code{divisions}. Default is \code{NULL}. Units should be consistent with
@@ -126,8 +129,8 @@ SamplingSurvDesign <- function(context,
                                total_indiv = NULL,
                                design_dens = NULL,
                                sample_area = NULL,
-                               optimal = c("cost", "benefit", "detection",
-                                           "none"),
+                               optimal = c("cost", "saving", "benefit",
+                                           "detection", "none"),
                                mgmt_cost = list(),
                                benefit = NULL,
                                sample_cost = NULL,
@@ -152,7 +155,7 @@ SamplingSurvDesign.Context <- function(context,
                                        total_indiv = NULL,
                                        design_dens = NULL,
                                        sample_area = NULL,
-                                       optimal = c("cost", "benefit",
+                                       optimal = c("cost", "saving", "benefit",
                                                    "detection", "none"),
                                        mgmt_cost = list(),
                                        benefit = NULL,
@@ -278,7 +281,7 @@ SamplingSurvDesign.Context <- function(context,
     } else {
       benefit <- mgmt_cost$undetected - mgmt_cost$detected
     }
-  } else if (optimal != "benefit") {
+  } else if (!optimal %in% c("saving", "benefit")) {
     benefit <- 1
   }
 
@@ -314,7 +317,7 @@ SamplingSurvDesign.Context <- function(context,
     } else if (sample_type == "discrete" && sample_fract_gt_0_1) {
       # Minimum cost or maximum benefit (benefit = 1 for detection)
       # for discrete sampling with n/N > 0.1
-      incl_x <- (optimal == "cost")
+      incl_x <- (optimal %in% c("cost", "saving"))
       return(
         (benefit*establish_pr*(1 - exist_sens)*
            ((x_alloc < fixed_cost)*1 +
@@ -333,7 +336,7 @@ SamplingSurvDesign.Context <- function(context,
                                    (x_alloc - fixed_cost)/sample_cost))))))
     } else {
       # Minimum cost or maximum benefit (benefit = 1 for detection)
-      incl_x <- (optimal == "cost")
+      incl_x <- (optimal %in% c("cost", "saving"))
       return(
         (benefit*establish_pr*(1 - exist_sens)*
            ((x_alloc < fixed_cost)*1 +
@@ -348,7 +351,7 @@ SamplingSurvDesign.Context <- function(context,
     if (sample_type == "discrete" && sample_fract_gt_0_1) {
       # Use derivative of second objective function (above) for all discrete
       # sampling with n/N > 0.1 (avoids unsolvable pseudo-inverse)
-      incl_x <- (optimal == "cost")
+      incl_x <- (optimal %in% c("cost", "saving"))
       return(
         (x_alloc >= fixed_cost)*
           (1*incl_x -
@@ -368,7 +371,7 @@ SamplingSurvDesign.Context <- function(context,
                                 (x_alloc - fixed_cost)/sample_cost))))))
     } else {
       # Minimum cost or maximum benefit (benefit = 1 for detection)
-      incl_x <- (optimal == "cost")
+      incl_x <- (optimal %in% c("cost", "saving"))
       return(
         (x_alloc >= fixed_cost)*
           (1*incl_x - (benefit*establish_pr*(1 - exist_sens)*
@@ -386,7 +389,7 @@ SamplingSurvDesign.Context <- function(context,
                    (1 - exist_sens))
       idx <- which(values > 0)
       values[-idx] <- 0
-      incl_x <- (optimal == "cost")
+      incl_x <- (optimal %in% c("cost", "saving"))
       values[idx] <-
         ((total_indiv[idx]*sample_cost[idx]/sample_sens[idx]*
             (1 - (-1*(alpha - 1*incl_x)*total_indiv[idx]*sample_cost[idx]/
@@ -407,7 +410,7 @@ SamplingSurvDesign.Context <- function(context,
                         fixed_cost[idx])))
       } else {
         # Minimum cost or maximum benefit (benefit = 1 for detection)
-        incl_x <- (optimal == "cost")
+        incl_x <- (optimal %in% c("cost", "saving"))
         values[idx] <-
           (((alpha - 1*incl_x) >= -1*values[idx])*
              (-1*sample_cost[idx]/lambda[idx]*
@@ -418,7 +421,7 @@ SamplingSurvDesign.Context <- function(context,
   }
 
   # Unconstrained marginal benefit alpha
-  alpha_unconstr <- (optimal == "cost") - 1
+  alpha_unconstr <- (optimal %in% c("cost", "saving")) - 1
 
   # Check if the sample fraction n/N > 0.1, thus use different equations above
   if (sample_type == "discrete" && is.numeric(total_indiv)) {
@@ -636,48 +639,9 @@ SamplingSurvDesign.Context <- function(context,
         (summary_data$mgmt_cost +  sum(self$get_allocation()*sample_cost) +
            sum((self$get_allocation() > 0)*fixed_cost))
     }
-    summary_data$detection_confidence <- self$get_confidence()
-    write.csv(summary_data, file = "summary.csv", row.names = FALSE)
-
-    return(summary_data)
-  }
-
-  # Save the area freedom design evidence
-  self$save_design <- function() {
-
-    # Save allocation and sensitivity
-    if (divisions$get_type() == "grid") {
-      terra::writeRaster(divisions$get_rast(self$get_allocation()),
-                         "allocation.tif", ...)
-      terra::writeRaster(divisions$get_rast(self$get_sensitivity()),
-                         "sensitivity.tif", ...)
-    } else if (divisions$get_type() == "patch") {
-      write.csv(cbind(divisions$get_coords(extra_cols = TRUE),
-                      allocation = self$get_allocation(),
-                      sensitivity = self$get_sensitivity()),
-                file = "design.csv", row.names = FALSE)
-    } else if (divisions$get_type() == "other") {
-      write.csv(cbind(divisions$get_data(),
-                      allocation = self$get_allocation(),
-                      sensitivity = self$get_sensitivity()),
-                file = "design.csv", row.names = FALSE)
-    }
-
-    # Save summary
-    summary_data <- data.frame(total_allocation = sum(self$get_allocation()))
-    if (!all(sample_cost == 1)) {
-      summary_data$allocation_cost <- sum(self$get_allocation()*sample_cost)
-    }
-    if (!all(fixed_cost == 0)) {
-      summary_data$fixed_cost <- sum((self$get_allocation() > 0)*fixed_cost)
-    }
-    if (optimal == "cost") {
-      summary_data$mgmt_cost <- sum(
-        establish_pr*(mgmt_cost$detected*self$get_sensitivity() +
-                        mgmt_cost$undetected*(1 - self$get_sensitivity())))
-      summary_data$total_cost <-
-        (summary_data$mgmt_cost +  sum(self$get_allocation()*sample_cost) +
-           sum((self$get_allocation() > 0)*fixed_cost))
+    if (optimal == "saving") {
+      summary_data$total_saving <- sum(establish_pr*benefit*
+                                         self$get_sensitivity())
     }
     summary_data$detection_confidence <- self$get_confidence()
     write.csv(summary_data, file = "summary.csv", row.names = FALSE)

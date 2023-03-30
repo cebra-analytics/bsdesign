@@ -18,18 +18,21 @@
 #'   an attribute \code{relative = TRUE} is attached to the parameter.
 #' @param optimal The strategy used for finding an effective surveillance
 #'   resource allocation. One of (minimum) \code{"cost"}, (maximum)
-#'   \code{"benefit"}, (maximum) \code{"detection"} sensitivity (up to
-#'   \code{"confidence"} level when specified), or \code{"none"} for
-#'   representing existing surveillance designs only.
+#'   \code{"saving"} (or cost-dependent benefit), (maximum) \code{"benefit"}
+#'   (independent of surveillance costs), or (maximum) \code{"detection"}
+#'   sensitivity, or \code{"none"} for representing existing
+#'   surveillance designs only.
 #' @param mgmt_cost A list of vectors to represent management costs specific to
 #'   the method implemented in the inherited class. Each vector specifies costs
 #'   at each division part (location, category, etc.) specified by
 #'   \code{divisions}. Default is an empty list. Units should be consistent
 #'   with the \code{cost_unit} parameter specified in the \code{context}.
-#' @param benefit A vector of values quantifying the benefit of detection
-#'   at each division part (location, category, etc.) specified by
-#'   \code{divisions}. Default is \code{NULL}. Units should be consistent with
-#'   the \code{cost_unit} parameter specified in the \code{context}.
+#' @param benefit A vector of values quantifying the benefit (or cost-based
+#'   saving) associated with detection at each division part (location,
+#'   category, etc.) specified by \code{divisions}. Default is \code{NULL}.
+#'   When the benefit refers to cost-based savings (i.e. \code{optimal} is
+#'   \code{"saving"}), then the units should be consistent with the
+#'   \code{cost_unit} parameter specified in the \code{context}.
 #' @param alloc_cost A vector of cost per unit of allocated surveillance
 #'   resources. Default is \code{NULL}. Units should be consistent with the
 #'   \code{cost_unit} parameter specified in the \code{context}.
@@ -99,8 +102,8 @@
 SurveillanceDesign <- function(context,
                                divisions,
                                establish_pr = NULL,
-                               optimal = c("cost", "benefit", "detection",
-                                           "none"),
+                               optimal = c("cost", "saving", "benefit",
+                                           "detection", "none"),
                                mgmt_cost = list(),
                                benefit = NULL,
                                alloc_cost = NULL,
@@ -120,7 +123,7 @@ SurveillanceDesign <- function(context,
 SurveillanceDesign.Context <- function(context,
                                        divisions,
                                        establish_pr = NULL,
-                                       optimal = c("cost", "benefit",
+                                       optimal = c("cost", "saving", "benefit",
                                                    "detection", "none"),
                                        mgmt_cost = list(),
                                        benefit = NULL,
@@ -186,9 +189,16 @@ SurveillanceDesign.Context <- function(context,
   if (optimal == "cost" && length(mgmt_cost) == 0) {
     stop("The management cost parameter must be specified for optimal cost.",
          call. = FALSE)
+  } else if (optimal == "saving" && is.null(benefit)) {
+    stop("The benefit parameter must be specified for optimal saving.",
+         call. = FALSE)
   } else if (optimal == "benefit" && is.null(benefit)) {
     stop("The benefit parameter must be specified for optimal benefit.",
          call. = FALSE)
+  } else if (optimal == "benefit" &&
+             (is.null(budget) && is.null(confidence))) {
+    stop(paste("Either the budget or detection confidence parameter must be",
+               "specified for optimal benefit."), call. = FALSE)
   } else if (optimal == "detection" &&
              (is.null(budget) && is.null(confidence))) {
     stop(paste("Either the budget or detection confidence parameter must be",

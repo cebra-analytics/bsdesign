@@ -15,7 +15,7 @@ SamplingSurvDesign(
   total_indiv = NULL,
   design_dens = NULL,
   sample_area = NULL,
-  optimal = c("cost", "benefit", "detection", "none"),
+  optimal = c("cost", "saving", "benefit", "detection", "none"),
   mgmt_cost = list(),
   benefit = NULL,
   sample_cost = NULL,
@@ -38,7 +38,7 @@ SamplingSurvDesign(
   total_indiv = NULL,
   design_dens = NULL,
   sample_area = NULL,
-  optimal = c("cost", "benefit", "detection", "none"),
+  optimal = c("cost", "saving", "benefit", "detection", "none"),
   mgmt_cost = list(),
   benefit = NULL,
   sample_cost = NULL,
@@ -91,9 +91,10 @@ be equivalent to the total area sampled. Default is \code{NULL}.}
 
 \item{optimal}{The strategy used for finding an effective surveillance
 resource allocation. One of (minimum) \code{"cost"}, (maximum)
-\code{"benefit"}, (maximum) \code{"detection"} sensitivity (up to
-\code{"confidence"} level when specified), or \code{"none"} for
-representing existing surveillance designs only.}
+\code{"saving"} (or cost-dependent benefit), (maximum) \code{"benefit"}
+(independent of surveillance costs), or (maximum) \code{"detection"}
+sensitivity, or \code{"none"} for representing existing
+surveillance designs only.}
 
 \item{mgmt_cost}{A list of vectors to represent estimated management costs
 for when the incursion is detected and undetected. Each vector specifies
@@ -102,10 +103,12 @@ costs at each division part (location, category, etc.) specified by
 \code{undetected}. Default is an empty list. Units should be consistent
 with the \code{cost_unit} parameter specified in the \code{context}.}
 
-\item{benefit}{A vector of values quantifying the benefit of detection
-at each division part (location, category, etc.) specified by
-\code{divisions}. Default is \code{NULL}. Units should be consistent with
-the \code{cost_unit} parameter specified in the \code{context}.}
+\item{benefit}{A vector of values quantifying the benefit (or cost-based
+saving) associated with detection at each division part (location,
+category, etc.) specified by \code{divisions}. Default is \code{NULL}.
+When the benefit refers to cost-based savings (i.e. \code{optimal} is
+\code{"saving"}), then the units should be consistent with the
+\code{cost_unit} parameter specified in the \code{context}.}
 
 \item{sample_cost}{A vector of cost per sample of allocated surveillance
 resources at each division part (location, category, etc.) specified by

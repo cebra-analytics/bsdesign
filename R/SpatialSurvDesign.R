@@ -28,19 +28,22 @@
 #'   to population growth over time.
 #' @param optimal The strategy used for finding an effective surveillance
 #'   resource allocation. One of (minimum) \code{"cost"}, (maximum)
-#'   \code{"benefit"}, (maximum) \code{"detection"} sensitivity (up to
-#'   \code{"confidence"} level when specified), or \code{"none"} for
-#'   representing existing surveillance designs only.
+#'   \code{"saving"} (or cost-dependent benefit), (maximum) \code{"benefit"}
+#'   (independent of surveillance costs), or (maximum) \code{"detection"}
+#'   sensitivity, or \code{"none"} for representing existing
+#'   surveillance designs only.
 #' @param mgmt_cost A list of vectors to represent estimated management costs
 #'   for when the incursion is detected and undetected. Each vector specifies
 #'   these costs at each spatial location specified by \code{divisions}. List
 #'   elements should be named \code{detected} and \code{undetected}. Default is
 #'   an empty list. Units should be consistent with the \code{cost_unit}
 #'   parameter specified in the \code{context}.
-#' @param benefit A vector of values quantifying the benefit of detection
-#'   at each spatial location specified by \code{divisions}. Default is
-#'   \code{NULL}. Units should be consistent with the \code{cost_unit}
-#'   parameter specified in the \code{context}.
+#' @param benefit A vector of values quantifying the benefit (or cost-based
+#'   saving) associated with detection at each spatial location specified by
+#'   \code{divisions}. Default is \code{NULL}. When the benefit refers to
+#'   cost-based savings (i.e. \code{optimal} is \code{"saving"}), then the
+#'   units should be consistent with the \code{cost_unit} parameter specified
+#'   in the \code{context}.
 #' @param alloc_cost A vector of cost per unit of allocated surveillance
 #'   resources at each spatial location specified by \code{divisions}. Default
 #'   is \code{NULL}. Units should be consistent with the \code{cost_unit}
@@ -131,8 +134,8 @@ SpatialSurvDesign <- function(context,
                               establish_pr,
                               lambda,
                               prevalence = 1,
-                              optimal = c("cost", "benefit", "detection",
-                                          "none"),
+                              optimal = c("cost", "saving", "benefit",
+                                          "detection", "none"),
                               mgmt_cost = list(),
                               benefit = NULL,
                               alloc_cost = NULL,
@@ -154,7 +157,7 @@ SpatialSurvDesign.Context <- function(context,
                                       establish_pr,
                                       lambda,
                                       prevalence = 1,
-                                      optimal = c("cost", "benefit",
+                                      optimal = c("cost", "saving", "benefit",
                                                   "detection", "none"),
                                       mgmt_cost = list(),
                                       benefit = NULL,
@@ -250,7 +253,7 @@ SpatialSurvDesign.Context <- function(context,
     } else {
       benefit <- mgmt_cost$undetected - mgmt_cost$detected
     }
-  } else if (optimal != "benefit") {
+  } else if (!optimal %in% c("saving", "benefit")) {
     benefit <- 1
   }
 
@@ -283,7 +286,7 @@ SpatialSurvDesign.Context <- function(context,
       } else {
 
         # minimum cost or maximum benefit (benefit = 1 for detection)
-        incl_x <- (optimal == "cost")
+        incl_x <- (optimal %in% c("cost", "saving"))
         return(benefit*establish_pr*(1 - exist_sens)*exp(-1*lambda*n_alloc) +
                  (n_alloc > 0)*x_alloc*incl_x)
       }
@@ -305,7 +308,7 @@ SpatialSurvDesign.Context <- function(context,
       } else {
 
         # minimum cost or maximum benefit (benefit = 1 for detection)
-        incl_x <- (optimal == "cost")
+        incl_x <- (optimal %in% c("cost", "saving"))
         return((n_alloc > 0)*incl_x -
                  (benefit*establish_pr*(1 - exist_sens)*
                     lambda/alloc_cost*exp(-1*lambda*n_alloc)))
@@ -333,7 +336,7 @@ SpatialSurvDesign.Context <- function(context,
       } else {
 
         # minimum cost or maximum benefit (benefit = 1 for detection)
-        incl_x <- (optimal == "cost")
+        incl_x <- (optimal %in% c("cost", "saving"))
         values[idx] <-
           (((alpha - 1*incl_x) >= -1*values[idx])*
              (pmax(min_alloc[idx]*alloc_cost[idx],
@@ -342,7 +345,7 @@ SpatialSurvDesign.Context <- function(context,
                 fixed_cost[idx]))
 
         # limit to zero cost allocation via f_obj(0)
-        if (optimal == "cost") {
+        if (optimal %in% c("cost", "saving")) {
           values <- (values < benefit*establish_pr*(1 - exist_sens))*values
         }
       }
@@ -351,7 +354,7 @@ SpatialSurvDesign.Context <- function(context,
     }
 
     # Unconstrained marginal benefit alpha
-    alpha_unconstr <<- (optimal == "cost") - 1
+    alpha_unconstr <<- (optimal %in% c("cost", "saving")) - 1
 
     # Minimum marginal benefit alpha
     alpha_min <<- min(f_deriv(fixed_cost))
@@ -548,6 +551,10 @@ SpatialSurvDesign.Context <- function(context,
       summary_data$total_cost <-
         (summary_data$mgmt_cost +  sum(self$get_allocation()*alloc_cost) +
            sum((self$get_allocation() > 0)*fixed_cost))
+    }
+    if (optimal == "saving") {
+      summary_data$total_saving <- sum(establish_pr*benefit*
+                                         self$get_sensitivity())
     }
     summary_data$detection_confidence <- self$get_confidence()
     write.csv(summary_data, file = "summary.csv", row.names = FALSE)

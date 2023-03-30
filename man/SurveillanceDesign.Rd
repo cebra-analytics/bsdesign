@@ -9,7 +9,7 @@ SurveillanceDesign(
   context,
   divisions,
   establish_pr = NULL,
-  optimal = c("cost", "benefit", "detection", "none"),
+  optimal = c("cost", "saving", "benefit", "detection", "none"),
   mgmt_cost = list(),
   benefit = NULL,
   alloc_cost = NULL,
@@ -28,7 +28,7 @@ SurveillanceDesign(
   context,
   divisions,
   establish_pr = NULL,
-  optimal = c("cost", "benefit", "detection", "none"),
+  optimal = c("cost", "saving", "benefit", "detection", "none"),
   mgmt_cost = list(),
   benefit = NULL,
   alloc_cost = NULL,
@@ -59,9 +59,10 @@ an attribute \code{relative = TRUE} is attached to the parameter.}
 
 \item{optimal}{The strategy used for finding an effective surveillance
 resource allocation. One of (minimum) \code{"cost"}, (maximum)
-\code{"benefit"}, (maximum) \code{"detection"} sensitivity (up to
-\code{"confidence"} level when specified), or \code{"none"} for
-representing existing surveillance designs only.}
+\code{"saving"} (or cost-dependent benefit), (maximum) \code{"benefit"}
+(independent of surveillance costs), or (maximum) \code{"detection"}
+sensitivity, or \code{"none"} for representing existing
+surveillance designs only.}
 
 \item{mgmt_cost}{A list of vectors to represent management costs specific to
 the method implemented in the inherited class. Each vector specifies costs
@@ -69,10 +70,12 @@ at each division part (location, category, etc.) specified by
 \code{divisions}. Default is an empty list. Units should be consistent
 with the \code{cost_unit} parameter specified in the \code{context}.}
 
-\item{benefit}{A vector of values quantifying the benefit of detection
-at each division part (location, category, etc.) specified by
-\code{divisions}. Default is \code{NULL}. Units should be consistent with
-the \code{cost_unit} parameter specified in the \code{context}.}
+\item{benefit}{A vector of values quantifying the benefit (or cost-based
+saving) associated with detection at each division part (location,
+category, etc.) specified by \code{divisions}. Default is \code{NULL}.
+When the benefit refers to cost-based savings (i.e. \code{optimal} is
+\code{"saving"}), then the units should be consistent with the
+\code{cost_unit} parameter specified in the \code{context}.}
 
 \item{alloc_cost}{A vector of cost per unit of allocated surveillance
 resources. Default is \code{NULL}. Units should be consistent with the
