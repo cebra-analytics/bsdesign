@@ -189,8 +189,13 @@ HypothTestFreedomDesign.Context <- function(context,
   self$save_design <- function() {
 
     # Save evidence
-    evidence <- data.frame(iterations = 1:self$get_iterations(),
-                           evidence = self$get_evidence())
+    evidence <- NULL
+    n_iter <- self$get_iterations()
+    pr_undetected <- self$get_evidence()
+    if (is.numeric(n_iter) && !is.null(pr_undetected)) {
+      evidence <- data.frame(iterations = 1:n_iter,
+                             evidence = pr_undetected)
+    }
     write.csv(evidence, file = "evidence.csv", row.names = FALSE)
 
     return(evidence)

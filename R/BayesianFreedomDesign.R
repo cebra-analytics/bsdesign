@@ -208,8 +208,13 @@ BayesianFreedomDesign.Context <- function(context,
   self$save_design <- function() {
 
     # Save evidence
-    evidence <- data.frame(iterations = 1:self$get_iterations(),
-                           confidence = self$get_evidence())
+    evidence <- NULL
+    n_iter <- self$get_iterations()
+    conf_freedom <- self$get_evidence()
+    if (is.numeric(n_iter) && !is.null(conf_freedom)) {
+      evidence <- data.frame(iterations = 1:n_iter,
+                             confidence = conf_freedom)
+    }
     write.csv(evidence, file = "confidence.csv", row.names = FALSE)
 
     return(evidence)
