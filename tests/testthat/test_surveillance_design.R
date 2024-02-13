@@ -122,6 +122,8 @@ test_that("initializes with context, divisions, and valid parameters", {
                                                   divisions = divisions,
                                                   optimal = "none"))
   expect_is(surv_design, "SurveillanceDesign")
+  expect_is(surv_design$get_context(), "Context")
+  expect_is(surv_design$get_divisions(), "Divisions")
   expect_null(surv_design$get_allocation())
   expect_null(surv_design$get_sensitivity())
   expect_null(surv_design$get_confidence())

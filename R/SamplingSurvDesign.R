@@ -84,6 +84,8 @@
 #'   for allocating samples, and calculating (unit and overall) detection
 #'   sensitivities:
 #'   \describe{
+#'     \item{\code{get_context()}}{Get context object.}
+#'     \item{\code{get_divisions()}}{Get divisions object.}
 #'     \item{\code{get_allocation()}}{Get allocated samples via specified
 #'       strategy, utilizing costs, benefits, budget constraints, and/or
 #'       desired detection confidence level.}

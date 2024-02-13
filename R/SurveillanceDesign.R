@@ -70,6 +70,8 @@
 #'   for allocating resources, and calculating (unit and overall) detection
 #'   sensitivities:
 #'   \describe{
+#'     \item{\code{get_context()}}{Get context object.}
+#'     \item{\code{get_divisions()}}{Get divisions object.}
 #'     \item{\code{get_allocation()}}{Get allocated resources via specified
 #'       strategy, utilizing costs, benefits, budget constraints, and/or
 #'       desired detection confidence level.}
@@ -249,6 +251,16 @@ SurveillanceDesign.Context <- function(context,
 
   # Create a class structure
   self <- structure(list(), class = c(class, "SurveillanceDesign"))
+
+  # Get context object
+  self$get_context <- function() {
+    return(context)
+  }
+
+  # Get divisions object
+  self$get_divisions <- function() {
+    return(divisions)
+  }
 
   # Get the allocated surveillance resource quantities of the design
   self$get_allocation <- function() {

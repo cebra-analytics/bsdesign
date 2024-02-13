@@ -85,6 +85,8 @@ test_that("initializes with context, divisions, and valid parameters", {
     sample_cost = 2:3))
   expect_is(surv_design, "MultilevelSurvDesign")
   expect_s3_class(surv_design, "SurveillanceDesign")
+  expect_is(surv_design$get_context(), "Context")
+  expect_is(surv_design$get_divisions(), "Divisions")
 })
 
 test_that("allocates single stage sampling", {

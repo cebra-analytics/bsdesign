@@ -85,6 +85,8 @@ inherited and extended functions from the base \code{SurveillanceDesign}
 class for for allocating resources, and calculating (unit and overall)
 detection sensitivities:
 \describe{
+\item{\code{get_context()}}{Get context object.}
+\item{\code{get_divisions()}}{Get divisions object.}
 \item{\code{get_allocation()}}{Get allocated surveillance resources for
 each level to achieve a minimal total cost given a specified desired
 confidence level.}

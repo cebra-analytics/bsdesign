@@ -99,6 +99,8 @@ test_that("initializes with context, divisions, and valid parameters", {
     mgmt_cost = list(eradication = 3:5, damage = 5, penalty = 20)))
   expect_is(surv_design, "AreaGrowthSurvDesign")
   expect_s3_class(surv_design, "SurveillanceDesign")
+  expect_is(surv_design$get_context(), "Context")
+  expect_is(surv_design$get_divisions(), "Divisions")
 })
 
 test_that("allocates resources consistently with reference method", {
