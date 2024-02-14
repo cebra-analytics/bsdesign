@@ -182,6 +182,7 @@ SamplingSurvDesign.Context <- function(context,
                              exist_alloc = exist_alloc,
                              exist_sens = exist_sens,
                              class = "SamplingSurvDesign", ...)
+  super <- list(get_sensitivity = self$get_sensitivity)
 
   # Number of division parts
   parts <- divisions$get_parts()
@@ -272,7 +273,7 @@ SamplingSurvDesign.Context <- function(context,
   if (is.null(exist_sens)) {
     exist_sens <- rep(0, parts)
   } else {
-    exist_sens <- self$get_sensitivity() # combine via base class
+    exist_sens <- super$get_sensitivity() # combine via base class
   }
 
   # Check and resolve empty optimal strategy parameters
@@ -559,6 +560,8 @@ SamplingSurvDesign.Context <- function(context,
           1 - ((1 - exist_sens)*
                  exp(-1*sample_sens*sample_area*n_alloc*design_dens*multi))
       }
+    } else {
+      unit_sens <- super$get_sensitivity()
     }
 
     return(unit_sens)

@@ -160,6 +160,7 @@ RangeKernelSurvDesign.Context <- function(context,
                              confidence = confidence,
                              exist_sens = exist_sens,
                              class = "RangeKernelSurvDesign", ...)
+  super <- list(get_sensitivity = self$get_sensitivity)
 
   # Ensure divisions are grids
   if (divisions$get_type() != "grid") {
@@ -247,7 +248,7 @@ RangeKernelSurvDesign.Context <- function(context,
   if (is.null(exist_sens)) {
     exist_sens <- rep(0, parts)
   } else {
-    exist_sens <- self$get_sensitivity() # combine via base class
+    exist_sens <- super$get_sensitivity() # combine via base class
   }
 
   # Set the number of cores available for parallel processing
@@ -402,6 +403,8 @@ RangeKernelSurvDesign.Context <- function(context,
             1 - prod(1 - c(sensitivity[idx[j]], surv_units[[i]]$detect[j]))
           })
         }
+      } else if (optimal == "none") {
+        sensitivity <<- super$get_sensitivity()
       }
     }
 

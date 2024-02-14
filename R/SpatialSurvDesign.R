@@ -189,6 +189,7 @@ SpatialSurvDesign.Context <- function(context,
                              exist_alloc = exist_alloc,
                              exist_sens = exist_sens,
                              class = "SpatialSurvDesign", ...)
+  super <- list(get_sensitivity = self$get_sensitivity)
 
   # Number of division parts
   parts <- divisions$get_parts()
@@ -244,7 +245,7 @@ SpatialSurvDesign.Context <- function(context,
   if (is.null(exist_sens)) {
     exist_sens <- rep(0, parts)
   } else {
-    exist_sens <- self$get_sensitivity() # combine via base class
+    exist_sens <- super$get_sensitivity() # combine via base class
   }
 
   # Check and resolve empty optimal strategy parameters
@@ -489,6 +490,8 @@ SpatialSurvDesign.Context <- function(context,
         sensitivity <<- calculate_sensitivity(qty_alloc)
       } else if (optimal == "none" && !is.null(exist_alloc)) {
         sensitivity <<- calculate_sensitivity(exist_alloc)
+      } else if (optimal == "none") {
+        sensitivity <<- super$get_sensitivity()
       }
     }
     return(sensitivity)

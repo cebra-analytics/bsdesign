@@ -242,6 +242,16 @@ test_that("facilitates existing allocations and sensitivities", {
     sample_sens = 1,
     sample_type = "discrete",
     prevalence = test_ref$prevalence,
+    optimal = "none",
+    exist_sens = exist_sens))
+  expect_equal(surv_design$get_sensitivity(), exist_sens)
+  expect_silent(surv_design <- SamplingSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = establish_pr,
+    sample_sens = 1,
+    sample_type = "discrete",
+    prevalence = test_ref$prevalence,
     optimal = "detection",
     budget = test_ref$budget$ind_95 - sum(exist_alloc),
     exist_sens = exist_sens))

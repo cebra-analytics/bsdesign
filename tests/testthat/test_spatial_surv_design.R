@@ -7,25 +7,26 @@ test_that("initializes with context, divisions, and valid parameters", {
   test_ref <- readRDS(file.path(TEST_DIRECTORY, "Hauser2009_test.rds"))
   establish_pr <- test_ref$establish_pr
   expect_error(surv_design <- SpatialSurvDesign(context = Context("test"),
-                                   divisions = divisions,
-                                   establish_pr = establish_pr,
-                                   lambda = 1:5,
-                                   optimal = "none"),
+                                                divisions = divisions,
+                                                establish_pr = establish_pr,
+                                                lambda = 1:5,
+                                                optimal = "none"),
                paste("The lambda parameter must be numeric, >= 0, and match",
                      "the number of division parts."))
   expect_error(surv_design <- SpatialSurvDesign(context = Context("test"),
-                                   divisions = divisions,
-                                   establish_pr = establish_pr,
-                                   lambda = 1,
-                                   prevalence = -1,
-                                   optimal = "none"),
+                                                divisions = divisions,
+                                                establish_pr = establish_pr,
+                                                lambda = 1,
+                                                prevalence = -1,
+                                                optimal = "none"),
                "The prevalence parameter must be numeric and >= 0.")
   expect_error(surv_design <- SpatialSurvDesign(context = Context("test"),
-                                   divisions = divisions,
-                                   establish_pr = establish_pr,
-                                   lambda = 1,
-                                   optimal = "cost",
-                                   mgmt_cost = list(a = 1, b = 2)),
+                                                divisions = divisions,
+                                                establish_pr = establish_pr,
+                                                lambda = 1,
+                                                optimal = "cost",
+                                                mgmt_cost = list(a = 1,
+                                                                 b = 2)),
                paste("The management cost parameter must contain list",
                      "elements 'detected' and 'undetected'."))
   expect_silent(surv_design <- SpatialSurvDesign(context = Context("test"),
@@ -150,6 +151,15 @@ test_that("facilitates existing allocations and sensitivities", {
     exist_alloc = exist_alloc))
   expect_silent(exist_sens <- surv_design$get_sensitivity())
   expect_equal(exist_sens, c(expected_sensitivity[1:198], rep(0, 199)))
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "none",
+    exist_sens = exist_sens))
+  expect_equal(surv_design$get_sensitivity(),
+               c(expected_sensitivity[1:198], rep(0, 199)))
   expect_silent(surv_design <- SpatialSurvDesign(
     context = Context("test"),
     divisions = divisions,
@@ -344,7 +354,8 @@ test_that("allocates discrete integer allocations", {
     discrete_alloc = TRUE))
   expect_silent(discrete_alloc <- surv_design$get_allocation())
   expect_true(all(discrete_alloc %in% 0:ceiling(max(continuous_alloc))))
-  expect_true(sum(discrete_alloc >= floor(continuous_alloc)) >= divisions$get_parts() - 1)
+  expect_true(sum(discrete_alloc >= floor(continuous_alloc)) >=
+                divisions$get_parts() - 1)
   expect_true(all(discrete_alloc <= ceiling(continuous_alloc)))
   expect_true(round(surv_design$get_confidence(), 8) == 0.999999)
 })

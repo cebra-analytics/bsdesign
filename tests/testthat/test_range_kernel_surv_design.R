@@ -199,6 +199,17 @@ test_that("facilitates existing allocations and sensitivities", {
     optimal = "none",
     exist_alloc = exist_alloc_1_4))
   expect_silent(exist_sens <- surv_design$get_sensitivity())
+  expect_silent(surv_design <- RangeKernelSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    sigma = test_ref$sigma,
+    intervals = test_ref$intervals,
+    prevalence = test_ref$prevalence,
+    optimal = "none",
+    exist_sens = exist_sens))
+  expect_equal(surv_design$get_sensitivity(), exist_sens)
   exist_alloc_2_4 <- rep(0, divisions$get_parts())
   exist_alloc_2_4[idx[(length(idx)/4 + 1):(length(idx)/2)]] <- 1
   expect_silent(surv_design <- RangeKernelSurvDesign(
