@@ -28,8 +28,10 @@
 #'   prevalence (Cannon, 2009) when the \code{sample_sens} is set to \code{1}.
 #'   Default is \code{NULL}.
 #' @param total_indiv A vector of total individual discrete sampling units
-#'   (e.g. trees, traps) present at each division part (location, category,
-#'   etc.) specified by \code{divisions}. Default is \code{NULL}.
+#'   (e.g. plants, animals) present at each division part (location, category,
+#'   etc.) specified by \code{divisions}. Required when > 10% of the total
+#'   individuals are expected to be sampled. Default \code{NULL} (unknown or
+#'   not required) assumes <= 10% of the total individuals are sampled.
 #' @param design_dens A vector of continuous sampling design density values for
 #'   each division part (location, category, etc.). Default is \code{NULL}.
 #' @param sample_area The area of a single sample in a continuous sampling
