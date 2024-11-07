@@ -30,6 +30,12 @@
 #'   absence used in the first iteration of the Bayesian process. Values are
 #'   typically estimated via expert elicitation. Default is \code{0.5} for an
 #'   uninformed prior.
+#' @param pr_intro The probability that the invasive species is (re-)introduced
+#'   or newly arrives and establishes at each time interval. Discounts
+#'   subsequent iterative priors after the first Bayesian iteration. Default is
+#'   \code{0} implying that negligible (re-)introductions/arrivals of the
+#'   invasive species are expected across the time intervals. Only utilized
+#'   when \code{pr_detect} is given.
 #' @param iterations The number of time intervals (specified by the
 #'   \code{time_unit} parameter in the \code{context}), or sequential
 #'   surveillance system applications, used to estimate the likelihood of area
@@ -77,6 +83,12 @@
 #'   success of nutria (Myocastor coypus) from the Delmarva Peninsula, USA.
 #'   \emph{Biological Invasions}. \doi{10.1007/s10530-022-02855-x}
 #'
+#'   Magarey, R. C., Reynolds, M., Dominiak, B. C., Sergeant, E., Agnew, J.,
+#'   Ward, A., & Thompson, N. (2019). Review of sugarcane Fiji leaf gall
+#'   disease in Australia and the declaration of pest freedom in Central
+#'   Queensland. \emph{Crop Protection}, 121, 113–120.
+#'   \doi{10.1016/j.cropro.2019.03.022}
+#'
 #'   Rout, T. (2017). Declaring Eradication of an Invasive Species. In
 #'   A. Robinson, T. Walshe, M. Burgman, & M. Nunn (Eds.),
 #'   \emph{Invasive Species: Risk Assessment and Management} (pp. 334-347).
@@ -92,6 +104,7 @@ BayesianFreedomDesign <- function(context,
                                   pr_detect = NULL,
                                   pr_persist = 1,
                                   pr_freedom = 0.5,
+                                  pr_intro = 0,
                                   iterations = NULL,
                                   confidence = NULL, ...) {
   UseMethod("BayesianFreedomDesign")
@@ -104,6 +117,7 @@ BayesianFreedomDesign.Context <- function(context,
                                           pr_detect = NULL,
                                           pr_persist = 1,
                                           pr_freedom = 0.5,
+                                          pr_intro = 0,
                                           iterations = NULL,
                                           confidence = NULL, ...) {
 
@@ -122,6 +136,11 @@ BayesianFreedomDesign.Context <- function(context,
   if (!is.null(pr_freedom) &&
       (!is.numeric(pr_freedom) || pr_freedom < 0 || pr_freedom > 1)) {
     stop(paste("The prior probability of freedom parameter must be numeric,",
+               ">= 0, and <= 1."), call. = FALSE)
+  }
+  if (!is.null(pr_intro) &&
+      (!is.numeric(pr_intro) || pr_intro < 0 || pr_intro > 1)) {
+    stop(paste("The probability of introduction parameter must be numeric,",
                ">= 0, and <= 1."), call. = FALSE)
   }
   if (!is.null(confidence) &&
@@ -174,7 +193,7 @@ BayesianFreedomDesign.Context <- function(context,
                              (prior_freedom/
                                 (pr_persist_i*(1 - pr_detect_i)*
                                    (1 - prior_freedom) + prior_freedom)))
-          prior_freedom <- conf_freedom[length(conf_freedom)]
+          prior_freedom <- conf_freedom[length(conf_freedom)]*(1 - pr_intro)
         } else if (any(detected)) {
           Bayes_factor <- ((n_pres - 1)/
                              (((length(conf_freedom) + 1)/

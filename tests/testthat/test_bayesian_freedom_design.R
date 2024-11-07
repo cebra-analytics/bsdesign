@@ -17,6 +17,18 @@ test_that("initializes with context and valid parameters", {
     pr_detect = NULL,
     pr_persist = 1,
     pr_freedom = 0.5,
+    pr_intro = 2,
+    iterations = NULL,
+    confidence = NULL),
+    paste("The probability of introduction parameter must be numeric, >= 0,",
+          "and <= 1."))
+  expect_error(freedom_design <- BayesianFreedomDesign(
+    context = Context("test"),
+    detected = FALSE,
+    pr_detect = NULL,
+    pr_persist = 1,
+    pr_freedom = 0.5,
+    pr_intro = 0.1,
     iterations = NULL,
     confidence = 2),
     "The confidence of freedom parameter must be numeric, >= 0, and <= 1.")
@@ -26,6 +38,7 @@ test_that("initializes with context and valid parameters", {
     pr_detect = NULL,
     pr_persist = 1,
     pr_freedom = 0.5,
+    pr_intro = 0.1,
     iterations = NULL,
     confidence = NULL))
   expect_is(freedom_design, "BayesianFreedomDesign")
@@ -51,6 +64,18 @@ test_that("calculates freedom evidence consistently with reference method", {
   expect_true(all(abs(round(as.numeric(evidence), 3) -
                         test_ref$calc_freedom_growth) <= 0.01))
   expect_equal(iterations, 5)
+  expect_silent(freedom_design <- BayesianFreedomDesign( # discounted prior
+    context = Context("test"),
+    detected = FALSE,
+    pr_detect = test_ref$calc_conf_growth, # 0.177,
+    pr_persist = 1,
+    pr_freedom = 0.5,
+    pr_intro = 0.01,
+    iterations = 5,
+    confidence = NULL))
+  expect_silent(evidence_disc <- freedom_design$get_evidence())
+  expect_equal(evidence_disc[1], evidence[1])
+  expect_true(all(evidence_disc[2:5] < evidence[2:5]))
   expect_evid <- 0.5/(1 - test_ref$calc_conf_growth[1]*(1 - 0.5))
   while (expect_evid[length(expect_evid)] < 0.95) {
     i <- length(expect_evid)

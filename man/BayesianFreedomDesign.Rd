@@ -11,6 +11,7 @@ BayesianFreedomDesign(
   pr_detect = NULL,
   pr_persist = 1,
   pr_freedom = 0.5,
+  pr_intro = 0,
   iterations = NULL,
   confidence = NULL,
   ...
@@ -22,6 +23,7 @@ BayesianFreedomDesign(
   pr_detect = NULL,
   pr_persist = 1,
   pr_freedom = 0.5,
+  pr_intro = 0,
   iterations = NULL,
   confidence = NULL,
   ...
@@ -57,6 +59,13 @@ the last value of the vector is repeated.}
 absence used in the first iteration of the Bayesian process. Values are
 typically estimated via expert elicitation. Default is \code{0.5} for an
 uninformed prior.}
+
+\item{pr_intro}{The probability that the invasive species is (re-)introduced
+or newly arrives and establishes at each time interval. Discounts
+subsequent iterative priors after the first Bayesian iteration. Default is
+\code{0} implying that negligible (re-)introductions/arrivals of the
+invasive species are expected across the time intervals. Only utilized
+when \code{pr_detect} is given.}
 
 \item{iterations}{The number of time intervals (specified by the
 \code{time_unit} parameter in the \code{context}), or sequential
@@ -115,6 +124,12 @@ Anderson, D. P., Pepper, M. A., Travers, S., Michaels, T. A., Sullivan,
 K., & Ramsey, D. S. L. (2022). Confirming the broadscale eradication
 success of nutria (Myocastor coypus) from the Delmarva Peninsula, USA.
 \emph{Biological Invasions}. \doi{10.1007/s10530-022-02855-x}
+
+Magarey, R. C., Reynolds, M., Dominiak, B. C., Sergeant, E., Agnew, J.,
+Ward, A., & Thompson, N. (2019). Review of sugarcane Fiji leaf gall
+disease in Australia and the declaration of pest freedom in Central
+Queensland. \emph{Crop Protection}, 121, 113–120.
+\doi{10.1016/j.cropro.2019.03.022}
 
 Rout, T. (2017). Declaring Eradication of an Invasive Species. In
 A. Robinson, T. Walshe, M. Burgman, & M. Nunn (Eds.),
