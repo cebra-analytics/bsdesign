@@ -72,6 +72,15 @@
 #'   the \code{context} (e.g. traps or samples).
 #' @param confidence The desired (minimum) system sensitivity or detection
 #'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
+#' @param min_alloc A vector of minimum permissible sampling allocation at each
+#'   division part (location, category, etc.) specified by \code{divisions}.
+#'   Used to avoid impractically low sampling allocations. Default is
+#'   \code{NULL}.
+#' @param discrete_alloc A logical to indicate that the sampling allocation at
+#'   each division part (location, category, etc.) specified by
+#'   \code{divisions} should be discrete integers. Set to \code{TRUE} (default)
+#'   to allocate discrete samples. Set to \code{FALSE} for continuous
+#'   quantities if applicable within a sampling design, such as sample batches.
 #' @param exist_alloc A vector of existing surveillance resource quantities at
 #'   each division part (location, category, etc.) specified by
 #'   \code{divisions}. Should only be used to represent existing surveillance
@@ -141,6 +150,8 @@ SamplingSurvDesign <- function(context,
                                fixed_cost = NULL,
                                budget = NULL,
                                confidence = NULL,
+                               min_alloc = NULL,
+                               discrete_alloc = TRUE,
                                exist_alloc = NULL,
                                exist_sens = NULL,
                                class = character(), ...) {
@@ -167,6 +178,8 @@ SamplingSurvDesign.Context <- function(context,
                                        fixed_cost = NULL,
                                        budget = NULL,
                                        confidence = NULL,
+                                       min_alloc = NULL,
+                                       discrete_alloc = TRUE,
                                        exist_alloc = NULL,
                                        exist_sens = NULL,
                                        class = character(), ...) {
@@ -181,6 +194,8 @@ SamplingSurvDesign.Context <- function(context,
                              fixed_cost = fixed_cost,
                              budget = budget,
                              confidence = confidence,
+                             min_alloc = min_alloc,
+                             discrete_alloc = discrete_alloc,
                              exist_alloc = exist_alloc,
                              exist_sens = exist_sens,
                              class = "SamplingSurvDesign", ...)
@@ -252,7 +267,7 @@ SamplingSurvDesign.Context <- function(context,
   optimal <- match.arg(optimal)
 
   # Resolve sample_sens, prevalence, total_indiv, sample_cost, fixed_cost,
-  # and exist_sens
+  # min_alloc, and exist_sens
   if (length(sample_sens) == 1) {
     sample_sens <- rep(sample_sens, parts)
   }
@@ -271,6 +286,20 @@ SamplingSurvDesign.Context <- function(context,
     fixed_cost <- rep(fixed_cost, parts)
   } else if (is.null(fixed_cost)) {
     fixed_cost <- rep(0, parts)
+  }
+  if (!is.null(min_alloc)) {
+    if (length(min_alloc) == 1) {
+      min_alloc <- rep(min_alloc, parts)
+    }
+    if (discrete_alloc) {
+      min_alloc <- pmax(ceiling(min_alloc), 1)
+    }
+  } else {
+    if (discrete_alloc) {
+      min_alloc <- rep(1, parts)
+    } else {
+      min_alloc <- rep(0, parts)
+    }
   }
   if (is.null(exist_sens)) {
     exist_sens <- rep(0, parts)
@@ -307,273 +336,358 @@ SamplingSurvDesign.Context <- function(context,
     lambda <- sample_sens*sample_area*design_dens
   }
 
-  # Objective function
-  f_obj <- function(x_alloc) {
-    if (sample_type == "discrete" && sample_fract_gt_0_1 &&
-        optimal == "detection" && !relative_establish_pr) {
-      # Maximum detection for discrete sampling with n/N > 0.1
-      return(
-        (x_alloc >= fixed_cost)*
-          log(1 - (establish_pr*
-                     (1 - ((1 - exist_sens)*
-                             ((1 - (sample_sens/total_indiv*
-                                     (x_alloc - fixed_cost)/sample_cost))
-                              ^(prevalence*total_indiv)))))))
-    } else if (sample_type == "discrete" && sample_fract_gt_0_1) {
-      # Minimum cost or maximum benefit (benefit = 1 for detection)
-      # for discrete sampling with n/N > 0.1
-      incl_x <- (optimal %in% c("cost", "saving"))
-      return(
-        (benefit*establish_pr*(1 - exist_sens)*
-           ((x_alloc < fixed_cost)*1 +
-              ((x_alloc >= fixed_cost)*
-                 ((1 - (sample_sens/total_indiv*
-                          (x_alloc - fixed_cost)/sample_cost))
-                  ^(prevalence*total_indiv))))) +
-          (x_alloc >= fixed_cost)*x_alloc*incl_x)
-    } else if (optimal == "detection" && !relative_establish_pr) {
-      # Maximum detection
-      return(
-        (x_alloc >= fixed_cost)*
-          log(1 - (establish_pr*
-                     (1 - ((1 - exist_sens)*
-                             exp(-1*lambda*
-                                   (x_alloc - fixed_cost)/sample_cost))))))
-    } else {
-      # Minimum cost or maximum benefit (benefit = 1 for detection)
-      incl_x <- (optimal %in% c("cost", "saving"))
-      return(
-        (benefit*establish_pr*(1 - exist_sens)*
-           ((x_alloc < fixed_cost)*1 +
-              ((x_alloc >= fixed_cost)*
-                 exp(-1*lambda*(x_alloc - fixed_cost)/sample_cost)))) +
-          (x_alloc >= fixed_cost)*x_alloc*incl_x)
-    }
-  }
+  # Lagrange optimization parameters/functions
+  f_obj <- NULL # Objective function
+  f_deriv <- NULL # Derivative of objective function
+  f_pos <- NULL # Pseudo-inverse of derivative given marginal benefit alpha
+  alpha_unconstr <- NULL # Unconstrained marginal benefit alpha
+  alpha_min <- NULL # Minimum marginal benefit alpha
+  f_unit_sens <- NULL # Unit sensitivity calculation function
+  f_inv_unit_sens <- NULL # Inverse of unit sensitivity calculation function
+  search_alpha <- NULL # Search alpha for optimal objective
+  set_lagrange_params <- function() {
 
-  # Derivative of objective function
-  f_deriv <- function(x_alloc) {
-    if (sample_type == "discrete" && sample_fract_gt_0_1) {
-      # Use derivative of second objective function (above) for all discrete
-      # sampling with n/N > 0.1 (avoids unsolvable pseudo-inverse)
-      incl_x <- (optimal %in% c("cost", "saving"))
-      return(
-        (x_alloc >= fixed_cost)*
-          (1*incl_x -
-             (benefit*establish_pr*(1 - exist_sens)*
-                sample_sens*prevalence/sample_cost*
-                ((1 - (sample_sens/total_indiv*
-                         (x_alloc - fixed_cost)/sample_cost))
-                 ^(prevalence*total_indiv - 1)))))
-    } else if (optimal == "detection" && !relative_establish_pr) {
-      # Maximum detection
-      return(
-        (x_alloc >= fixed_cost)*-1*establish_pr*(1 - exist_sens)*
-          lambda/sample_cost*exp(-1*lambda*(x_alloc - fixed_cost)/sample_cost)/
-          (1 - (establish_pr*
-                  (1 - ((1 - exist_sens)*
-                          exp(-1*lambda*
-                                (x_alloc - fixed_cost)/sample_cost))))))
-    } else {
-      # Minimum cost or maximum benefit (benefit = 1 for detection)
-      incl_x <- (optimal %in% c("cost", "saving"))
-      return(
-        (x_alloc >= fixed_cost)*
-          (1*incl_x - (benefit*establish_pr*(1 - exist_sens)*
-                         lambda/sample_cost*
-                         exp(-1*lambda*(x_alloc - fixed_cost)/sample_cost))))
-    }
-  }
-
-  # Pseudo-inverse of derivative given marginal benefit alpha
-  f_pos <- function(alpha) {
-    if (sample_type == "discrete" && sample_fract_gt_0_1) {
-      # Use pseudo-inverse of derivative of objective function (above) for all
-      # discrete sampling with n/N > 0.1 (detection version unsolvable)
-      values <- (benefit*establish_pr*sample_sens*prevalence*total_indiv*
-                   (1 - exist_sens))
-      idx <- which(values > 0)
-      values[-idx] <- 0
-      incl_x <- (optimal %in% c("cost", "saving"))
-      values[idx] <-
-        ((total_indiv[idx]*sample_cost[idx]/sample_sens[idx]*
-            (1 - (-1*(alpha - 1*incl_x)*total_indiv[idx]*sample_cost[idx]/
-                    values[idx])^(1/(prevalence[idx]*total_indiv[idx] - 1))))
-         + fixed_cost[idx])
-    } else {
-      values <- lambda/sample_cost*benefit*establish_pr*(1 - exist_sens)
-      idx <- which(values > 0)
-      values[-idx] <- 0
-      if (optimal == "detection" && !relative_establish_pr) {
+    # Objective function
+    f_obj <<- function(x_alloc) {
+      if (sample_type == "discrete" && sample_fract_gt_0_1 &&
+          optimal == "detection" && !relative_establish_pr) {
+        # Maximum detection for discrete sampling with n/N > 0.1
+        return(
+          (x_alloc >= fixed_cost)*
+            log(1 - (establish_pr*
+                       (1 - ((1 - exist_sens)*
+                               ((1 - (sample_sens/total_indiv*
+                                        (x_alloc - fixed_cost)/sample_cost))
+                                ^(prevalence*total_indiv)))))))
+      } else if (sample_type == "discrete" && sample_fract_gt_0_1) {
+        # Minimum cost or maximum benefit (benefit = 1 for detection)
+        # for discrete sampling with n/N > 0.1
+        incl_x <- (optimal %in% c("cost", "saving"))
+        return(
+          (benefit*establish_pr*(1 - exist_sens)*
+             ((x_alloc < fixed_cost)*1 +
+                ((x_alloc >= fixed_cost)*
+                   ((1 - (sample_sens/total_indiv*
+                            (x_alloc - fixed_cost)/sample_cost))
+                    ^(prevalence*total_indiv))))) +
+            (x_alloc >= fixed_cost)*x_alloc*incl_x)
+      } else if (optimal == "detection" && !relative_establish_pr) {
         # Maximum detection
-        values[idx] <-
-          pmax(0, ((alpha > -1*lambda[idx]/sample_cost[idx])*
-                     (sample_cost[idx]/lambda[idx]*
-                        (log(-1*lambda[idx]/sample_cost[idx]/alpha - 1) -
-                           log(1/establish_pr[idx] - 1) +
-                           log(1 - exist_sens[idx])) +
-                        fixed_cost[idx])))
+        return(
+          (x_alloc >= fixed_cost)*
+            log(1 - (establish_pr*
+                       (1 - ((1 - exist_sens)*
+                               exp(-1*lambda*
+                                     (x_alloc - fixed_cost)/sample_cost))))))
       } else {
         # Minimum cost or maximum benefit (benefit = 1 for detection)
         incl_x <- (optimal %in% c("cost", "saving"))
-        values[idx] <-
-          (((alpha - 1*incl_x) >= -1*values[idx])*
-             (-1*sample_cost[idx]/lambda[idx]*
-                log(-1*(alpha - 1*incl_x)/(values[idx])) + fixed_cost[idx]))
+        return(
+          (benefit*establish_pr*(1 - exist_sens)*
+             ((x_alloc < fixed_cost)*1 +
+                ((x_alloc >= fixed_cost)*
+                   exp(-1*lambda*(x_alloc - fixed_cost)/sample_cost)))) +
+            (x_alloc >= fixed_cost)*x_alloc*incl_x)
       }
     }
-    return(values)
-  }
 
-  # Unconstrained marginal benefit alpha
-  alpha_unconstr <- (optimal %in% c("cost", "saving")) - 1
+    # Derivative of objective function
+    f_deriv <<- function(x_alloc) {
+      if (sample_type == "discrete" && sample_fract_gt_0_1) {
+        # Use derivative of second objective function (above) for all discrete
+        # sampling with n/N > 0.1 (avoids unsolvable pseudo-inverse)
+        incl_x <- (optimal %in% c("cost", "saving"))
+        return(
+          (x_alloc >= fixed_cost)*
+            (1*incl_x -
+               (benefit*establish_pr*(1 - exist_sens)*
+                  sample_sens*prevalence/sample_cost*
+                  ((1 - (sample_sens/total_indiv*
+                           (x_alloc - fixed_cost)/sample_cost))
+                   ^(prevalence*total_indiv - 1)))))
+      } else if (optimal == "detection" && !relative_establish_pr) {
+        # Maximum detection
+        return(
+          (x_alloc >= fixed_cost)*-1*establish_pr*(1 - exist_sens)*
+            lambda/sample_cost*
+            exp(-1*lambda*(x_alloc - fixed_cost)/sample_cost)/
+            (1 - (establish_pr*
+                    (1 - ((1 - exist_sens)*
+                            exp(-1*lambda*
+                                  (x_alloc - fixed_cost)/sample_cost))))))
+      } else {
+        # Minimum cost or maximum benefit (benefit = 1 for detection)
+        incl_x <- (optimal %in% c("cost", "saving"))
+        return(
+          (x_alloc >= fixed_cost)*
+            (1*incl_x - (benefit*establish_pr*(1 - exist_sens)*
+                           lambda/sample_cost*
+                           exp(-1*lambda*(x_alloc - fixed_cost)/sample_cost))))
+      }
+    }
 
-  # Check if the sample fraction n/N > 0.1, thus use different equations above
-  if (sample_type == "discrete" && is.numeric(total_indiv)) {
+    # Pseudo-inverse of derivative given marginal benefit alpha
+    f_pos <<- function(alpha) {
+      if (sample_type == "discrete" && sample_fract_gt_0_1) {
+        # Use pseudo-inverse of derivative of objective function (above) for
+        # all discrete sampling with n/N > 0.1 (detection version unsolvable)
+        values <- (benefit*establish_pr*sample_sens*prevalence*total_indiv*
+                     (1 - exist_sens))
+        idx <- which(values > 0)
+        values[-idx] <- 0
+        incl_x <- (optimal %in% c("cost", "saving"))
+        values[idx] <-
+          ((total_indiv[idx]*sample_cost[idx]/sample_sens[idx]*
+              (1 - (-1*(alpha - 1*incl_x)*total_indiv[idx]*sample_cost[idx]/
+                      values[idx])^(1/(prevalence[idx]*total_indiv[idx] - 1))))
+           )
+        idx <- which(values > 0)
+        values[idx] <- (pmax(min_alloc[idx]*sample_cost[idx], values[idx]) +
+                          fixed_cost[idx])
+      } else {
+        values <- lambda/sample_cost*benefit*establish_pr*(1 - exist_sens)
+        idx <- which(values > 0)
+        values[-idx] <- 0
+        if (optimal == "detection" && !relative_establish_pr) {
+          # Maximum detection
+          values[idx] <- pmax(
+            ((alpha > -1*lambda[idx]/sample_cost[idx])*
+               (sample_cost[idx]/lambda[idx]*
+                  (log(-1*lambda[idx]/sample_cost[idx]/alpha - 1) -
+                     log(1/establish_pr[idx] - 1) +
+                     log(1 - exist_sens[idx])))), 0)
+          idx <- which(values > 0)
+          values[idx] <- (pmax(min_alloc[idx]*sample_cost[idx], values[idx]) +
+                            fixed_cost[idx])
+        } else {
 
-    # Estimate sample fraction when unconstrained
-    if (is.null(budget) && is.null(confidence)) {
+          # Minimum cost or maximum benefit (benefit = 1 for detection)
+          incl_x <- (optimal %in% c("cost", "saving"))
+          values[idx] <-
+            (((alpha - 1*incl_x) >= -1*values[idx])*
+               (pmax(min_alloc[idx]*sample_cost[idx],
+                     (-1*sample_cost[idx]/lambda[idx]*
+                        log(-1*(alpha - 1*incl_x)/values[idx]))) +
+                  fixed_cost[idx]))
 
-      # Calculate sample number via pseudo-inverse of derivative given
-      # unconstrained alpha with sample fraction n/N > 0.1 assumed
-      sample_fract_gt_0_1 <- TRUE
-      sample_n <- (f_pos(alpha_unconstr) - fixed_cost)/sample_cost
+          # limit to zero cost allocation via f_obj(0)
+          if (optimal %in% c("cost", "saving")) {
+            values <- (values < benefit*establish_pr*(1 - exist_sens))*values
+          }
+        }
+      }
 
-      # Are any n/N > 0.1?
-      sample_fract_gt_0_1 <- any(sample_n/total_indiv > 0.1)
+      return(values)
+    }
 
-    } else {
+    # Unconstrained marginal benefit alpha
+    alpha_unconstr <<- (optimal %in% c("cost", "saving")) - 1
 
-      # Estimate sample fraction required to meet confidence level
-      if (is.numeric(confidence)) {
+    # Check if the sample fraction n/N > 0.1, thus use different equations
+    # above
+    if (sample_type == "discrete" && is.numeric(total_indiv)) {
 
-        # Calculate n/N to gain specified confidence for each part
-        sample_fract <-
-          ceiling(total_indiv/sample_sens*
-                    (1 - (((1 - confidence)/(1 - exist_sens))^
-                            (1/prevalence/total_indiv))))/total_indiv
+      # Estimate sample fraction when unconstrained
+      if (is.null(budget) && is.null(confidence)) {
+
+        # Calculate sample number via pseudo-inverse of derivative given
+        # unconstrained alpha with sample fraction n/N > 0.1 assumed
+        sample_fract_gt_0_1 <<- TRUE
+        sample_n <- (f_pos(alpha_unconstr) - fixed_cost)/sample_cost
 
         # Are any n/N > 0.1?
-        sample_fract_gt_0_1 <- any(sample_fract > 0.1)
+        sample_fract_gt_0_1 <<- any(sample_n/total_indiv > 0.1)
+
+      } else {
+
+        # Estimate sample fraction required to meet confidence level
+        if (is.numeric(confidence)) {
+
+          # Calculate n/N to gain specified confidence for each part
+          sample_fract <-
+            ceiling(total_indiv/sample_sens*
+                      (1 - (((1 - confidence)/(1 - exist_sens))^
+                              (1/prevalence/total_indiv))))/total_indiv
+
+          # Are any n/N > 0.1?
+          sample_fract_gt_0_1 <<- any(sample_fract > 0.1)
+        }
+
+        # Estimate sample fraction implied by the budget
+        if (is.numeric(budget)) {
+          sample_fract_gt_0_1 <<-
+            (sample_fract_gt_0_1 ||
+               budget > sum(total_indiv*0.1*sample_cost + fixed_cost))
+        }
+      }
+    }
+
+    # Minimum marginal benefit alpha
+    alpha_min <<- min(f_deriv(fixed_cost))
+
+    # Function for calculating unit sensitivity
+    f_unit_sens <<- function(x_alloc) {
+      if (sample_type == "discrete" && sample_fract_gt_0_1) {
+
+        # Discrete sample fraction n/N > 0.1
+        return(1 - ((1 - exist_sens)*
+                      ((1 - (sample_sens*(x_alloc - (x_alloc > 0)*fixed_cost)/
+                               sample_cost/total_indiv))^
+                         (prevalence*total_indiv))))
+      } else {
+
+        # Discrete sample fraction n/N <= 1 or continuous
+        return(1 - ((1 - exist_sens)*
+                      exp((-1*lambda*(x_alloc - (x_alloc > 0)*fixed_cost)/
+                             sample_cost))))
+      }
+    }
+
+    # Function for calculating inverse of unit sensitivity
+    f_inv_unit_sens <<- function(unit_sens) {
+      if (sample_type == "discrete" && sample_fract_gt_0_1) {
+
+        # Discrete sample fraction n/N > 0.1
+        x_alloc <- (total_indiv*sample_cost/sample_sens*
+                      ((1 - ((1 - unit_sens)/(1 - exist_sens))^
+                          (1/(prevalence*total_indiv)))))
+      } else {
+
+        # Discrete sample fraction n/N <= 1 or continuous
+        x_alloc <- -1*sample_cost/lambda*log((1 - unit_sens)/(1 - exist_sens))
       }
 
-      # Estimate sample fraction implied by the budget
-      if (is.numeric(budget)) {
-        sample_fract_gt_0_1 <-
-          (sample_fract_gt_0_1 ||
-             budget > sum(total_indiv*0.1*sample_cost + fixed_cost))
+      return(x_alloc + (x_alloc > 0)*fixed_cost)
+    }
+
+    # Search alpha for optimal objective (even when no constraints)
+    search_alpha <<- any(fixed_cost > 0 | min_alloc > 0)
+  }
+  set_lagrange_params()
+
+  # Function for calculating sensitivities
+  calculate_sensitivity <- function(n_alloc, multi = 1) {
+    # Check if discrete sample fraction n/N > 0.1
+    if (sample_type == "discrete") {
+      if (is.numeric(total_indiv) && any(n_alloc/total_indiv > 0.1)) {
+        return(1 - (1 - exist_sens)*((1 - sample_sens*n_alloc/total_indiv)
+                                     ^(prevalence*multi*total_indiv)))
+      } else {
+        return(1 - (1 - exist_sens)*(1 - sample_sens*prevalence*multi)^n_alloc)
       }
+    } else { # continuous
+      return(1 - ((1 - exist_sens)*
+                    exp(-1*sample_sens*sample_area*n_alloc*design_dens*multi)))
     }
   }
 
-  # Minimum marginal benefit alpha
-  alpha_min <- min(f_deriv(fixed_cost))
-
-  # Function for calculating unit sensitivity
-  f_unit_sens <- function(x_alloc) {
-    if (sample_type == "discrete" && sample_fract_gt_0_1) {
-
-      # Discrete sample fraction n/N > 0.1
-      return(1 - ((1 - exist_sens)*
-                    ((1 - (sample_sens*(x_alloc - (x_alloc > 0)*fixed_cost)/
-                             sample_cost/total_indiv))^
-                       (prevalence*total_indiv))))
+  # Function for calculating detection confidence
+  calculate_confidence <- function(sensitivity) {
+    if (relative_establish_pr) {
+      return(sum(establish_pr*sensitivity)/sum(establish_pr))
     } else {
-
-      # Discrete sample fraction n/N <= 1 or continuous
-      return(1 - ((1 - exist_sens)*
-                    exp((-1*lambda*(x_alloc - (x_alloc > 0)*fixed_cost)/
-                           sample_cost))))
+      return((1 - prod(1 - establish_pr*sensitivity))/
+               (1 - prod(1 - establish_pr)))
     }
-  }
-
-  # Function for calculating inverse of unit sensitivity
-  f_inv_unit_sens <- function(unit_sens) {
-    if (sample_type == "discrete" && sample_fract_gt_0_1) {
-
-      # Discrete sample fraction n/N > 0.1
-      x_alloc <- (total_indiv*sample_cost/sample_sens*
-                    ((1 - ((1 - unit_sens)/(1 - exist_sens))^
-                        (1/(prevalence*total_indiv)))))
-    } else {
-
-      # Discrete sample fraction n/N <= 1 or continuous
-      x_alloc <- -1*sample_cost/lambda*log((1 - unit_sens)/(1 - exist_sens))
-    }
-
-    return(x_alloc + (x_alloc > 0)*fixed_cost)
   }
 
   # Get the allocated surveillance resource values of the surveillance design
   qty_alloc <- NULL
-  self$get_allocation <- function() {
+  self$get_allocation <- function() { # TODO loop for discrete alloc
     if (optimal != "none" && is.null(qty_alloc)) {
 
-      # Get cost allocation x_alloc via Lagrange surveillance design
-      lagrangeSurvDesign <- LagrangeSurvDesign(context,
-                                               divisions,
-                                               establish_pr,
-                                               f_obj,
-                                               f_deriv,
-                                               f_pos,
-                                               alpha_unconstr,
-                                               alpha_min,
-                                               f_unit_sens,
-                                               f_inv_unit_sens,
-                                               budget = budget,
-                                               confidence = confidence)
-      x_alloc <- lagrangeSurvDesign$get_cost_allocation()
+      if (discrete_alloc) {
 
-      # Optimal resource allocation
-      qty_alloc <<- (x_alloc - fixed_cost)/sample_cost
-      qty_alloc[which(qty_alloc < 0)] <<- 0
+        # Make a copy of altered parameters
+        fixed_cost_orig <- fixed_cost
+        budget_orig <- budget
+        min_alloc_orig <- min_alloc
+        exist_sens_orig <- exist_sens
+
+        # Initial allocation
+        qty_alloc <<- rep(0, parts)
+      }
+
+      # Iterative addition of discrete allocations or single continuous
+      add_allocation <- TRUE
+      while (add_allocation) {
+
+        # Get cost allocation x_alloc via Lagrange surveillance design
+        lagrangeSurvDesign <- LagrangeSurvDesign(context,
+                                                 divisions,
+                                                 establish_pr,
+                                                 f_obj,
+                                                 f_deriv,
+                                                 f_pos,
+                                                 alpha_unconstr,
+                                                 alpha_min,
+                                                 f_unit_sens,
+                                                 f_inv_unit_sens,
+                                                 budget = budget,
+                                                 confidence = confidence,
+                                                 min_alloc = min_alloc,
+                                                 search_alpha = search_alpha)
+        x_alloc <- lagrangeSurvDesign$get_cost_allocation()
+
+        # Optimal resource allocation
+        if (discrete_alloc) {
+
+          # Add discrete allocation
+          n_alloc <- floor((x_alloc >= fixed_cost)*
+                             (x_alloc - fixed_cost)/sample_cost)
+          qty_alloc <<- qty_alloc + n_alloc
+
+          # Alter parameters and indicate further allocation required
+          fixed_cost[which(qty_alloc > 0)] <<- 0
+          exist_sens <<- calculate_sensitivity(n_alloc)
+          add_allocation <- (sum(x_alloc) > 0)
+          if (is.numeric(budget)) {
+            total_x_alloc <- sum(qty_alloc*sample_cost +
+                                   (qty_alloc > 0)*fixed_cost_orig)
+            add_allocation <- (total_x_alloc < budget && add_allocation)
+            budget <<- budget - total_x_alloc
+          }
+          if (is.numeric(confidence)) {
+            add_allocation <- (calculate_confidence(exist_sens) < confidence &&
+                                 add_allocation)
+          }
+          min_alloc[which(qty_alloc > 0)] <<- 1
+
+          # Reset Lagrange parameters
+          set_lagrange_params()
+
+        } else {
+
+          # Continuous allocation
+          qty_alloc <<- ((x_alloc >= fixed_cost)*
+                           (x_alloc - fixed_cost)/sample_cost)
+          add_allocation <- FALSE
+        }
+      }
+
+      # Return altered parameters to their original values
+      if (discrete_alloc) {
+        fixed_cost <<- fixed_cost_orig
+        budget <<- budget_orig
+        min_alloc <<- min_alloc_orig
+        exist_sens <<- exist_sens_orig
+      }
     }
 
     return(qty_alloc)
   }
 
-  # Function for calculating sensitivities
-  calculate_sensitivity <- function(multi = 1) { # internal version
-
-    # Generated or existing allocation?
-    n_alloc <- NULL
-    if (optimal != "none" && !is.null(qty_alloc)) {
-      n_alloc <- qty_alloc
-    } else if (optimal == "none" && !is.null(exist_alloc)) {
-      n_alloc <- exist_alloc
-    }
-
-    # Calculate sensitivities for allocation
-    unit_sens <- NULL
-    if (!is.null(n_alloc)) {
-
-      # Check if discrete sample fraction n/N > 0.1
-      if (sample_type == "discrete") {
-        if (is.numeric(total_indiv) && any(n_alloc/total_indiv > 0.1)) {
-          unit_sens <-
-            1 - (1 - exist_sens)*((1 - sample_sens*n_alloc/total_indiv)
-                                  ^(prevalence*multi*total_indiv))
-        } else {
-          unit_sens <-
-            1 - (1 - exist_sens)*(1 - sample_sens*prevalence*multi)^n_alloc
-        }
-      } else { # continuous
-        unit_sens <-
-          1 - ((1 - exist_sens)*
-                 exp(-1*sample_sens*sample_area*n_alloc*design_dens*multi))
-      }
-    } else {
-      unit_sens <- super$get_sensitivity()
-    }
-
-    return(unit_sens)
-  }
-
   # Get the detection sensitivities for each division part of the design
   sensitivity <- NULL
-  self$get_sensitivity <- function() { # class version
+  self$get_sensitivity <- function() {
     if (is.null(sensitivity)) {
-      sensitivity <<- calculate_sensitivity()
+      if (optimal != "none" && !is.null(qty_alloc)) {
+        sensitivity <<- calculate_sensitivity(qty_alloc)
+      } else if (optimal == "none" && !is.null(exist_alloc)) {
+        sensitivity <<- calculate_sensitivity(exist_alloc)
+      } else {
+        sensitivity <<- super$get_sensitivity()
+      }
     }
     return(sensitivity)
   }
@@ -589,19 +703,18 @@ SamplingSurvDesign.Context <- function(context,
     # Calculate system sensitivity for each value of growth
     system_sens <- NULL
     for (multi in growth) {
-      sensitivity <- calculate_sensitivity(multi)
-      if (!is.null(sensitivity)) {
+      if (optimal != "none" && !is.null(qty_alloc)) {
+        unit_sens <- calculate_sensitivity(qty_alloc, multi = multi)
+      } else if (optimal == "none" && !is.null(exist_alloc)) {
+        unit_sens <- calculate_sensitivity(exist_alloc, multi = multi)
+      } else {
+        unit_sens <- super$get_sensitivity()
+      }
+      if (!is.null(unit_sens)) {
         if (parts == 1) {
-          system_sens <- c(system_sens, sensitivity)
+          system_sens <- c(system_sens, unit_sens)
         } else if (!is.null(establish_pr)) {
-          if (relative_establish_pr) {
-            system_sens <- c(system_sens,
-                             sum(establish_pr*sensitivity)/sum(establish_pr))
-          } else {
-            system_sens <- c(system_sens,
-                             ((1 - prod(1 - establish_pr*sensitivity))/
-                              (1 - prod(1 - establish_pr))))
-          }
+          system_sens <- c(system_sens, calculate_confidence(unit_sens))
         }
       }
     }
