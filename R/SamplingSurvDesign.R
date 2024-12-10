@@ -444,6 +444,9 @@ SamplingSurvDesign.Context <- function(context,
         idx <- which(values > 0)
         values[idx] <- (pmax(min_alloc[idx]*sample_cost[idx], values[idx]) +
                           fixed_cost[idx])
+        values[idx] <- pmin(values[idx],
+                            (total_indiv[idx]*sample_cost[idx] +
+                               fixed_cost[idx]))
       } else {
         values <- lambda/sample_cost*benefit*establish_pr*(1 - exist_sens)
         idx <- which(values > 0)
@@ -637,6 +640,11 @@ SamplingSurvDesign.Context <- function(context,
                              (x_alloc - fixed_cost)/sample_cost)
           qty_alloc <<- qty_alloc + n_alloc
 
+          # Limit to sampling total individuals
+          if (is.numeric(total_indiv)) {
+            qty_alloc <<- pmin(qty_alloc, total_indiv)
+          }
+
           # Alter parameters and indicate further allocation required
           fixed_cost[which(qty_alloc > 0)] <<- 0
           exist_sens <<- calculate_sensitivity(n_alloc)
@@ -652,6 +660,12 @@ SamplingSurvDesign.Context <- function(context,
                                  add_allocation)
           }
           min_alloc[which(qty_alloc > 0)] <<- 1
+
+          # Stop if total individuals all sampled
+          if (is.numeric(total_indiv)) {
+            add_allocation <- (any(total_indiv - qty_alloc > 0) &&
+                                 add_allocation)
+          }
 
           # Reset Lagrange parameters
           set_lagrange_params()
