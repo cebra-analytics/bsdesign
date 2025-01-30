@@ -615,6 +615,13 @@ SamplingSurvDesign.Context <- function(context,
       add_allocation <- TRUE
       while (add_allocation) {
 
+        # Calculate minimum cost allocation
+        if (any(min_alloc > 0)) {
+          min_x_alloc <- min_alloc*sample_cost + (min_alloc > 0)*fixed_cost
+        } else {
+          min_x_alloc <- min_alloc
+        }
+
         # Get cost allocation x_alloc via Lagrange surveillance design
         lagrangeSurvDesign <- LagrangeSurvDesign(context,
                                                  divisions,
@@ -628,9 +635,7 @@ SamplingSurvDesign.Context <- function(context,
                                                  f_inv_unit_sens,
                                                  budget = budget,
                                                  confidence = confidence,
-                                                 min_alloc =
-                                                   (min_alloc*sample_cost +
-                                                     fixed_cost),
+                                                 min_alloc = min_x_alloc,
                                                  search_alpha = search_alpha)
         x_alloc <- lagrangeSurvDesign$get_cost_allocation()
 
