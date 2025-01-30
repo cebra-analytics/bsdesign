@@ -480,6 +480,10 @@ SamplingSurvDesign.Context <- function(context,
         }
       }
 
+      if (any(!is.finite(values))) {
+        values[!is.finite(values)] <- 0
+      }
+
       return(values)
     }
 
