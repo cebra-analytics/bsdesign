@@ -628,7 +628,9 @@ SamplingSurvDesign.Context <- function(context,
                                                  f_inv_unit_sens,
                                                  budget = budget,
                                                  confidence = confidence,
-                                                 min_alloc = min_alloc,
+                                                 min_alloc =
+                                                   (min_alloc*sample_cost +
+                                                     fixed_cost),
                                                  search_alpha = search_alpha)
         x_alloc <- lagrangeSurvDesign$get_cost_allocation()
 
