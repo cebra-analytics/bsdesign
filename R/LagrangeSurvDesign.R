@@ -262,27 +262,25 @@ LagrangeSurvDesign.Context <- function(context,
 
         # Select allocation up to confidence level
         over_conf <- which(cum_conf > confidence)
+        idx_w <- idx[nonzero][-over_conf] # within confidence
+        i_th <- idx[nonzero][over_conf[1]] # at threshold
+        idx_o <- c(idx[nonzero][over_conf[-1]], idx[-nonzero]) # over or zero
         if (length(over_conf)) {
-          if (min_alloc[idx][nonzero][over_conf[1]] > 0) {
-            x_alloc[idx][nonzero][over_conf[1]] <-
-              min_alloc[idx][nonzero][over_conf[1]]
+          if (relative_establish_pr) {
+            th_sens <-
+              (confidence*sum(establish_pr) -
+                 (sum((establish_pr*new_sens)[idx_w]) +
+                    sum((establish_pr*exist_sens)[idx_o])))/
+              establish_pr[i_th]
           } else {
-            if (relative_establish_pr) {
-              adj_sens <-
-                (confidence*sum(establish_pr) -
-                   sum((establish_pr*new_sens)[idx][-nonzero[over_conf]]))/
-                establish_pr[idx][nonzero][over_conf[1]]
-            } else {
-              adj_sens <-
-                (1 - ((1 - confidence*(1 - prod(1 - establish_pr)))/
-                        prod((1 - establish_pr*new_sens)
-                             [idx][-nonzero[over_conf]])))/
-                establish_pr[idx][nonzero][over_conf[1]]
-            }
-            x_alloc[idx][nonzero][over_conf[1]] <-
-              f_inv_unit_sens(adj_sens)[idx][nonzero][over_conf[1]]
+            th_sens <-
+              (1 - ((1 - confidence*(1 - prod(1 - establish_pr)))/
+                      (prod((1 - establish_pr*new_sens)[idx_w])*
+                         prod((1 - establish_pr*exist_sens)[idx_o]))))/
+              establish_pr[i_th]
           }
-          x_alloc[idx][nonzero][over_conf[-1]] <- 0
+          x_alloc[i_th] <- max(f_inv_unit_sens(th_sens)[i_th], min_alloc[i_th])
+          x_alloc[idx_o] <- 0
         }
 
         # Add confidence as an attribute
