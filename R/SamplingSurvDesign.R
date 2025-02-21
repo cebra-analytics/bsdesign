@@ -453,12 +453,13 @@ SamplingSurvDesign.Context <- function(context,
         values[-idx] <- 0
         if (optimal == "detection" && !relative_establish_pr) {
           # Maximum detection
+          idx <- idx[-which(-1*lambda[idx]/sample_cost[idx]/alpha - 1 <= 0)]
+          values[-idx] <- 0
           values[idx] <- pmax(
-            ((alpha > -1*lambda[idx]/sample_cost[idx])*
-               (sample_cost[idx]/lambda[idx]*
-                  (log(-1*lambda[idx]/sample_cost[idx]/alpha - 1) -
-                     log(1/establish_pr[idx] - 1) +
-                     log(1 - exist_sens[idx])))), 0)
+            (sample_cost[idx]/lambda[idx]*
+               (log(-1*lambda[idx]/sample_cost[idx]/alpha - 1) -
+                  log(1/establish_pr[idx] - 1) +
+                  log(1 - exist_sens[idx]))), 0)
           idx <- which(values > 0)
           values[idx] <- (pmax(min_alloc[idx]*sample_cost[idx], values[idx]) +
                             fixed_cost[idx])
@@ -466,12 +467,13 @@ SamplingSurvDesign.Context <- function(context,
 
           # Minimum cost or maximum benefit (benefit = 1 for detection)
           incl_x <- (optimal %in% c("cost", "saving"))
+          idx <- idx[-which(-1*(alpha - 1*incl_x)/values[idx] <= 0)]
+          values[-idx] <- 0
           values[idx] <-
-            (((alpha - 1*incl_x) >= -1*values[idx])*
-               (pmax(min_alloc[idx]*sample_cost[idx],
-                     (-1*sample_cost[idx]/lambda[idx]*
-                        log(-1*(alpha - 1*incl_x)/values[idx]))) +
-                  fixed_cost[idx]))
+            (pmax(min_alloc[idx]*sample_cost[idx],
+                  (-1*sample_cost[idx]/lambda[idx]*
+                     log(-1*(alpha - 1*incl_x)/values[idx]))) +
+               fixed_cost[idx])
 
           # limit to zero cost allocation via f_obj(0)
           if (optimal %in% c("cost", "saving")) {
