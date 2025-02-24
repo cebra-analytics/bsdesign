@@ -450,10 +450,9 @@ SamplingSurvDesign.Context <- function(context,
       } else {
         values <- lambda/sample_cost*benefit*establish_pr*(1 - exist_sens)
         idx <- which(values > 0)
-        values[-idx] <- 0
         if (optimal == "detection" && !relative_establish_pr) {
           # Maximum detection
-          idx <- idx[-which(-1*lambda[idx]/sample_cost[idx]/alpha - 1 <= 0)]
+          idx <- idx[which(alpha > -1*lambda[idx]/sample_cost[idx])]
           values[-idx] <- 0
           values[idx] <- pmax(
             (sample_cost[idx]/lambda[idx]*
@@ -467,7 +466,7 @@ SamplingSurvDesign.Context <- function(context,
 
           # Minimum cost or maximum benefit (benefit = 1 for detection)
           incl_x <- (optimal %in% c("cost", "saving"))
-          idx <- idx[-which(-1*(alpha - 1*incl_x)/values[idx] <= 0)]
+          idx <- idx[which((alpha - 1*incl_x) >= -1*values[idx])]
           values[-idx] <- 0
           values[idx] <-
             (pmax(min_alloc[idx]*sample_cost[idx],
