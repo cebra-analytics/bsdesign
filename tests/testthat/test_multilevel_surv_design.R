@@ -99,12 +99,14 @@ test_that("allocates single stage sampling", {
     sample_type = "discrete",
     prevalence = 0.3,
     total_indiv = 10, # n/N > 0.1
-    confidence = 0.9))
+    system_sens = 0.9))
   expect_alloc <- ceiling(10/0.8*(1 - (1 - 0.9)^(1/0.3/10)))
   expect_sens <- 1 - (1 - 0.8*expect_alloc/10)^(0.3*10)
   expect_equal(surv_design$get_allocation(), expect_alloc)
-  expect_equal(surv_design$get_sensitivity(), expect_sens)
-  expect_equal(surv_design$get_confidence(), expect_sens)
+  expect_equal(round(surv_design$get_sensitivity(), 6),
+               round(expect_sens, 6))
+  expect_equal(round(surv_design$get_system_sens(), 6),
+               round(expect_sens, 6))
   expect_silent(surv_design <- MultilevelSurvDesign(
     context = Context("test"),
     divisions = divisions,
@@ -112,12 +114,12 @@ test_that("allocates single stage sampling", {
     sample_type = "discrete",
     prevalence = 0.3,
     total_indiv = 100, # n/N < 0.1
-    confidence = 0.9))
+    system_sens = 0.9))
   expect_alloc <- ceiling(log(1 - 0.9)/log(1 - 0.8*0.3))
   expect_sens <- 1 - (1 - 0.8*0.3)^expect_alloc
   expect_equal(surv_design$get_allocation(), expect_alloc)
   expect_equal(surv_design$get_sensitivity(), expect_sens)
-  expect_equal(surv_design$get_confidence(), expect_sens)
+  expect_equal(surv_design$get_system_sens(), expect_sens)
   expect_silent(surv_design <- MultilevelSurvDesign(
     context = Context("test"),
     divisions = divisions,
@@ -125,12 +127,12 @@ test_that("allocates single stage sampling", {
     sample_type = "continuous",
     design_dens = 2,
     sample_area = 0.04, # m^2
-    confidence = 0.9))
+    system_sens = 0.9))
   expect_alloc <- ceiling(-1*log(1 - 0.9)/0.8/2/0.04)
   expect_sens <- 1 - exp(-0.8*expect_alloc*0.04*2)
   expect_equal(surv_design$get_allocation(), expect_alloc)
   expect_equal(surv_design$get_sensitivity(), expect_sens)
-  expect_equal(surv_design$get_confidence(), expect_sens)
+  expect_equal(surv_design$get_system_sens(), expect_sens)
 })
 
 test_that("allocates 2-stage sampling consistently with reference method", {
@@ -148,7 +150,7 @@ test_that("allocates 2-stage sampling consistently with reference method", {
     design_dens = test_ref$design_dens,
     sample_area = test_ref$sample_area,
     sample_cost = test_ref$sample_cost,
-    confidence = test_ref$confidence))
+    system_sens = test_ref$system_sens))
   expect_sens <- 1 - exp(-1*test_ref$sample_sens*test_ref$sample_area*
                            test_ref$expected_n[1]*test_ref$design_dens)
   expect_sens <- c(expect_sens,
@@ -156,8 +158,9 @@ test_that("allocates 2-stage sampling consistently with reference method", {
                                 test_ref$total_indiv[2]))
                         ^(test_ref$prevalence[2]*test_ref$total_indiv[2])))
   expect_equal(surv_design$get_allocation(), test_ref$expected_n)
-  expect_equal(surv_design$get_sensitivity(), expect_sens)
-  expect_equal(surv_design$get_confidence(), expect_sens[2])
+  expect_equal(round(surv_design$get_sensitivity(), 6), round(expect_sens, 6))
+  expect_equal(round(surv_design$get_system_sens(), 6),
+               round(expect_sens[2], 6))
 })
 
 test_that("allocates multistage sampling consistently with reference method", {
@@ -175,7 +178,7 @@ test_that("allocates multistage sampling consistently with reference method", {
     design_dens = test_ref$design_dens,
     sample_area = test_ref$sample_area,
     sample_cost = test_ref$sample_cost,
-    confidence = test_ref$confidence))
+    system_sens = test_ref$system_sens))
   expect_sens <- 1 - ((1 - test_ref$sample_sens*test_ref$prevalence[1])
                       ^test_ref$expected_n[1])
   for (i in 2:5) {
@@ -185,6 +188,7 @@ test_that("allocates multistage sampling consistently with reference method", {
                           ^(test_ref$prevalence[i]*test_ref$total_indiv[i])))
   }
   expect_equal(surv_design$get_allocation(), test_ref$expected_n)
-  expect_equal(surv_design$get_sensitivity(), expect_sens)
-  expect_equal(surv_design$get_confidence(), expect_sens[5])
+  expect_equal(round(surv_design$get_sensitivity(), 6), round(expect_sens, 6))
+  expect_equal(round(surv_design$get_system_sens(), 6),
+               round(expect_sens[5], 6))
 })

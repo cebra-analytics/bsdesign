@@ -141,8 +141,8 @@ test_that("initializes with context, divisions, and valid parameters", {
     alpha_min = -1,
     f_unit_sens = function(x) 0,
     f_inv_unit_sens = function(s) 0,
-    confidence = 2),
-    "The detection confidence parameter must be numeric, >= 0 and <= 1.")
+    system_sens = 2),
+    "The system sensitivity parameter must be numeric, >= 0 and <= 1.")
   expect_error(surv_design <- LagrangeSurvDesign(
     context = Context("test"),
     divisions = Divisions(matrix(1:10)),

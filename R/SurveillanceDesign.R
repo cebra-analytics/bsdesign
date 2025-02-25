@@ -4,7 +4,7 @@
 #' effective allocation of surveillance resources across one or more divisions
 #' (parts, locations, categories, etc.) via methods that utilize surveillance
 #' and/or incursion management costs, benefits, detection sensitivities,
-#' and/or overall detection confidence.
+#' and/or an overall desired system-wide sensitivity or detection probability.
 #'
 #' @param context A \code{Context} or inherited class object representing the
 #'   context of a bio-security surveillance and area freedom design.
@@ -19,9 +19,9 @@
 #' @param optimal The strategy used for finding an effective surveillance
 #'   resource allocation. One of (minimum) \code{"cost"}, (maximum)
 #'   \code{"saving"} (or cost-dependent benefit), (maximum) \code{"benefit"}
-#'   (independent of surveillance costs), or (maximum) \code{"detection"}
-#'   sensitivity, or \code{"none"} for representing existing
-#'   surveillance designs only.
+#'   (independent of surveillance costs), (maximum) number of
+#'   \code{"detections"}, (maximum) overall system-wide \code{"sensitivity"}
+#'   or \code{"none"} for representing existing surveillance designs only.
 #' @param mgmt_cost A list of vectors to represent management costs specific to
 #'   the method implemented in the inherited class. Each vector specifies costs
 #'   at each division part (location, category, etc.) specified by
@@ -46,8 +46,9 @@
 #'   consistent with \code{alloc_cost} when specified. Otherwise the units
 #'   should be consistent with the \code{surv_qty_unit} parameter specified in
 #'   the \code{context}.
-#' @param confidence The desired (minimum) system sensitivity or detection
-#'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
+#' @param system_sens The desired (minimum) system sensitivity or detection
+#'   probability of the surveillance design (e.g. 0.95). Default is
+#'   \code{NULL}.
 #' @param min_alloc A vector of minimum permissible allocated surveillance
 #'   resource quantities at each division part (location, category, etc.)
 #'   specified by \code{divisions}. Used to avoid impractically low allocation
@@ -74,12 +75,12 @@
 #'     \item{\code{get_divisions()}}{Get divisions object.}
 #'     \item{\code{get_allocation()}}{Get allocated resources via specified
 #'       strategy, utilizing costs, benefits, budget constraints, and/or
-#'       desired detection confidence level.}
+#'       desired system sensitivity or detection probability.}
 #'     \item{\code{get_sensitivity()}}{Get the division part detection
 #'       sensitivities of the allocated surveillance design combined with any
 #'       existing sensitivities specified via \code{exist_sens}.}
-#'     \item{\code{get_confidence(growth = NULL)}}{Get the overall system
-#'       sensitivity or detection confidence of the surveillance design. The
+#'     \item{\code{get_system_sens(growth = NULL)}}{Get the overall system
+#'       sensitivity or detection probability of the surveillance design. The
 #'       optional \code{growth} parameter may provide a vector of relative
 #'       increasing multipliers (e.g. 1, 1.8, 4.3, 7.5) applied to the
 #'       prevalence or density of the design over time or a sequence of
@@ -90,8 +91,8 @@
 #'       collection of raster TIF and/or comma-separated value (CSV) files,
 #'       appropriate for the \code{divisions} type, including the surveillance
 #'       \code{allocation}, \code{sensitivity}, and a \code{summary} (CSV) of
-#'       the total allocation, total costs (when applicable), and the
-#'       detection confidence (system sensitivity). \code{Terra} raster write
+#'       the total allocation, total costs (when applicable), and the overall
+#'       system sensitivity or detection probability. \code{Terra} raster write
 #'       options may be passed to the function for saving grid-based designs.}
 #'   }
 #' @references
@@ -105,13 +106,14 @@ SurveillanceDesign <- function(context,
                                divisions,
                                establish_pr = NULL,
                                optimal = c("cost", "saving", "benefit",
-                                           "detection", "none"),
+                                           "detections", "sensitivity",
+                                           "none"),
                                mgmt_cost = list(),
                                benefit = NULL,
                                alloc_cost = NULL,
                                fixed_cost = NULL,
                                budget = NULL,
-                               confidence = NULL,
+                               system_sens = NULL,
                                min_alloc = NULL,
                                discrete_alloc = FALSE,
                                exist_alloc = NULL,
@@ -126,13 +128,14 @@ SurveillanceDesign.Context <- function(context,
                                        divisions,
                                        establish_pr = NULL,
                                        optimal = c("cost", "saving", "benefit",
-                                                   "detection", "none"),
+                                                   "detections", "sensitivity",
+                                                   "none"),
                                        mgmt_cost = list(),
                                        benefit = NULL,
                                        alloc_cost = NULL,
                                        fixed_cost = NULL,
                                        budget = NULL,
-                                       confidence = NULL,
+                                       system_sens = NULL,
                                        min_alloc = NULL,
                                        discrete_alloc = FALSE,
                                        exist_alloc = NULL,
@@ -169,7 +172,7 @@ SurveillanceDesign.Context <- function(context,
   # Match optimal arguments
   optimal <- match.arg(optimal)
 
-  # Check mgmt_cost, benefit, and confidence
+  # Check mgmt_cost, benefit, and system_sens
   if (!is.list(mgmt_cost) ||
       (length(mgmt_cost) > 0 &&
        !all(sapply(mgmt_cost, length) %in% c(1, parts)))) {
@@ -181,9 +184,9 @@ SurveillanceDesign.Context <- function(context,
     stop(paste("The benefit parameter must be a numeric vector with values",
                "for each division part."), call. = FALSE)
   }
-  if (!is.null(confidence) &&
-      (!is.numeric(confidence) || confidence < 0 || confidence > 1)) {
-    stop("The detection confidence parameter must be numeric, >= 0 and <= 1.",
+  if (!is.null(system_sens) &&
+      (!is.numeric(system_sens) || system_sens < 0 || system_sens > 1)) {
+    stop("The system sensitivity parameter must be numeric, >= 0 and <= 1.",
          call. = FALSE)
   }
 
@@ -198,13 +201,17 @@ SurveillanceDesign.Context <- function(context,
     stop("The benefit parameter must be specified for optimal benefit.",
          call. = FALSE)
   } else if (optimal == "benefit" &&
-             (is.null(budget) && is.null(confidence))) {
-    stop(paste("Either the budget or detection confidence parameter must be",
+             (is.null(budget) && is.null(system_sens))) {
+    stop(paste("Either the budget or system sensitivity parameter must be",
                "specified for optimal benefit."), call. = FALSE)
-  } else if (optimal == "detection" &&
-             (is.null(budget) && is.null(confidence))) {
-    stop(paste("Either the budget or detection confidence parameter must be",
-               "specified for optimal detection."), call. = FALSE)
+  } else if (optimal == "detections" &&
+             (is.null(budget) && is.null(system_sens))) {
+    stop(paste("Either the budget or system sensitivity parameter must be",
+               "specified for optimal detections."), call. = FALSE)
+  } else if (optimal == "sensitivity" &&
+             (is.null(budget) && is.null(system_sens))) {
+    stop(paste("Either the budget or system sensitivity parameter must be",
+               "specified for optimal sensitivity."), call. = FALSE)
   }
 
   # Check alloc_cost, fixed_cost, budget, min_alloc, exist_alloc, & exist_sens
@@ -290,8 +297,8 @@ SurveillanceDesign.Context <- function(context,
     return(sensitivity)
   }
 
-  # Get the overall system sensitivity or detection confidence of the design
-  self$get_confidence <- function(growth = NULL) {
+  # Get the overall system sensitivity or detection probability of the design
+  self$get_system_sens <- function(growth = NULL) {
     # overridden in inherited classes
   }
 

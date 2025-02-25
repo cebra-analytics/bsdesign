@@ -89,7 +89,7 @@ test_that("initializes with context, divisions, and valid parameters", {
   expect_is(surv_design$get_divisions(), "Divisions")
   expect_null(surv_design$get_allocation())
   expect_null(surv_design$get_sensitivity())
-  expect_null(surv_design$get_confidence())
+  expect_null(surv_design$get_system_sens())
 })
 
 test_that("allocates resources consistently with reference method", {
@@ -103,13 +103,13 @@ test_that("allocates resources consistently with reference method", {
     sample_sens = 1,
     sample_type = "discrete",
     prevalence = test_ref$prevalence,
-    optimal = "detection",
+    optimal = "sensitivity",
     budget = test_ref$budget$ind_95,
     discrete_alloc = FALSE))
   expect_equal(round(surv_design$get_allocation(), 3),
-               round(test_ref$expected_n$detection, 3))
-  expect_equal(round(surv_design$get_confidence(), 3),
-               test_ref$confidence$ind_95)
+               round(test_ref$expected_n$sensitivity, 3))
+  expect_equal(round(surv_design$get_system_sens(), 3),
+               test_ref$system_sens$ind_95)
   expect_silent(surv_design <- SamplingSurvDesign(
     context = Context("test"),
     divisions = divisions,
@@ -117,12 +117,12 @@ test_that("allocates resources consistently with reference method", {
     sample_sens = 1,
     sample_type = "discrete",
     prevalence = test_ref$prevalence,
-    optimal = "detection",
-    confidence = test_ref$confidence$all,
+    optimal = "sensitivity",
+    system_sens = test_ref$system_sens$all,
     discrete_alloc = FALSE))
   expect_equal(round(sum(surv_design$get_allocation())),
                test_ref$budget$all_95)
-  expect_equal(round(surv_design$get_confidence(), 3), test_ref$confidence$all)
+  expect_equal(round(surv_design$get_system_sens(), 3), test_ref$system_sens$all)
   test_ref <- readRDS(file.path(TEST_DIRECTORY, "Cannon2009_D_test.rds"))
   divisions <- Divisions(as.matrix(test_ref$part))
   expect_silent(surv_design <- SamplingSurvDesign(
@@ -137,7 +137,8 @@ test_that("allocates resources consistently with reference method", {
     sample_cost = test_ref$sample_cost,
     budget = NULL,
     discrete_alloc = FALSE))
-  expect_equal(surv_design$get_allocation(), test_ref$expected_n$unrestricted)
+  expect_equal(round(surv_design$get_allocation(), 6),
+               round(test_ref$expected_n$unrestricted, 6))
   expect_silent(surv_design <- SamplingSurvDesign(
     context = Context("test"),
     divisions = divisions,
@@ -151,8 +152,8 @@ test_that("allocates resources consistently with reference method", {
     budget = test_ref$budget,
     discrete_alloc = FALSE))
   expect_silent(saving_budget_alloc <- surv_design$get_allocation())
-  saving_budget_alloc # test_ref$expected_n$restricted
-  expect_equal(saving_budget_alloc, test_ref$expected_n$restricted)
+  expect_equal(round(saving_budget_alloc, 6),
+               round(test_ref$expected_n$restricted, 6))
   expect_equal(sum(saving_budget_alloc*test_ref$sample_cost), test_ref$budget)
   expect_silent(surv_design <- SamplingSurvDesign(
     context = Context("test"),
@@ -182,7 +183,8 @@ test_that("allocates resources consistently with reference method", {
     budget = test_ref$budget,
     discrete_alloc = FALSE))
   expect_silent(benefit_budget_alloc <- surv_design$get_allocation())
-  expect_equal(benefit_budget_alloc, test_ref$expected_n$restricted)
+  expect_equal(round(benefit_budget_alloc, 6),
+               round(test_ref$expected_n$restricted, 6))
   expect_equal(sum(benefit_budget_alloc*test_ref$sample_cost), test_ref$budget)
 })
 
@@ -198,11 +200,11 @@ test_that("allocates when sample fraction n/N <= 0.1 and > 0.1", {
     sample_type = "discrete",
     prevalence = test_ref$prevalence,
     total_indiv = c(5000, 2000, 8000, 6000, 4000), # n/N < 0.1
-    optimal = "detection",
+    optimal = "sensitivity",
     budget = test_ref$budget$ind_95,
     discrete_alloc = FALSE))
   expect_equal(round(surv_design$get_allocation(), 3),
-               round(test_ref$expected_n$detection, 3))
+               round(test_ref$expected_n$sensitivity, 3))
   total_indiv <- c(500, 200, 800, 600, 400) # n/N > 0.1
   expect_silent(surv_design <- SamplingSurvDesign(
     context = Context("test"),
@@ -212,11 +214,11 @@ test_that("allocates when sample fraction n/N <= 0.1 and > 0.1", {
     sample_type = "discrete",
     prevalence = test_ref$prevalence,
     total_indiv = total_indiv,
-    optimal = "detection",
+    optimal = "sensitivity",
     budget = test_ref$budget$ind_95,
     discrete_alloc = FALSE))
   expect_silent(alloc <- surv_design$get_allocation())
-  expect_true(all(round(alloc, 4) != round(test_ref$expected_n$detection, 4)))
+  expect_true(all(round(alloc, 4) != round(test_ref$expected_n$sensitivity, 4)))
   expect_equal(round(sum(alloc)), test_ref$budget$ind_95)
   expect_equal(surv_design$get_sensitivity(),
                1 - (1 - 1*alloc/total_indiv)^(test_ref$prevalence*total_indiv))
@@ -226,7 +228,7 @@ test_that("facilitates existing allocations and sensitivities", {
   TEST_DIRECTORY <- test_path("test_inputs")
   test_ref <- readRDS(file.path(TEST_DIRECTORY, "Cannon2009_C_test.rds"))
   divisions <- Divisions(as.matrix(test_ref$part))
-  exist_alloc <- test_ref$expected_n$detection*c(1, 1, 1, 0, 0)
+  exist_alloc <- test_ref$expected_n$sensitivity*c(1, 1, 1, 0, 0)
   establish_pr <- test_ref$establish_pr
   expect_silent(surv_design <- SamplingSurvDesign(
     context = Context("test"),
@@ -241,7 +243,7 @@ test_that("facilitates existing allocations and sensitivities", {
   expect_null(surv_design$get_allocation())
   exist_sens <- 1 - (1 - 1*test_ref$prevalence)^exist_alloc
   expect_equal(surv_design$get_sensitivity(), exist_sens)
-  expect_equal(surv_design$get_confidence(),
+  expect_equal(surv_design$get_system_sens(),
                ((1 - prod(1 - establish_pr*exist_sens))/
                   (1 - prod(1 - establish_pr))))
   expect_silent(surv_design <- SamplingSurvDesign(
@@ -262,14 +264,14 @@ test_that("facilitates existing allocations and sensitivities", {
     sample_sens = 1,
     sample_type = "discrete",
     prevalence = test_ref$prevalence,
-    optimal = "detection",
+    optimal = "sensitivity",
     budget = test_ref$budget$ind_95 - sum(exist_alloc),
     exist_sens = exist_sens,
     discrete_alloc = FALSE))
   expect_equal(round(surv_design$get_allocation(), 3),
-               round(test_ref$expected_n$detection, 3)*c(0, 0, 0, 1, 1))
-  expect_equal(round(surv_design$get_confidence(), 3),
-               test_ref$confidence$ind_95)
+               round(test_ref$expected_n$sensitivity, 3)*c(0, 0, 0, 1, 1))
+  expect_equal(round(surv_design$get_system_sens(), 3),
+               test_ref$system_sens$ind_95)
 })
 
 test_that("allocates budget with fixed costs", {
@@ -283,12 +285,12 @@ test_that("allocates budget with fixed costs", {
     sample_sens = 1,
     sample_type = "discrete",
     prevalence = test_ref$prevalence,
-    optimal = "detection",
+    optimal = "sensitivity",
     fixed_cost = 10,
     budget = test_ref$budget$ind_95 + 50,
     discrete_alloc = FALSE))
   expect_equal(round(surv_design$get_allocation(), 3),
-               round(test_ref$expected_n$detection, 3))
+               round(test_ref$expected_n$sensitivity, 3))
 })
 
 test_that("allocates continuous sampling consistently with reference method", {
@@ -373,14 +375,14 @@ test_that("allocates discrete integer allocations", {
     sample_sens = 1,
     sample_type = "discrete",
     prevalence = test_ref$prevalence,
-    optimal = "detection",
+    optimal = "sensitivity",
     budget = test_ref$budget$ind_95,
     discrete_alloc = TRUE))
   expect_true(all(abs(surv_design$get_allocation() -
-                        test_ref$expected_n$detection) < 1))
+                        test_ref$expected_n$sensitivity) < 1))
   expect_equal(sum(surv_design$get_allocation()), test_ref$budget$ind_95)
-  expect_equal(round(surv_design$get_confidence(), 3),
-               test_ref$confidence$ind_95)
+  expect_equal(round(surv_design$get_system_sens(), 3),
+               test_ref$system_sens$ind_95)
   test_ref <- readRDS(file.path(TEST_DIRECTORY, "Cannon2009_C_test.rds"))
   divisions <- Divisions(as.matrix(test_ref$part))
   expect_silent(surv_design <- SamplingSurvDesign(
@@ -391,11 +393,11 @@ test_that("allocates discrete integer allocations", {
     sample_type = "discrete",
     prevalence = test_ref$prevalence,
     total_indiv = c(5000, 2000, 8000, 6000, 4000), # n/N < 0.1
-    optimal = "detection",
+    optimal = "sensitivity",
     budget = test_ref$budget$ind_95,
     discrete_alloc = TRUE))
   expect_silent(alloc1 <- surv_design$get_allocation())
-  expect_true(all(abs(alloc1 - test_ref$expected_n$detection) < 1))
+  expect_true(all(abs(alloc1 - test_ref$expected_n$sensitivity) < 1))
   expect_equal(sum(alloc1), test_ref$budget$ind_95)
   total_indiv <- c(500, 200, 800, 600, 400) # n/N > 0.1
   expect_silent(surv_design <- SamplingSurvDesign(
@@ -406,7 +408,7 @@ test_that("allocates discrete integer allocations", {
     sample_type = "discrete",
     prevalence = test_ref$prevalence,
     total_indiv = total_indiv,
-    optimal = "detection",
+    optimal = "sensitivity",
     budget = test_ref$budget$ind_95,
     discrete_alloc = TRUE))
   expect_silent(alloc2 <- surv_design$get_allocation())
@@ -454,4 +456,91 @@ test_that("allocates discrete integer allocations", {
   expect_true(all(discrete_alloc >= floor(continuous_alloc)))
   expect_true(all(discrete_alloc <= ceiling(continuous_alloc)))
   expect_equal(sum(discrete_alloc), test_ref$budget*100)
+})
+
+test_that("handles establishment probabilities of one", {
+  TEST_DIRECTORY <- test_path("test_inputs")
+  test_ref <- readRDS(file.path(TEST_DIRECTORY, "Cannon2009_C_test.rds"))
+  divisions <- Divisions(as.matrix(test_ref$part))
+  establish_pr = test_ref$establish_pr/max(test_ref$establish_pr)
+  expect_silent(surv_design <- SamplingSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = establish_pr,
+    sample_sens = 1,
+    sample_type = "discrete",
+    prevalence = test_ref$prevalence,
+    optimal = "detections",
+    budget = test_ref$budget$ind_95,
+    discrete_alloc = FALSE))
+  expect_silent(alloc_detect_budget <- surv_design$get_allocation())
+  expect_equal(round(sum(alloc_detect_budget), 6),
+               round(test_ref$budget$ind_95, 6))
+  expect_equal(round(alloc_detect_budget),
+               round(test_ref$expected_n$sensitivity))
+  expect_silent(surv_design <- SamplingSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = establish_pr,
+    sample_sens = 1,
+    sample_type = "discrete",
+    prevalence = test_ref$prevalence,
+    optimal = "detections",
+    system_sens = 0.99,
+    discrete_alloc = FALSE))
+  expect_silent(alloc_detect_sys <- surv_design$get_allocation())
+  expect_equal(surv_design$get_system_sens(), 0.99)
+  expect_silent(surv_design <- SamplingSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = establish_pr,
+    sample_sens = 1,
+    sample_type = "discrete",
+    prevalence = test_ref$prevalence,
+    optimal = "sensitivity",
+    budget = test_ref$budget$ind_95,
+    discrete_alloc = FALSE))
+  expect_silent(alloc_sens_budget <- surv_design$get_allocation())
+  expect_equal(round(sum(alloc_sens_budget), 6),
+               round(test_ref$budget$ind_95, 6))
+  expect_silent(surv_design <- SamplingSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = establish_pr,
+    sample_sens = 1,
+    sample_type = "discrete",
+    prevalence = test_ref$prevalence,
+    optimal = "sensitivity",
+    system_sens = 0.99,
+    discrete_alloc = FALSE))
+  expect_silent(alloc_sens_sys <- surv_design$get_allocation())
+  expect_equal(surv_design$get_system_sens(), 0.99)
+  expect_silent(surv_design <- SamplingSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = establish_pr,
+    sample_sens = 1,
+    sample_type = "discrete",
+    prevalence = test_ref$prevalence,
+    total_indiv = c(5000, 2000, 8000, 6000, 4000), # n/N < 0.1
+    optimal = "sensitivity",
+    budget = test_ref$budget$ind_95,
+    discrete_alloc = FALSE))
+  expect_silent(alloc_sens_budget_lt_01 <- surv_design$get_allocation())
+  expect_equal(round(sum(alloc_sens_budget_lt_01), 6),
+               round(test_ref$budget$ind_95, 6))
+  expect_silent(surv_design <- SamplingSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    sample_sens = 1,
+    sample_type = "discrete",
+    prevalence = test_ref$prevalence,
+    total_indiv = c(500, 200, 800, 600, 400), # n/N > 0.1
+    optimal = "sensitivity",
+    budget = test_ref$budget$ind_95,
+    discrete_alloc = FALSE))
+  expect_silent(alloc_sens_budget_gt_01 <- surv_design$get_allocation())
+  expect_equal(round(sum(alloc_sens_budget_gt_01), 6),
+               round(test_ref$budget$ind_95, 6))
 })

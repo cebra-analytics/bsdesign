@@ -4,7 +4,8 @@
 #' effective allocation of surveillance resources across spatial locations
 #' via Lagrange-based methods for optimizing objective functions specified
 #' with surveillance and/or incursion management costs, benefits, detection
-#' sensitivities, and/or overall detection confidence.
+#' sensitivities, and/or an overall desired system-wide sensitivity or
+#' detection probability.
 #'
 #' @param context A \code{Context} or inherited class object representing the
 #'   context of a bio-security surveillance and area freedom design.
@@ -29,9 +30,9 @@
 #' @param optimal The strategy used for finding an effective surveillance
 #'   resource allocation. One of (minimum) \code{"cost"}, (maximum)
 #'   \code{"saving"} (or cost-dependent benefit), (maximum) \code{"benefit"}
-#'   (independent of surveillance costs), or (maximum) \code{"detection"}
-#'   sensitivity, or \code{"none"} for representing existing
-#'   surveillance designs only.
+#'   (independent of surveillance costs), (maximum) number of
+#'   \code{"detections"}, (maximum) overall system-wide \code{"sensitivity"}
+#'   or \code{"none"} for representing existing surveillance designs only.
 #' @param mgmt_cost A list of vectors to represent estimated management costs
 #'   for when the incursion is detected and undetected. Each vector specifies
 #'   these costs at each spatial location specified by \code{divisions}. List
@@ -58,8 +59,9 @@
 #'   consistent with \code{alloc_cost} when specified. Otherwise the units
 #'   should be consistent with the \code{surv_qty_unit} parameter specified in
 #'   the \code{context}.
-#' @param confidence The desired (minimum) system sensitivity or detection
-#'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
+#' @param system_sens The desired (minimum) system sensitivity or detection
+#'   probability of the surveillance design (e.g. 0.95). Default is
+#'   \code{NULL}.
 #' @param min_alloc A vector of minimum permissible allocated surveillance
 #'   resource quantities at each spatial location specified by
 #'   \code{divisions}. Used to avoid impractically low allocation quantities.
@@ -87,12 +89,12 @@
 #'     \item{\code{get_divisions()}}{Get divisions object.}
 #'     \item{\code{get_allocation()}}{Get allocated resources via specified
 #'       strategy, utilizing costs, benefits, budget constraints, and/or
-#'       desired detection confidence level.}
+#'       desired system sensitivity or detection probability.}
 #'     \item{\code{get_sensitivity()}}{Get the location detection sensitivities
 #'       of the allocated surveillance design combined with any existing
 #'       sensitivities specified via \code{exist_sens}.}
-#'     \item{\code{get_confidence(growth = NULL)}}{Get the overall system
-#'       sensitivity or detection confidence of the allocated surveillance
+#'     \item{\code{get_system_sens(growth = NULL)}}{Get the overall system
+#'       sensitivity or detection probability of the allocated surveillance
 #'       design. The optional \code{growth} parameter may provide a vector of
 #'       relative increasing multipliers (e.g. 1, 1.8, 4.3, 7.5) applied to the
 #'       cell-level design \code{prevalence} over time or a sequence of
@@ -103,8 +105,8 @@
 #'       collection of raster TIF and/or comma-separated value (CSV) files,
 #'       appropriate for the \code{divisions} type, including the surveillance
 #'       \code{allocation}, \code{sensitivity}, and a \code{summary} (CSV) of
-#'       the total allocation, total costs (when applicable), and the
-#'       detection confidence (system sensitivity). \code{Terra} raster write
+#'       the total allocation, total costs (when applicable), and the overall
+#'       system sensitivity or detection probability. \code{Terra} raster write
 #'       options may be passed to the function for saving grid-based designs.}
 #'   }
 #' @references
@@ -137,13 +139,14 @@ SpatialSurvDesign <- function(context,
                               lambda,
                               prevalence = 1,
                               optimal = c("cost", "saving", "benefit",
-                                          "detection", "none"),
+                                          "detections", "sensitivity",
+                                          "none"),
                               mgmt_cost = list(),
                               benefit = NULL,
                               alloc_cost = NULL,
                               fixed_cost = NULL,
                               budget = NULL,
-                              confidence = NULL,
+                              system_sens = NULL,
                               min_alloc = NULL,
                               discrete_alloc = FALSE,
                               exist_alloc = NULL,
@@ -160,13 +163,14 @@ SpatialSurvDesign.Context <- function(context,
                                       lambda,
                                       prevalence = 1,
                                       optimal = c("cost", "saving", "benefit",
-                                                  "detection", "none"),
+                                                  "detections", "sensitivity",
+                                                  "none"),
                                       mgmt_cost = list(),
                                       benefit = NULL,
                                       alloc_cost = NULL,
                                       fixed_cost = NULL,
                                       budget = NULL,
-                                      confidence = NULL,
+                                      system_sens = NULL,
                                       min_alloc = NULL,
                                       discrete_alloc = FALSE,
                                       exist_alloc = NULL,
@@ -183,7 +187,7 @@ SpatialSurvDesign.Context <- function(context,
                              alloc_cost = alloc_cost,
                              fixed_cost = fixed_cost,
                              budget = budget,
-                             confidence = confidence,
+                             system_sens = system_sens,
                              min_alloc = min_alloc,
                              discrete_alloc = discrete_alloc,
                              exist_alloc = exist_alloc,
@@ -281,14 +285,14 @@ SpatialSurvDesign.Context <- function(context,
       # Quantity allocation (units)
       n_alloc <- (x_alloc >= fixed_cost)*(x_alloc - fixed_cost)/alloc_cost
 
-      if (optimal == "detection" && !relative_establish_pr) {
+      if (optimal == "sensitivity" && !relative_establish_pr) {
 
-        # maximum detection
+        # maximum system sensitivity
         return(log(1 - (establish_pr*
                           (1 - ((1 - exist_sens)*exp(-1*lambda*n_alloc))))))
       } else {
 
-        # minimum cost or maximum benefit (benefit = 1 for detection)
+        # minimum cost or maximum benefit (benefit = 1 for detections)
         incl_x <- (optimal %in% c("cost", "saving"))
         return(benefit*establish_pr*(1 - exist_sens)*exp(-1*lambda*n_alloc) +
                  (n_alloc > 0)*x_alloc*incl_x)
@@ -301,16 +305,16 @@ SpatialSurvDesign.Context <- function(context,
       # Quantity allocation (units)
       n_alloc <- (x_alloc >= fixed_cost)*(x_alloc - fixed_cost)/alloc_cost
 
-      if (optimal == "detection" && !relative_establish_pr) {
+      if (optimal == "sensitivity" && !relative_establish_pr) {
 
-        # maximum detection
+        # maximum sensitivity
         return(-1*establish_pr*(1 - exist_sens)*
                  lambda/alloc_cost*exp(-1*lambda*n_alloc)/
                  (1 - (establish_pr*
                          (1 - ((1 - exist_sens)*exp(-1*lambda*n_alloc))))))
       } else {
 
-        # minimum cost or maximum benefit (benefit = 1 for detection)
+        # minimum cost or maximum benefit (benefit = 1 for detections)
         incl_x <- (optimal %in% c("cost", "saving"))
         return((n_alloc > 0)*incl_x -
                  (benefit*establish_pr*(1 - exist_sens)*
@@ -322,14 +326,14 @@ SpatialSurvDesign.Context <- function(context,
     f_pos <<- function(alpha) {
       values <- lambda/alloc_cost*benefit*establish_pr*(1 - exist_sens)
       idx <- which(values > 0)
-      if (optimal == "detection" && !relative_establish_pr) {
+      if (optimal == "sensitivity" && !relative_establish_pr) {
 
         # handle establish_pr of 1 via substituting for close to 1
         if (any(establish_pr == 1)) {
           establish_pr[which(establish_pr == 1)] <- 1 - 1e-16
         }
 
-        # maximum detection
+        # maximum sensitivity
         idx <- idx[which(alpha > -1*lambda[idx]/alloc_cost[idx])]
         values[-idx] <- 0
         values[idx] <- pmax(
@@ -343,7 +347,7 @@ SpatialSurvDesign.Context <- function(context,
 
       } else {
 
-        # minimum cost or maximum benefit (benefit = 1 for detection)
+        # minimum cost or maximum benefit (benefit = 1 for detections)
         incl_x <- (optimal %in% c("cost", "saving"))
         idx <- idx[which((alpha - 1*incl_x) >= -1*values[idx])]
         values[-idx] <- 0
@@ -391,8 +395,8 @@ SpatialSurvDesign.Context <- function(context,
     return(1 - (1 - exist_sens)*exp(-1*lambda*n_alloc))
   }
 
-  # Function for calculating detection confidence
-  calculate_confidence <- function(sensitivity) {
+  # Function for calculating system-wide sensitivity or detection probability
+  calculate_system_sens <- function(sensitivity) {
     if (relative_establish_pr) {
       return(sum(establish_pr*sensitivity)/sum(establish_pr))
     } else {
@@ -441,7 +445,7 @@ SpatialSurvDesign.Context <- function(context,
                                                  f_unit_sens,
                                                  f_inv_unit_sens,
                                                  budget = budget,
-                                                 confidence = confidence,
+                                                 system_sens = system_sens,
                                                  min_alloc = min_x_alloc,
                                                  search_alpha = search_alpha)
         x_alloc <- lagrangeSurvDesign$get_cost_allocation()
@@ -465,9 +469,10 @@ SpatialSurvDesign.Context <- function(context,
             add_allocation <- (total_x_alloc < budget && add_allocation)
             budget <<- budget - total_x_alloc
           }
-          if (is.numeric(confidence)) {
-            add_allocation <- (calculate_confidence(exist_sens) < confidence &&
-                                 add_allocation)
+          if (is.numeric(system_sens)) {
+            add_allocation <-
+              (calculate_system_sens(exist_sens) < system_sens &&
+                 add_allocation)
           }
           min_alloc[which(qty_alloc > 0)] <<- 1
 
@@ -510,27 +515,27 @@ SpatialSurvDesign.Context <- function(context,
     return(sensitivity)
   }
 
-  # Get the overall system sensitivity or detection confidence of the design
-  self$get_confidence <- function(growth = NULL) {
-    system_sens <- NULL
+  # Get the overall system sensitivity or detection probability of the design
+  self$get_system_sens <- function(growth = NULL) {
+    system_sens_vect <- NULL
     sensitivity <- self$get_sensitivity()
     if (!is.null(sensitivity)) {
 
       # Calculate base system sensitivity
       if (parts == 1) {
-        system_sens <- sensitivity
+        system_sens_vect <- sensitivity
       } else if (!is.null(establish_pr)) {
-        system_sens <- calculate_confidence(sensitivity)
+        system_sens_vect <- calculate_system_sens(sensitivity)
       }
 
       # Apply prevalence with growth if present
       if (is.numeric(growth)) {
         prevalence <- prevalence*growth
       }
-      system_sens <- 1 - (1 - system_sens)^prevalence
+      system_sens_vect <- 1 - (1 - system_sens_vect)^prevalence
     }
 
-    return(system_sens)
+    return(system_sens_vect)
   }
 
   # Save the surveillance design as a collection of appropriate files
@@ -574,7 +579,7 @@ SpatialSurvDesign.Context <- function(context,
       summary_data$total_saving <- sum(establish_pr*benefit*
                                          self$get_sensitivity())
     }
-    summary_data$detection_confidence <- self$get_confidence()
+    summary_data$system_sens <- self$get_system_sens()
     write.csv(summary_data, file = "summary.csv", row.names = FALSE)
 
     return(summary_data)

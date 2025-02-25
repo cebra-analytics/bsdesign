@@ -3,7 +3,7 @@
 #' Builds a class to represent surveillance design functionality for the
 #' effective allocation of surveillance sampling across one or more levels or
 #' stages via multilevel sampling methods specified with surveillance detection
-#' sensitivities, sample costs, and overall detection confidence.
+#' sensitivities, sample costs, and overall detection probability.
 #'
 #' @param context A \code{Context} or inherited class object representing the
 #'   context of a bio-security surveillance and area freedom design.
@@ -34,8 +34,9 @@
 #' @param sample_cost The cost of samples at each level. Default is \code{1}.
 #'   An attribute \code{units} may be used to specify the cost units (e.g. "$"
 #'   or "hours").
-#' @param confidence The desired (minimum) system sensitivity or detection
-#'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
+#' @param system_sens The desired (minimum) system sensitivity or detection
+#'   probability of the surveillance design (e.g. 0.95). Default is
+#'   \code{NULL}.
 #' @param ... Additional parameters.
 #' @return A \code{MultilevelSurvDesign} class object (list) containing
 #'   inherited and extended functions from the base \code{SurveillanceDesign}
@@ -46,11 +47,11 @@
 #'     \item{\code{get_divisions()}}{Get divisions object.}
 #'     \item{\code{get_allocation()}}{Get allocated surveillance resources for
 #'       each level to achieve a minimal total cost given a specified desired
-#'       confidence level.}
+#'       system sensitivity or detection probability.}
 #'     \item{\code{get_sensitivity()}}{Get the level detection
 #'       sensitivities of the allocated surveillance design.}
-#'     \item{\code{get_confidence(growth = NULL)}}{Get the overall system
-#'       sensitivity or detection confidence of the allocated surveillance
+#'     \item{\code{get_system_sens(growth = NULL)}}{Get the overall system
+#'       sensitivity or detection probability of the allocated surveillance
 #'       design. The optional \code{growth} parameter may provide a vector of
 #'       relative increasing multipliers (e.g. 1, 1.8, 4.3, 7.5) applied to the
 #'       discrete sampling design \code{prevalence} over time or a sequence of
@@ -60,8 +61,8 @@
 #'     \item{\code{save_design()}}{Save the surveillance design as a
 #'       collection of comma-separated value (CSV) files, including the
 #'       surveillance \code{allocation}, \code{sensitivity}, and a
-#'       \code{summary} of sample costs (when applicable), and the system
-#'       sensitivity (detection confidence).}
+#'       \code{summary} of sample costs (when applicable) and the system
+#'       sensitivity (detection probability).}
 #'   }
 #' @references
 #'   Cannon, R. M. (2009). Inspecting and monitoring on a restricted budget -
@@ -84,7 +85,7 @@ MultilevelSurvDesign <- function(context,
                                  design_dens = NULL,
                                  sample_area = NULL,
                                  sample_cost = 1,
-                                 confidence = 0.95,
+                                 system_sens = 0.95,
                                  class = character(), ...) {
   UseMethod("MultilevelSurvDesign")
 }
@@ -101,7 +102,7 @@ MultilevelSurvDesign.Context <- function(context,
                                          design_dens = NULL,
                                          sample_area = NULL,
                                          sample_cost = 1,
-                                         confidence = 0.95,
+                                         system_sens = 0.95,
                                          class = character(), ...) {
 
   # Build via base class
@@ -110,7 +111,7 @@ MultilevelSurvDesign.Context <- function(context,
                              establish_pr = 1,
                              optimal = "cost",
                              mgmt_cost = list("not used"), # avoid error
-                             confidence = confidence,
+                             system_sens = system_sens,
                              class = "MultilevelSurvDesign", ...)
 
   # Number of levels
@@ -248,14 +249,15 @@ MultilevelSurvDesign.Context <- function(context,
         }
       }
 
-      # Refine minimum allocated values and cost via confidence constraint
+      # Refine minimum allocated values and cost via system sensitivity
+      # constraint
       cost_min <- calculate_cost(n_max)
       for (l in 1:num_levels) {
         n_alloc <- n_max
         decr <- rep(0, num_levels)
         decr[l] <- 1
         while (calculate_sensitivity(n_alloc - decr)[num_levels] >=
-               confidence && n_alloc[l] - 1 >= n_min[l]) {
+               system_sens && n_alloc[l] - 1 >= n_min[l]) {
           n_alloc[l] <- n_alloc[l] - 1
         }
         n_min[l] <- n_alloc[l]
@@ -283,7 +285,7 @@ MultilevelSurvDesign.Context <- function(context,
 
       # Select combinations satisfying the sensitivity constraint
       idx <- which(apply(n_comb, 1, function(n) {
-        calculate_sensitivity(n)[num_levels]}) >= confidence)
+        calculate_sensitivity(n)[num_levels]}) >= system_sens)
       n_comb <- as.matrix(n_comb[idx,])
 
       # Select values of allocated values corresponding to minimum total cost
@@ -304,8 +306,8 @@ MultilevelSurvDesign.Context <- function(context,
     return(sensitivity)
   }
 
-  # Get the overall system sensitivity or detection confidence of the design
-  self$get_confidence <- function(growth = NULL) {
+  # Get the overall system sensitivity or detection probability of the design
+  self$get_system_sens <- function(growth = NULL) {
 
     # Set single growth when not specified
     if (!is.numeric(growth)) {
@@ -313,17 +315,17 @@ MultilevelSurvDesign.Context <- function(context,
     }
 
     # Calculate system sensitivity for each value of growth
-    system_sens <- NULL
+    system_sens_vect <- NULL
     if (!is.null(qty_alloc)) {
       for (multi in growth) {
         sensitivity <- calculate_sensitivity(qty_alloc, multi)
         if (!is.null(sensitivity)) {
-          system_sens <- c(system_sens, sensitivity[num_levels])
+          system_sens_vect <- c(system_sens_vect, sensitivity[num_levels])
         }
       }
     }
 
-    return(system_sens)
+    return(system_sens_vect)
   }
 
   # Save the surveillance design as a collection of appropriate files
@@ -339,9 +341,9 @@ MultilevelSurvDesign.Context <- function(context,
     if (!all(sample_cost == 1)) {
       summary_data <- data.frame(
         sample_cost = sum(self$get_allocation()*sample_cost),
-        system_sensitivity = self$get_confidence())
+        system_sens = self$get_system_sens())
     } else {
-      summary_data <- data.frame(system_sensitivity = self$get_confidence())
+      summary_data <- data.frame(system_sens = self$get_system_sens())
     }
     write.csv(summary_data, file = "summary.csv", row.names = FALSE)
 

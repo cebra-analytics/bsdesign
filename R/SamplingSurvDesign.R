@@ -4,8 +4,8 @@
 #' effective allocation of surveillance sampling across one or more
 #' divisions (parts, locations, categories, etc.) via Lagrange-based methods
 #' for optimizing objective functions specified with surveillance and/or
-#' incursion management costs, benefits, detection sensitivities, and/or
-#' overall detection confidence.
+#' incursion management costs, benefits, detection sensitivities, and/or an
+#' overall desired system-wide sensitivity or detection probability.
 #'
 #' @param context A \code{Context} or inherited class object representing the
 #'   context of a bio-security surveillance and area freedom design.
@@ -40,9 +40,9 @@
 #' @param optimal The strategy used for finding an effective surveillance
 #'   resource allocation. One of (minimum) \code{"cost"}, (maximum)
 #'   \code{"saving"} (or cost-dependent benefit), (maximum) \code{"benefit"}
-#'   (independent of surveillance costs), or (maximum) \code{"detection"}
-#'   sensitivity, or \code{"none"} for representing existing
-#'   surveillance designs only.
+#'   (independent of surveillance costs), (maximum) number of
+#'   \code{"detections"}, (maximum) overall system-wide \code{"sensitivity"}
+#'   or \code{"none"} for representing existing surveillance designs only.
 #' @param mgmt_cost A list of vectors to represent estimated management costs
 #'   for when the incursion is detected and undetected. Each vector specifies
 #'   costs at each division part (location, category, etc.) specified by
@@ -70,8 +70,9 @@
 #'   consistent with \code{sample_cost} when specified. Otherwise the units
 #'   should be consistent with the \code{surv_qty_unit} parameter specified in
 #'   the \code{context} (e.g. traps or samples).
-#' @param confidence The desired (minimum) system sensitivity or detection
-#'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
+#' @param system_sens The desired (minimum) system sensitivity or detection
+#'   probability of the surveillance design (e.g. 0.95). Default is
+#'   \code{NULL}.
 #' @param min_alloc A vector of minimum permissible sampling allocation at each
 #'   division part (location, category, etc.) specified by \code{divisions}.
 #'   Used to avoid impractically low sampling allocations. Default is
@@ -97,14 +98,14 @@
 #'   \describe{
 #'     \item{\code{get_context()}}{Get context object.}
 #'     \item{\code{get_divisions()}}{Get divisions object.}
-#'     \item{\code{get_allocation()}}{Get allocated samples via specified
+#'     \item{\code{get_allocation()}}{Get allocated resources via specified
 #'       strategy, utilizing costs, benefits, budget constraints, and/or
-#'       desired detection confidence level.}
+#'       desired system sensitivity or detection probability.}
 #'     \item{\code{get_sensitivity()}}{Get the division part detection
 #'       sensitivities of the allocated surveillance design combined with any
 #'       existing sensitivities specified via \code{exist_sens}.}
-#'     \item{\code{get_confidence(growth = NULL)}}{Get the overall system
-#'       sensitivity or detection confidence of the allocated surveillance
+#'     \item{\code{get_system_sens(growth = NULL)}}{Get the overall system
+#'       sensitivity or detection probability of the allocated surveillance
 #'       design. The optional \code{growth} parameter may provide a vector of
 #'       relative increasing multipliers (e.g. 1, 1.8, 4.3, 7.5) applied to the
 #'       discrete sampling design \code{prevalence}, or the continuous sampling
@@ -116,8 +117,8 @@
 #'       collection of raster TIF and/or comma-separated value (CSV) files,
 #'       appropriate for the \code{divisions} type, including the surveillance
 #'       \code{allocation}, \code{sensitivity}, and a \code{summary} (CSV) of
-#'       the total allocation, total costs (when applicable), and the
-#'       detection confidence (system sensitivity). \code{Terra} raster write
+#'       the total allocation, total costs (when applicable), and the overall
+#'       system sensitivity or detection probability. \code{Terra} raster write
 #'       options may be passed to the function for saving grid-based designs.}
 #'   }
 #' @references
@@ -143,13 +144,14 @@ SamplingSurvDesign <- function(context,
                                design_dens = NULL,
                                sample_area = NULL,
                                optimal = c("cost", "saving", "benefit",
-                                           "detection", "none"),
+                                           "detections", "sensitivity",
+                                           "none"),
                                mgmt_cost = list(),
                                benefit = NULL,
                                sample_cost = NULL,
                                fixed_cost = NULL,
                                budget = NULL,
-                               confidence = NULL,
+                               system_sens = NULL,
                                min_alloc = NULL,
                                discrete_alloc = TRUE,
                                exist_alloc = NULL,
@@ -171,13 +173,14 @@ SamplingSurvDesign.Context <- function(context,
                                        design_dens = NULL,
                                        sample_area = NULL,
                                        optimal = c("cost", "saving", "benefit",
-                                                   "detection", "none"),
+                                                   "detections", "sensitivity",
+                                                   "none"),
                                        mgmt_cost = list(),
                                        benefit = NULL,
                                        sample_cost = NULL,
                                        fixed_cost = NULL,
                                        budget = NULL,
-                                       confidence = NULL,
+                                       system_sens = NULL,
                                        min_alloc = NULL,
                                        discrete_alloc = TRUE,
                                        exist_alloc = NULL,
@@ -193,7 +196,7 @@ SamplingSurvDesign.Context <- function(context,
                              benefit = benefit,
                              fixed_cost = fixed_cost,
                              budget = budget,
-                             confidence = confidence,
+                             system_sens = system_sens,
                              min_alloc = min_alloc,
                              discrete_alloc = discrete_alloc,
                              exist_alloc = exist_alloc,
@@ -350,8 +353,8 @@ SamplingSurvDesign.Context <- function(context,
     # Objective function
     f_obj <<- function(x_alloc) {
       if (sample_type == "discrete" && sample_fract_gt_0_1 &&
-          optimal == "detection" && !relative_establish_pr) {
-        # Maximum detection for discrete sampling with n/N > 0.1
+          optimal == "sensitivity" && !relative_establish_pr) {
+        # Maximum sensitivity for discrete sampling with n/N > 0.1
         return(
           (x_alloc >= fixed_cost)*
             log(1 - (establish_pr*
@@ -360,7 +363,7 @@ SamplingSurvDesign.Context <- function(context,
                                         (x_alloc - fixed_cost)/sample_cost))
                                 ^(prevalence*total_indiv)))))))
       } else if (sample_type == "discrete" && sample_fract_gt_0_1) {
-        # Minimum cost or maximum benefit (benefit = 1 for detection)
+        # Minimum cost or maximum benefit (benefit = 1 for detections)
         # for discrete sampling with n/N > 0.1
         incl_x <- (optimal %in% c("cost", "saving"))
         return(
@@ -371,8 +374,8 @@ SamplingSurvDesign.Context <- function(context,
                             (x_alloc - fixed_cost)/sample_cost))
                     ^(prevalence*total_indiv))))) +
             (x_alloc >= fixed_cost)*x_alloc*incl_x)
-      } else if (optimal == "detection" && !relative_establish_pr) {
-        # Maximum detection
+      } else if (optimal == "sensitivity" && !relative_establish_pr) {
+        # Maximum sensitivity
         return(
           (x_alloc >= fixed_cost)*
             log(1 - (establish_pr*
@@ -380,7 +383,7 @@ SamplingSurvDesign.Context <- function(context,
                                exp(-1*lambda*
                                      (x_alloc - fixed_cost)/sample_cost))))))
       } else {
-        # Minimum cost or maximum benefit (benefit = 1 for detection)
+        # Minimum cost or maximum benefit (benefit = 1 for detections)
         incl_x <- (optimal %in% c("cost", "saving"))
         return(
           (benefit*establish_pr*(1 - exist_sens)*
@@ -405,8 +408,8 @@ SamplingSurvDesign.Context <- function(context,
                   ((1 - (sample_sens/total_indiv*
                            (x_alloc - fixed_cost)/sample_cost))
                    ^(prevalence*total_indiv - 1)))))
-      } else if (optimal == "detection" && !relative_establish_pr) {
-        # Maximum detection
+      } else if (optimal == "sensitivity" && !relative_establish_pr) {
+        # Maximum sensitivity
         return(
           (x_alloc >= fixed_cost)*-1*establish_pr*(1 - exist_sens)*
             lambda/sample_cost*
@@ -416,7 +419,7 @@ SamplingSurvDesign.Context <- function(context,
                             exp(-1*lambda*
                                   (x_alloc - fixed_cost)/sample_cost))))))
       } else {
-        # Minimum cost or maximum benefit (benefit = 1 for detection)
+        # Minimum cost or maximum benefit (benefit = 1 for detections)
         incl_x <- (optimal %in% c("cost", "saving"))
         return(
           (x_alloc >= fixed_cost)*
@@ -450,8 +453,14 @@ SamplingSurvDesign.Context <- function(context,
       } else {
         values <- lambda/sample_cost*benefit*establish_pr*(1 - exist_sens)
         idx <- which(values > 0)
-        if (optimal == "detection" && !relative_establish_pr) {
-          # Maximum detection
+        if (optimal == "sensitivity" && !relative_establish_pr) {
+
+          # handle establish_pr of 1 via substituting for close to 1
+          if (any(establish_pr == 1)) {
+            establish_pr[which(establish_pr == 1)] <- 1 - 1e-16
+          }
+
+          # Maximum sensitivity
           idx <- idx[which(alpha > -1*lambda[idx]/sample_cost[idx])]
           values[-idx] <- 0
           values[idx] <- pmax(
@@ -464,7 +473,7 @@ SamplingSurvDesign.Context <- function(context,
                             fixed_cost[idx])
         } else {
 
-          # Minimum cost or maximum benefit (benefit = 1 for detection)
+          # Minimum cost or maximum benefit (benefit = 1 for detections)
           incl_x <- (optimal %in% c("cost", "saving"))
           idx <- idx[which((alpha - 1*incl_x) >= -1*values[idx])]
           values[-idx] <- 0
@@ -492,7 +501,7 @@ SamplingSurvDesign.Context <- function(context,
     if (sample_type == "discrete" && is.numeric(total_indiv)) {
 
       # Estimate sample fraction when unconstrained
-      if (is.null(budget) && is.null(confidence)) {
+      if (is.null(budget) && is.null(system_sens)) {
 
         # Calculate sample number via pseudo-inverse of derivative given
         # unconstrained alpha with sample fraction n/N > 0.1 assumed
@@ -504,13 +513,13 @@ SamplingSurvDesign.Context <- function(context,
 
       } else {
 
-        # Estimate sample fraction required to meet confidence level
-        if (is.numeric(confidence)) {
+        # Estimate sample fraction required to meet system sensitivity
+        if (is.numeric(system_sens)) {
 
-          # Calculate n/N to gain specified confidence for each part
+          # Calculate n/N to gain specified sensitivity for each part
           sample_fract <-
             ceiling(total_indiv/sample_sens*
-                      (1 - (((1 - confidence)/(1 - exist_sens))^
+                      (1 - (((1 - system_sens)/(1 - exist_sens))^
                               (1/prevalence/total_indiv))))/total_indiv
 
           # Are any n/N > 0.1?
@@ -585,8 +594,8 @@ SamplingSurvDesign.Context <- function(context,
     }
   }
 
-  # Function for calculating detection confidence
-  calculate_confidence <- function(sensitivity) {
+  # Function for calculating system sensitivity or detection probability
+  calculate_system_sens <- function(sensitivity) {
     if (relative_establish_pr) {
       return(sum(establish_pr*sensitivity)/sum(establish_pr))
     } else {
@@ -635,7 +644,7 @@ SamplingSurvDesign.Context <- function(context,
                                                  f_unit_sens,
                                                  f_inv_unit_sens,
                                                  budget = budget,
-                                                 confidence = confidence,
+                                                 system_sens = system_sens,
                                                  min_alloc = min_x_alloc,
                                                  search_alpha = search_alpha)
         x_alloc <- lagrangeSurvDesign$get_cost_allocation()
@@ -663,9 +672,10 @@ SamplingSurvDesign.Context <- function(context,
             add_allocation <- (total_x_alloc < budget && add_allocation)
             budget <<- budget - total_x_alloc
           }
-          if (is.numeric(confidence)) {
-            add_allocation <- (calculate_confidence(exist_sens) < confidence &&
-                                 add_allocation)
+          if (is.numeric(system_sens)) {
+            add_allocation <-
+              (calculate_system_sens(exist_sens) < system_sens &&
+                 add_allocation)
           }
           min_alloc[which(qty_alloc > 0)] <<- 1
 
@@ -714,8 +724,8 @@ SamplingSurvDesign.Context <- function(context,
     return(sensitivity)
   }
 
-  # Get the overall system sensitivity or detection confidence of the design
-  self$get_confidence <- function(growth = NULL) {
+  # Get the overall system sensitivity or detection probability of the design
+  self$get_system_sens <- function(growth = NULL) {
 
     # Set single growth when not specified
     if (!is.numeric(growth)) {
@@ -723,7 +733,7 @@ SamplingSurvDesign.Context <- function(context,
     }
 
     # Calculate system sensitivity for each value of growth
-    system_sens <- NULL
+    system_sens_vect <- NULL
     for (multi in growth) {
       if (optimal != "none" && !is.null(qty_alloc)) {
         unit_sens <- calculate_sensitivity(qty_alloc, multi = multi)
@@ -734,14 +744,15 @@ SamplingSurvDesign.Context <- function(context,
       }
       if (!is.null(unit_sens)) {
         if (parts == 1) {
-          system_sens <- c(system_sens, unit_sens)
+          system_sens_vect <- c(system_sens_vect, unit_sens)
         } else if (!is.null(establish_pr)) {
-          system_sens <- c(system_sens, calculate_confidence(unit_sens))
+          system_sens_vect <- c(system_sens_vect,
+                                calculate_system_sens(unit_sens))
         }
       }
     }
 
-    return(system_sens)
+    return(system_sens_vect)
   }
 
   # Save the surveillance design as a collection of appropriate files
@@ -785,7 +796,7 @@ SamplingSurvDesign.Context <- function(context,
       summary_data$total_saving <- sum(establish_pr*benefit*
                                          self$get_sensitivity())
     }
-    summary_data$detection_confidence <- self$get_confidence()
+    summary_data$system_sens <- self$get_system_sens()
     write.csv(summary_data, file = "summary.csv", row.names = FALSE)
 
     return(summary_data)

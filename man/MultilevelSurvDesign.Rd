@@ -15,7 +15,7 @@ MultilevelSurvDesign(
   design_dens = NULL,
   sample_area = NULL,
   sample_cost = 1,
-  confidence = 0.95,
+  system_sens = 0.95,
   class = character(),
   ...
 )
@@ -30,7 +30,7 @@ MultilevelSurvDesign(
   design_dens = NULL,
   sample_area = NULL,
   sample_cost = 1,
-  confidence = 0.95,
+  system_sens = 0.95,
   class = character(),
   ...
 )
@@ -74,8 +74,9 @@ area sampled. Default is \code{NULL}.}
 An attribute \code{units} may be used to specify the cost units (e.g. "$"
 or "hours").}
 
-\item{confidence}{The desired (minimum) system sensitivity or detection
-confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
+\item{system_sens}{The desired (minimum) system sensitivity or detection
+probability of the surveillance design (e.g. 0.95). Default is
+\code{NULL}.}
 
 \item{...}{Additional parameters.}
 }
@@ -89,11 +90,11 @@ detection sensitivities:
 \item{\code{get_divisions()}}{Get divisions object.}
 \item{\code{get_allocation()}}{Get allocated surveillance resources for
 each level to achieve a minimal total cost given a specified desired
-confidence level.}
+system sensitivity or detection probability.}
 \item{\code{get_sensitivity()}}{Get the level detection
 sensitivities of the allocated surveillance design.}
-\item{\code{get_confidence(growth = NULL)}}{Get the overall system
-sensitivity or detection confidence of the allocated surveillance
+\item{\code{get_system_sens(growth = NULL)}}{Get the overall system
+sensitivity or detection probability of the allocated surveillance
 design. The optional \code{growth} parameter may provide a vector of
 relative increasing multipliers (e.g. 1, 1.8, 4.3, 7.5) applied to the
 discrete sampling design \code{prevalence} over time or a sequence of
@@ -103,15 +104,15 @@ returned for each multiplier or time/repeat.}
 \item{\code{save_design()}}{Save the surveillance design as a
 collection of comma-separated value (CSV) files, including the
 surveillance \code{allocation}, \code{sensitivity}, and a
-\code{summary} of sample costs (when applicable), and the system
-sensitivity (detection confidence).}
+\code{summary} of sample costs (when applicable) and the system
+sensitivity (detection probability).}
 }
 }
 \description{
 Builds a class to represent surveillance design functionality for the
 effective allocation of surveillance sampling across one or more levels or
 stages via multilevel sampling methods specified with surveillance detection
-sensitivities, sample costs, and overall detection confidence.
+sensitivities, sample costs, and overall detection probability.
 }
 \references{
 Cannon, R. M. (2009). Inspecting and monitoring on a restricted budget -

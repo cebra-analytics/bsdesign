@@ -11,12 +11,12 @@
 #'   species was detected/sighted at previous intervals. Default is
 #'   \code{FALSE} implying nothing detected.
 #' @param pr_detect The probability of detecting the invasive species given its
-#'   presence. Also known as system sensitivity or detection confidence for
-#'   a surveillance system. Default is \code{NULL} implying only detection
-#'   records are available. Temporally changing values may be provided by a
-#'   numeric vector, the length of which should be sufficient for the expected
-#'   number of \code{iterations}, given the specified stopping criteria, else
-#'   the last value of the vector is repeated.
+#'   presence. Also known as system sensitivity for surveillance systems.
+#'   Default is \code{NULL} implying only detection records are available.
+#'   Temporally changing values may be provided by a numeric vector, the length
+#'   of which should be sufficient for the expected number of
+#'   \code{iterations}, given the specified stopping criteria, else the last
+#'   value of the vector is repeated.
 #' @param pr_persist The probability that the invasive species persists at each
 #'   time interval (specified by the \code{time_unit} parameter in the
 #'   \code{context}). Default is \code{1} implies that the invasive species
@@ -185,7 +185,7 @@ HypothTestFreedomDesign.Context <- function(context,
     return(n_iter)
   }
 
-  # Save the area freedom design evidence (confidence)
+  # Save the area freedom design evidence
   self$save_design <- function() {
 
     # Save evidence

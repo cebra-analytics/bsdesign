@@ -25,8 +25,8 @@ test_that("initializes with context, divisions, and valid parameters", {
                      "values for each division part."))
   expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
                                     divisions = divisions,
-                                    confidence = 1.5),
-               paste("The detection confidence parameter must be numeric,",
+                                    system_sens = 1.5),
+               paste("The system sensitivity parameter must be numeric,",
                      ">= 0 and <= 1."))
   expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
                                     divisions = divisions,
@@ -49,16 +49,23 @@ test_that("initializes with context, divisions, and valid parameters", {
                                                  optimal = "benefit",
                                                  benefit = 1,
                                                  budget = NULL,
-                                                 confidence = NULL),
-               paste("Either the budget or detection confidence parameter",
+                                                 system_sens = NULL),
+               paste("Either the budget or system sensitivity parameter",
                      "must be specified for optimal benefit."))
   expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
-                                    divisions = divisions,
-                                    optimal = "detection",
-                                    budget = NULL,
-                                    confidence = NULL),
-               paste("Either the budget or detection confidence parameter",
-                     "must be specified for optimal detection."))
+                                                 divisions = divisions,
+                                                 optimal = "detections",
+                                                 budget = NULL,
+                                                 system_sens = NULL),
+               paste("Either the budget or system sensitivity parameter",
+                     "must be specified for optimal detections."))
+  expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
+                                                 divisions = divisions,
+                                                 optimal = "sensitivity",
+                                                 budget = NULL,
+                                                 system_sens = NULL),
+               paste("Either the budget or system sensitivity parameter",
+                     "must be specified for optimal sensitivity."))
   expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
                                     divisions = divisions,
                                     optimal = "cost",
@@ -75,25 +82,25 @@ test_that("initializes with context, divisions, and valid parameters", {
                      "values for each division part."))
   expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
                                     divisions = divisions,
-                                    optimal = "detection",
+                                    optimal = "detections",
                                     budget = 0),
                "The budget parameter must be numeric and > 0.")
   expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
                                                  divisions = divisions,
-                                                 optimal = "detection",
+                                                 optimal = "detections",
                                                  budget = 1,
                                                  min_alloc = 1:5),
                paste("The minimum allocation parameter must be a numeric",
                      "vector with values for each division part."))
   expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
                                                  divisions = divisions,
-                                                 optimal = "detection",
+                                                 optimal = "detections",
                                                  budget = 1,
                                                  discrete_alloc = NULL),
                "The discrete allocation indicator parameter must be logical.")
   expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
                                     divisions = divisions,
-                                    optimal = "detection",
+                                    optimal = "detections",
                                     budget = 1,
                                     exist_alloc = 1),
                paste("The existing allocation parameter should only be",
@@ -126,7 +133,7 @@ test_that("initializes with context, divisions, and valid parameters", {
   expect_is(surv_design$get_divisions(), "Divisions")
   expect_null(surv_design$get_allocation())
   expect_null(surv_design$get_sensitivity())
-  expect_null(surv_design$get_confidence())
+  expect_null(surv_design$get_system_sens())
 })
 
 test_that("combines existing sensitivities via union", {
@@ -144,5 +151,5 @@ test_that("combines existing sensitivities via union", {
               function(s) prod(1 - s))
   expect_equal(round(surv_design$get_sensitivity(), 8),
                round(expected_sensitivity, 8))
-  expect_null(surv_design$get_confidence())
+  expect_null(surv_design$get_system_sens())
 })

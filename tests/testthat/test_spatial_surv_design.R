@@ -40,7 +40,7 @@ test_that("initializes with context, divisions, and valid parameters", {
   expect_is(surv_design$get_divisions(), "Divisions")
   expect_null(surv_design$get_allocation())
   expect_null(surv_design$get_sensitivity())
-  expect_null(surv_design$get_confidence())
+  expect_null(surv_design$get_system_sens())
 })
 
 test_that("allocates resources consistently with reference method", {
@@ -88,10 +88,10 @@ test_that("allocates resources consistently with reference method", {
   expected_sensitivity <- 1 - exp(-1*test_ref$lambda*with_budget_alloc)
   expect_silent(sensitivity <- surv_design$get_sensitivity())
   expect_equal(sensitivity, expected_sensitivity)
-  expected_confidence <- ((1 - prod(1 - test_ref$establish_pr*sensitivity))/
+  expected_system_sens <- ((1 - prod(1 - test_ref$establish_pr*sensitivity))/
                             (1 - prod(1 - test_ref$establish_pr)))
-  expect_silent(confidence <- surv_design$get_confidence())
-  expect_equal(confidence, expected_confidence)
+  expect_silent(system_sens <- surv_design$get_system_sens())
+  expect_equal(system_sens, expected_system_sens)
   expect_silent(surv_design <- SpatialSurvDesign(
     context = Context("test"),
     divisions = divisions,
@@ -185,12 +185,12 @@ test_that("facilitates existing allocations and sensitivities", {
     mgmt_cost = list(undetected = test_ref$cost_undetected,
                      detected = test_ref$cost_detected),
     budget = NULL,
-    confidence = 0.9999,
+    system_sens = 0.9999,
     exist_sens = exist_sens))
   expect_silent(part_alloc <- surv_design$get_allocation())
   expect_true(all(part_alloc[1:198] == 0))
   expect_true(all(which(part_alloc > 0) %in% 199:divisions$get_parts()))
-  expect_equal(surv_design$get_confidence(), 0.9999)
+  expect_equal(surv_design$get_system_sens(), 0.9999)
 })
 
 test_that("allocates with fixed costs with and without budget", {
@@ -317,7 +317,7 @@ test_that("allocates discrete integer allocations", {
     optimal = "cost",
     mgmt_cost = list(undetected = test_ref$cost_undetected*100,
                      detected = test_ref$cost_detected*100),
-    confidence = 0.999999,
+    system_sens = 0.999999,
     discrete_alloc = FALSE))
   expect_silent(continuous_alloc <- surv_design$get_allocation())
   expect_silent(surv_design <- SpatialSurvDesign(
@@ -328,20 +328,20 @@ test_that("allocates discrete integer allocations", {
     optimal = "cost",
     mgmt_cost = list(undetected = test_ref$cost_undetected*100,
                      detected = test_ref$cost_detected*100),
-    confidence = 0.999999,
+    system_sens = 0.999999,
     discrete_alloc = TRUE))
   expect_silent(discrete_alloc <- surv_design$get_allocation())
   expect_true(all(discrete_alloc %in% 0:ceiling(max(continuous_alloc))))
   expect_true(all(discrete_alloc >= floor(continuous_alloc)))
   expect_true(all(discrete_alloc <= ceiling(continuous_alloc)))
-  expect_true(round(surv_design$get_confidence(), 8) == 0.999999)
+  expect_true(round(surv_design$get_system_sens(), 8) == 0.999999)
   expect_silent(surv_design <- SpatialSurvDesign(
     context = Context("test"),
     divisions = divisions,
     establish_pr = test_ref$establish_pr,
     lambda = test_ref$lambda/100,
-    optimal = "detection",
-    confidence = 0.999999,
+    optimal = "sensitivity",
+    system_sens = 0.999999,
     discrete_alloc = FALSE))
   expect_silent(continuous_alloc <- surv_design$get_allocation())
   expect_silent(surv_design <- SpatialSurvDesign(
@@ -349,18 +349,44 @@ test_that("allocates discrete integer allocations", {
     divisions = divisions,
     establish_pr = test_ref$establish_pr,
     lambda = test_ref$lambda/100,
-    optimal = "detection",
-    confidence = 0.999999,
+    optimal = "sensitivity",
+    system_sens = 0.999999,
     discrete_alloc = TRUE))
   expect_silent(discrete_alloc <- surv_design$get_allocation())
   expect_true(all(discrete_alloc %in% 0:ceiling(max(continuous_alloc))))
   expect_true(sum(discrete_alloc >= floor(continuous_alloc)) >=
                 divisions$get_parts() - 1)
   expect_true(all(discrete_alloc <= ceiling(continuous_alloc)))
-  expect_true(round(surv_design$get_confidence(), 8) == 0.999999)
+  expect_true(round(surv_design$get_system_sens(), 8) == 0.999999)
 })
 
-test_that("allocates for optimal detection via budget or confidence", {
+test_that("allocates for optimal number of detections via system sens", {
+  TEST_DIRECTORY <- test_path("test_inputs")
+  template <- terra::rast(file.path(TEST_DIRECTORY, "template.tif"))
+  divisions <- Divisions(template)
+  test_ref <- readRDS(file.path(TEST_DIRECTORY, "Hauser2009_test.rds"))
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "benefit",
+    benefit = 1,
+    system_sens = 0.99))
+  expect_silent(const_benefit_alloc <- surv_design$get_allocation())
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "detections",
+    system_sens = 0.99))
+  expect_silent(detections_alloc <- surv_design$get_allocation())
+  expect_equal(detections_alloc, const_benefit_alloc)
+  expect_equal(surv_design$get_system_sens(), 0.99)
+})
+
+test_that("allocates for optimal sensitivity via budget or system sens", {
   TEST_DIRECTORY <- test_path("test_inputs")
   template <- terra::rast(file.path(TEST_DIRECTORY, "template.tif"))
   divisions <- Divisions(template)
@@ -373,7 +399,7 @@ test_that("allocates for optimal detection via budget or confidence", {
     optimal = "none",
     exist_alloc = test_ref$surv_effort$with_budget))
   expect_silent(cost_budget_sens <- surv_design$get_sensitivity())
-  expect_silent(cost_budget_conf <- surv_design$get_confidence())
+  expect_silent(cost_budget_sys_sens <- surv_design$get_system_sens())
   cost_budget_tot <- sum((test_ref$establish_pr*
                             (test_ref$cost_detected*cost_budget_sens +
                                (test_ref$cost_undetected*
@@ -384,18 +410,18 @@ test_that("allocates for optimal detection via budget or confidence", {
     divisions = divisions,
     establish_pr = test_ref$establish_pr,
     lambda = test_ref$lambda,
-    optimal = "detection",
+    optimal = "sensitivity",
     budget = test_ref$budget))
   expect_silent(detect_budget_alloc <- surv_design$get_allocation())
   expect_silent(detect_budget_sens <- surv_design$get_sensitivity())
-  expect_silent(detect_budget_conf <- surv_design$get_confidence())
+  expect_silent(detect_budget_sys_sens <- surv_design$get_system_sens())
   detect_budget_tot <- sum((test_ref$establish_pr*
                               (test_ref$cost_detected*detect_budget_sens +
                                  (test_ref$cost_undetected*
                                     (1 - detect_budget_sens)))) +
                              detect_budget_alloc)
   expect_equal(sum(detect_budget_alloc), test_ref$budget)
-  expect_true(detect_budget_conf > cost_budget_conf)
+  expect_true(detect_budget_sys_sens > cost_budget_sys_sens)
   expect_true(detect_budget_tot > cost_budget_tot)
   expect_silent(surv_design <- SpatialSurvDesign(
     context = Context("test"),
@@ -405,32 +431,76 @@ test_that("allocates for optimal detection via budget or confidence", {
     optimal = "cost",
     mgmt_cost = list(undetected = test_ref$cost_undetected,
                      detected = test_ref$cost_detected),
-    confidence = 0.99))
+    system_sens = 0.99))
   expect_silent(cost_99_alloc <- surv_design$get_allocation())
   expect_silent(cost_99_sens <- surv_design$get_sensitivity())
-  expect_silent(cost_99_conf <- surv_design$get_confidence())
+  expect_silent(cost_99_sys_sens <- surv_design$get_system_sens())
   cost_99_tot <- sum((test_ref$establish_pr*
                         (test_ref$cost_detected*cost_99_sens +
                            (test_ref$cost_undetected*
                               (1 - cost_99_sens)))) +
                        cost_99_alloc)
-  expect_equal(cost_99_conf, 0.99)
+  expect_equal(cost_99_sys_sens, 0.99)
   expect_silent(surv_design <- SpatialSurvDesign(
     context = Context("test"),
     divisions = divisions,
     establish_pr = test_ref$establish_pr,
     lambda = test_ref$lambda,
-    optimal = "detection",
-    confidence = 0.99))
+    optimal = "sensitivity",
+    system_sens = 0.99))
   expect_silent(detect_99_alloc <- surv_design$get_allocation())
   expect_silent(detect_99_sens <- surv_design$get_sensitivity())
-  expect_silent(detect_99_conf <- surv_design$get_confidence())
+  expect_silent(detect_99_sys_sens <- surv_design$get_system_sens())
   detect_99_tot <- sum((test_ref$establish_pr*
                           (test_ref$cost_detected*detect_99_sens +
                              (test_ref$cost_undetected*
                                 (1 - detect_99_sens)))) +
                          detect_99_alloc)
-  expect_equal(detect_99_conf, 0.99)
+  expect_equal(detect_99_sys_sens, 0.99)
   expect_true(sum(detect_99_alloc) < sum(cost_99_alloc))
   expect_true(detect_99_tot > cost_99_tot)
+})
+
+test_that("handles establishment probabilities of one", {
+  TEST_DIRECTORY <- test_path("test_inputs")
+  template <- terra::rast(file.path(TEST_DIRECTORY, "template.tif"))
+  divisions <- Divisions(template)
+  test_ref <- readRDS(file.path(TEST_DIRECTORY, "Hauser2009_test.rds"))
+  establish_pr <- test_ref$establish_pr/max(test_ref$establish_pr)
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "detections",
+    budget = test_ref$budget))
+  expect_silent(alloc_detect_budget <- surv_design$get_allocation())
+  sum(alloc_detect_budget) # test_ref$budget
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "detections",
+    system_sens = 0.99))
+  expect_silent(alloc_detect_sys <- surv_design$get_allocation())
+  surv_design$get_system_sens() # 0.99
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "sensitivity",
+    budget = test_ref$budget))
+  expect_silent(alloc_sens_budget <- surv_design$get_allocation())
+  sum(alloc_sens_budget) # test_ref$budget
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "sensitivity",
+    system_sens = 0.99))
+  expect_silent(alloc_sens_sys <- surv_design$get_allocation())
+  surv_design$get_system_sens() # 0.99
 })

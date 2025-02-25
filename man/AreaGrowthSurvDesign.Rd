@@ -109,8 +109,8 @@ detection sensitivities:
 specified strategy, utilizing costs and budget constraints.}
 \item{\code{get_sensitivity()}}{Get the sub-region detection
 sensitivities of the allocated surveillance design.}
-\item{\code{get_confidence(growth = NULL)}}{Get the overall system
-sensitivity or detection confidence of the allocated surveillance
+\item{\code{get_system_sens(growth = NULL)}}{Get the overall system
+sensitivity or detection probability of the allocated surveillance
 design. The optional \code{growth} parameter may provide a vector of
 relative increasing multipliers (e.g. 1, 1.8, 4.3, 7.5) applied to the
 sampling design density implied by the method over time or a sequence

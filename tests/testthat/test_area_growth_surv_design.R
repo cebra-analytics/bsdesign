@@ -147,7 +147,7 @@ test_that("allocates resources consistently with reference method", {
       test_ref$table_S1_data$expected_density[1:SR])) <= 0.01)
   expect_sens <- 1 - exp(-1*sample_sens*subregion_area*as.numeric(alloc))
   expect_equal(round(surv_design$get_sensitivity(), 8), round(expect_sens, 8))
-  expect_equal(surv_design$get_confidence(),
+  expect_equal(surv_design$get_system_sens(),
                sum(establish_rate*expect_sens)/sum(establish_rate))
   if (!LIMITED) {
     expect_true((abs(sum(attr(alloc, "costs")$survey_cost) -

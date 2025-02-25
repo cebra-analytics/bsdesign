@@ -99,10 +99,10 @@ test_that("initializes with context, divisions, and valid parameters", {
   expect_is(surv_design$get_divisions(), "Divisions")
   expect_null(surv_design$get_allocation())
   expect_null(surv_design$get_sensitivity())
-  expect_null(surv_design$get_confidence())
+  expect_null(surv_design$get_system_sens())
 })
 
-test_that("allocates effectively with near optimal detection confidence", {
+test_that("allocates effectively with near optimal system sensitivity", {
   TEST_DIRECTORY <- test_path("test_inputs")
   template <- terra::rast(file.path(TEST_DIRECTORY, "template.tif"))
   divisions <- Divisions(template)
@@ -123,11 +123,11 @@ test_that("allocates effectively with near optimal detection confidence", {
   expect_named(alloc_coords, c("lon", "lat"))
   expect_equal(nrow(alloc_coords), test_ref$budget)
   expect_silent(sensitivity <- surv_design$get_sensitivity())
-  expect_conf <- (sum(test_ref$establish_pr*sensitivity)/
+  expect_sys_sens <- (sum(test_ref$establish_pr*sensitivity)/
                     sum(test_ref$establish_pr))
-  expect_silent(confidence <- surv_design$get_confidence())
-  expect_equal(confidence, expect_conf)
-  rand_alloc_conf <- c()
+  expect_silent(system_sens <- surv_design$get_system_sens())
+  expect_equal(system_sens, expect_sys_sens)
+  rand_alloc_sys_sens <- c()
   for (i in 1:10) {
     idx <- sample(divisions$get_parts(), 20)
     exist_alloc <- rep(0, divisions$get_parts())
@@ -142,9 +142,9 @@ test_that("allocates effectively with near optimal detection confidence", {
       prevalence = test_ref$prevalence,
       optimal = "none",
       exist_alloc = exist_alloc)
-    rand_alloc_conf <- c(rand_alloc_conf, surv_design$get_confidence())
+    rand_alloc_sys_sens <- c(rand_alloc_sys_sens, surv_design$get_system_sens())
   }
-  expect_true(confidence >= max(rand_alloc_conf))
+  expect_true(system_sens >= max(rand_alloc_sys_sens))
 })
 
 test_that("calculates sensitivity consistently with reference method", {
@@ -164,20 +164,20 @@ test_that("calculates sensitivity consistently with reference method", {
     optimal = "none",
     exist_alloc = exist_alloc))
   expect_silent(sensitivity <- surv_design$get_sensitivity())
-  expect_conf <- (sum(test_ref$establish_pr*sensitivity)/
+  expect_sys_sens <- (sum(test_ref$establish_pr*sensitivity)/
                     sum(test_ref$establish_pr))
   missing_idx <- which(test_ref$calc_sens == 0 & sensitivity > 0)
   expect_true((sum(round(sensitivity[-missing_idx], 3) ==
                      round(test_ref$calc_sens[-missing_idx], 3))/
                  (divisions$get_parts() - length(missing_idx))) > 0.95)
-  expect_silent(confidence <- surv_design$get_confidence())
-  expect_equal(confidence, expect_conf)
-  expect_true(abs(test_ref$calc_conf - confidence)/test_ref$calc_conf < 0.05)
-  expect_conf <- 1 - (1 - expect_conf)^(1.1^(0:4))
-  expect_silent(confidence <- surv_design$get_confidence(growth = 1.1^(0:4)))
-  expect_equal(confidence, expect_conf)
-  expect_true(all(abs(test_ref$calc_conf_growth - confidence)/
-                    test_ref$calc_conf_growth < 0.05))
+  expect_silent(system_sens <- surv_design$get_system_sens())
+  expect_equal(round(system_sens, 6), round(expect_sys_sens, 6))
+  expect_true(abs(test_ref$calc_sys_sens - system_sens)/test_ref$calc_sys_sens < 0.05)
+  expect_sys_sens <- 1 - (1 - expect_sys_sens)^(1.1^(0:4))
+  expect_silent(system_sens <- surv_design$get_system_sens(growth = 1.1^(0:4)))
+  expect_equal(system_sens, expect_sys_sens)
+  expect_true(all(abs(test_ref$calc_sys_sens_growth - system_sens)/
+                    test_ref$calc_sys_sens_growth < 0.05))
 })
 
 test_that("facilitates existing allocations and sensitivities", {

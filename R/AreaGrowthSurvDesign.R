@@ -59,8 +59,8 @@
 #'       specified strategy, utilizing costs and budget constraints.}
 #'     \item{\code{get_sensitivity()}}{Get the sub-region detection
 #'       sensitivities of the allocated surveillance design.}
-#'     \item{\code{get_confidence(growth = NULL)}}{Get the overall system
-#'       sensitivity or detection confidence of the allocated surveillance
+#'     \item{\code{get_system_sens(growth = NULL)}}{Get the overall system
+#'       sensitivity or detection probability of the allocated surveillance
 #'       design. The optional \code{growth} parameter may provide a vector of
 #'       relative increasing multipliers (e.g. 1, 1.8, 4.3, 7.5) applied to the
 #'       sampling design density implied by the method over time or a sequence
@@ -436,8 +436,8 @@ AreaGrowthSurvDesign.Context <- function(context,
     return(sensitivity)
   }
 
-  # Get the overall system sensitivity or detection confidence of the design
-  self$get_confidence <- function(growth = NULL) {
+  # Get the overall system sensitivity or detection probability of the design
+  self$get_system_sens <- function(growth = NULL) {
 
     # Set single growth when not specified
     if (!is.numeric(growth)) {
@@ -476,7 +476,7 @@ AreaGrowthSurvDesign.Context <- function(context,
     summary_data <- data.frame(cbind(
       t(colSums(design_data[,c("alloc_number", "survey_cost", "damage_cost",
                              "penalty_cost", "total_cost")])),
-      system_sensitivity = self$get_confidence()))
+      system_sens = self$get_system_sens()))
     names(summary_data)[1:4] <- paste0("total_", names(summary_data)[1:4])
     write.csv(summary_data, file = "summary.csv", row.names = FALSE)
 

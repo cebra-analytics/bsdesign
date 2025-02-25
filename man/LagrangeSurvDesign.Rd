@@ -17,7 +17,7 @@ LagrangeSurvDesign(
   f_unit_sens,
   f_inv_unit_sens,
   budget = NULL,
-  confidence = NULL,
+  system_sens = NULL,
   min_alloc = NULL,
   search_alpha = FALSE,
   ...
@@ -35,7 +35,7 @@ LagrangeSurvDesign(
   f_unit_sens,
   f_inv_unit_sens,
   budget = NULL,
-  confidence = NULL,
+  system_sens = NULL,
   min_alloc = NULL,
   search_alpha = FALSE,
   ...
@@ -73,7 +73,7 @@ category, etc.) specified by \code{divisions}.}
 
 \item{alpha_unconstr}{The marginal benefit value to utilize when the search
 for the optimal resource allocation is not constrained via a \code{budget}
-or a desired \code{confidence}.}
+or a desired system sensitivity (\code{system_sens}).}
 
 \item{alpha_min}{The minimum marginal benefit value to utilize when
 searching for the optimal resource allocation.}
@@ -93,8 +93,9 @@ specified by \code{divisions}.}
 \item{budget}{The cost budget or constraint for the resource allocation in
 the surveillance design. Default is \code{NULL}.}
 
-\item{confidence}{The desired (minimum) system sensitivity or detection
-confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
+\item{system_sens}{The desired (minimum) system sensitivity or detection
+probability of the surveillance design (e.g. 0.95). Default is
+\code{NULL}.}
 
 \item{min_alloc}{A vector of minimum permissible allocated surveillance
 resource quantities at each division part (location, category, etc.)
@@ -103,7 +104,7 @@ quantities. Default is \code{NULL}.}
 
 \item{search_alpha}{A logical indicator to search for the optimal resource
 allocation, even when it is not constrained (via \code{budget} or
-\code{confidence}), such as when fixed costs are present. Default is
+\code{system_sens}), such as when fixed costs are present. Default is
 \code{FALSE} indicates that search only occurs when constrained.}
 
 \item{...}{Additional parameters.}
@@ -114,7 +115,8 @@ for allocating resource costs:
 \describe{
 \item{\code{get_cost_allocation()}}{Get allocated surveillance resources
 (costs) via Lagrange-based method, utilizing costs, benefits, budget
-constraints, and/or desired detection confidence level.}
+constraints, and/or desired system sensitivity or detection
+probability.}
 }
 }
 \description{
@@ -123,7 +125,7 @@ the effective allocation of surveillance resources across one or more
 divisions (parts, locations, categories, etc.) via Lagrange-based methods
 for optimizing objective functions specified with surveillance and/or
 incursion management costs, benefits, detection sensitivities, and/or
-overall detection confidence.
+overall system-wide sensitivity or detection probability.
 }
 \references{
 Cannon, R. M. (2009). Inspecting and monitoring on a restricted budget -

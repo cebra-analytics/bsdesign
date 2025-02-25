@@ -11,12 +11,12 @@
 #'   species was detected/sighted at previous intervals. Default is
 #'   \code{FALSE} implying nothing detected.
 #' @param pr_detect The probability of detecting the invasive species given its
-#'   presence. Also known as system sensitivity or detection confidence for
-#'   a surveillance system. Default is \code{NULL} implying only detection
-#'   records are available. Temporally changing values may be provided by a
-#'   numeric vector, the length of which should be sufficient for the expected
-#'   number of \code{iterations}, given the specified stopping criteria, else
-#'   the last value of the vector is repeated.
+#'   presence. Also known as system sensitivity for surveillance systems.
+#'   Default is \code{NULL} implying only detection records are available.
+#'   Temporally changing values may be provided by a numeric vector, the length
+#'   of which should be sufficient for the expected number of
+#'   \code{iterations}, given the specified stopping criteria, else the last
+#'   value of the vector is repeated.
 #' @param pr_persist The probability that the invasive species persists at each
 #'   time interval (specified by the \code{time_unit} parameter in the
 #'   \code{context}). Default is \code{1} implies that the invasive species
@@ -26,7 +26,7 @@
 #'   numeric vector, the length of which should be sufficient for the expected
 #'   number of \code{iterations}, given the specified stopping criteria, else
 #'   the last value of the vector is repeated.
-#' @param pr_freedom The prior probability of invasive species freedom or
+#' @param prior_freedom The prior probability of invasive species freedom or
 #'   absence used in the first iteration of the Bayesian process. Values are
 #'   typically estimated via expert elicitation. Default is \code{0.5} for an
 #'   uninformed prior.
@@ -39,9 +39,9 @@
 #' @param iterations The number of time intervals (specified by the
 #'   \code{time_unit} parameter in the \code{context}), or sequential
 #'   surveillance system applications, used to estimate the likelihood of area
-#'   freedom. Default is \code{NULL} implying \code{confidence} will be
-#'   utilized as a stopping mechanism.
-#' @param confidence The target confidence level (e.g. 0.95) in area freedom,
+#'   freedom. Default is \code{NULL} implying probability of freedom
+#'   \code{target_freedom} will be utilized as a stopping mechanism.
+#' @param target_freedom The target probability of area freedom (e.g. 0.95),
 #'   or the probability of freedom (absence) given a sequence of no detection
 #'   via a surveillance system. Default is \code{NULL} implying that the
 #'   \code{iterations} parameter will be utilized as a stopping mechanism.
@@ -51,16 +51,17 @@
 #'   class to provide evidence for area freedom, given detection records,
 #'   over a number of iterations, via Bayesian approaches:
 #'   \describe{
-#'     \item{\code{get_evidence()}}{Get a sequence of values of confidence in
+#'     \item{\code{get_evidence()}}{Get a sequence of values of probability of
 #'       area freedom, or probability of absence given no detection of an
 #'       invasive species, for each iteration or time interval specified, or
-#'       for the iterations required to satisfy the target \code{confidence}.}
+#'       for the iterations required to satisfy the target probability of
+#'       freedom (\code{target_freedom}).}
 #'     \item{\code{get_iterations()}}{Get the number of time intervals, or
 #'       sequential surveillance system applications, used to provide evidence
 #'       for area freedom. The value returned will be either the specified
 #'       \code{iterations} parameter, or the iterations recorded when the
-#'       specified target \code{confidence} level for absence given no
-#'       detection is reached.}
+#'       specified target probability of freedom (\code{target_freedom}), or
+#'       probability of absence given no detection, is reached.}
 #'     \item{\code{save_design()}}{Save the area freedom design as a
 #'       comma-separated value (CSV) file containing iterative evidence for
 #'       area freedom.}
@@ -103,10 +104,10 @@ BayesianFreedomDesign <- function(context,
                                   detected = FALSE,
                                   pr_detect = NULL,
                                   pr_persist = 1,
-                                  pr_freedom = 0.5,
+                                  prior_freedom = 0.5,
                                   pr_intro = 0,
                                   iterations = NULL,
-                                  confidence = NULL, ...) {
+                                  target_freedom = NULL, ...) {
   UseMethod("BayesianFreedomDesign")
 }
 
@@ -116,10 +117,10 @@ BayesianFreedomDesign.Context <- function(context,
                                           detected = FALSE,
                                           pr_detect = NULL,
                                           pr_persist = 1,
-                                          pr_freedom = 0.5,
+                                          prior_freedom = 0.5,
                                           pr_intro = 0,
                                           iterations = NULL,
-                                          confidence = NULL, ...) {
+                                          target_freedom = NULL, ...) {
 
   # Build via base class (for checks)
   self <- AreaFreedomDesign(context = context,
@@ -133,8 +134,8 @@ BayesianFreedomDesign.Context <- function(context,
   detected <- as.logical(detected)
 
   # Check class parameters
-  if (!is.null(pr_freedom) &&
-      (!is.numeric(pr_freedom) || pr_freedom < 0 || pr_freedom > 1)) {
+  if (!is.null(prior_freedom) &&
+      (!is.numeric(prior_freedom) || prior_freedom < 0 || prior_freedom > 1)) {
     stop(paste("The prior probability of freedom parameter must be numeric,",
                ">= 0, and <= 1."), call. = FALSE)
   }
@@ -143,82 +144,83 @@ BayesianFreedomDesign.Context <- function(context,
     stop(paste("The probability of introduction parameter must be numeric,",
                ">= 0, and <= 1."), call. = FALSE)
   }
-  if (!is.null(confidence) &&
-      (!is.numeric(confidence) || confidence < 0 || confidence > 1)) {
-    stop(paste("The confidence of freedom parameter must be numeric, >= 0,",
-               "and <= 1."), call. = FALSE)
+  if (!is.null(target_freedom) &&
+      (!is.numeric(target_freedom) || target_freedom < 0 ||
+       target_freedom > 1)) {
+    stop(paste("The target probability of freedom parameter must be numeric,",
+               ">= 0, and <= 1."), call. = FALSE)
   }
 
-  # Get a sequence of evidence values for the confidence in area freedom, or
-  # the probability of freedom (absence) given a sequence of non detection
-  conf_freedom <- NULL
+  # Get a sequence of evidence values for the probability of area freedom, or
+  # the probability of absence given a sequence of non detection
+  pr_freedom <- NULL
   self$get_evidence <- function() {
 
     # Any invasive species previously detected?
     if (any(detected)) {
       n_pres <- length(which(detected))
       time_n <- which(detected)[n_pres]
-      conf_freedom <<- rep(0, time_n)
+      pr_freedom <<- rep(0, time_n)
     }
 
-    # Calculate the confidence in area freedom for iterations or when target
-    # confidence is met
+    # Calculate the probability of freedom area freedom for iterations or when
+    # target probability of freedom is met
     if (is.numeric(pr_detect) || any(detected)) {
-      prior_freedom <- pr_freedom
-      while ((is.numeric(iterations) && is.numeric(confidence) &&
-              length(conf_freedom) < iterations &&
-              (length(conf_freedom) == 0 ||
-              conf_freedom[length(conf_freedom)] < confidence)) ||
-             (is.numeric(iterations) && is.null(confidence) &&
-              length(conf_freedom) < iterations) ||
-             (is.null(iterations) && is.numeric(confidence) &&
-              (length(conf_freedom) == 0 ||
-               conf_freedom[length(conf_freedom)] < confidence)) ||
-             (is.null(iterations) && is.null(confidence) && any(detected) &&
-              length(conf_freedom) < length(detected))) {
+      prior_freedom_i <- prior_freedom
+      while ((is.numeric(iterations) && is.numeric(target_freedom) &&
+              length(pr_freedom) < iterations &&
+              (length(pr_freedom) == 0 ||
+              pr_freedom[length(pr_freedom)] < target_freedom)) ||
+             (is.numeric(iterations) && is.null(target_freedom) &&
+              length(pr_freedom) < iterations) ||
+             (is.null(iterations) && is.numeric(target_freedom) &&
+              (length(pr_freedom) == 0 ||
+               pr_freedom[length(pr_freedom)] < target_freedom)) ||
+             (is.null(iterations) && is.null(target_freedom) && any(detected) &&
+              length(pr_freedom) < length(detected))) {
 
         # Use probability of detection when present, else use detection record
         if (is.numeric(pr_detect)) {
-          if (length(pr_detect) >= length(conf_freedom) + 1) {
-            pr_detect_i <- pr_detect[length(conf_freedom) + 1]
+          if (length(pr_detect) >= length(pr_freedom) + 1) {
+            pr_detect_i <- pr_detect[length(pr_freedom) + 1]
           } else {
             pr_detect_i <- pr_detect[length(pr_detect)]
           }
-          if (length(pr_persist) >= length(conf_freedom) + 1) {
-            pr_persist_i <- pr_persist[length(conf_freedom) + 1]
+          if (length(pr_persist) >= length(pr_freedom) + 1) {
+            pr_persist_i <- pr_persist[length(pr_freedom) + 1]
           } else {
             pr_persist_i <- pr_persist[length(pr_persist)]
           }
-          conf_freedom <<- c(conf_freedom,
-                             (prior_freedom/
+          pr_freedom <<- c(pr_freedom,
+                             (prior_freedom_i/
                                 (pr_persist_i*(1 - pr_detect_i)*
-                                   (1 - prior_freedom) + prior_freedom)))
-          prior_freedom <- conf_freedom[length(conf_freedom)]*(1 - pr_intro)
+                                   (1 - prior_freedom_i) + prior_freedom_i)))
+          prior_freedom_i <- pr_freedom[length(pr_freedom)]*(1 - pr_intro)
         } else if (any(detected)) {
           Bayes_factor <- ((n_pres - 1)/
-                             (((length(conf_freedom) + 1)/
+                             (((length(pr_freedom) + 1)/
                                  time_n)^(n_pres - 1) - 1))
-          conf_freedom <<- c(conf_freedom,
-                             1 - 1/(1 + (prior_freedom/
-                                           ((1 - prior_freedom)*
+          pr_freedom <<- c(pr_freedom,
+                             1 - 1/(1 + (prior_freedom_i/
+                                           ((1 - prior_freedom_i)*
                                               Bayes_factor))))
         }
       }
     }
 
     # Attach a descriptive attribute
-    if (is.numeric(conf_freedom)) {
-      attr(conf_freedom, "evidence") <- "Pr(freedom|undetected)"
+    if (is.numeric(pr_freedom)) {
+      attr(pr_freedom, "evidence") <- "Pr(freedom|undetected)"
     }
 
-    return(conf_freedom)
+    return(pr_freedom)
   }
 
   # Get the number of time intervals or surveillance system sequences
   self$get_iterations <- function() {
     n_iter <- NULL
-    if (length(conf_freedom)) {
-      n_iter <- length(conf_freedom)
+    if (length(pr_freedom)) {
+      n_iter <- length(pr_freedom)
     }
     return(n_iter)
   }
@@ -229,12 +231,12 @@ BayesianFreedomDesign.Context <- function(context,
     # Save evidence
     evidence <- NULL
     n_iter <- self$get_iterations()
-    conf_freedom <- self$get_evidence()
-    if (is.numeric(n_iter) && !is.null(conf_freedom)) {
+    pr_freedom <- self$get_evidence()
+    if (is.numeric(n_iter) && !is.null(pr_freedom)) {
       evidence <- data.frame(iterations = 1:n_iter,
-                             confidence = conf_freedom)
+                             pr_freedom = pr_freedom)
     }
-    write.csv(evidence, file = "confidence.csv", row.names = FALSE)
+    write.csv(evidence, file = "evidence.csv", row.names = FALSE)
 
     return(evidence)
   }

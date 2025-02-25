@@ -15,7 +15,7 @@ RangeKernelSurvDesign(
   prevalence = 1,
   optimal = c("detection", "none"),
   budget = NULL,
-  confidence = NULL,
+  system_sens = NULL,
   exist_alloc = NULL,
   exist_sens = NULL,
   ...
@@ -31,7 +31,7 @@ RangeKernelSurvDesign(
   prevalence = 1,
   optimal = c("detection", "none"),
   budget = NULL,
-  confidence = NULL,
+  system_sens = NULL,
   exist_alloc = NULL,
   exist_sens = NULL,
   ...
@@ -77,15 +77,17 @@ to population growth over time.}
 
 \item{optimal}{The strategy used for finding an effective surveillance
 resource allocation. Either (maximum) \code{"detection"} sensitivity (up
-to \code{"confidence"} level when specified), or \code{"none"} for
-representing existing surveillance designs only.}
+to a desire system-wide sensitivity (\code{"system_sens"}) when
+specified), or \code{"none"} for representing existing surveillance
+designs only.}
 
 \item{budget}{The budget or constraint for the number of surveillance
 resource units or devices available for allocation in the surveillance
 design. Default is \code{NULL}.}
 
-\item{confidence}{The desired (minimum) system sensitivity or detection
-confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
+\item{system_sens}{The desired (minimum) system sensitivity or detection
+probability of the surveillance design (e.g. 0.95). Default is
+\code{NULL}.}
 
 \item{exist_alloc}{A vector of existing surveillance resource quantities at
 each spatial location specified by \code{divisions}, or a data frame
@@ -111,14 +113,14 @@ detection sensitivities:
 \item{\code{get_divisions()}}{Get divisions object.}
 \item{\code{get_allocation(coords = FALSE)}}{Get allocated resources via
 specified strategy, utilizing costs, benefits, budget constraints,
-and/or desired detection confidence level. Returns resources at each
-location when \code{coords = FALSE} (default), or resource location
-coordinates in longitude and latitude (WGS84) when
+and/or desired system sensitivity or detection probability. Returns
+resources at each location when \code{coords = FALSE} (default), or
+resource location coordinates in longitude and latitude (WGS84) when
 \code{coords = TRUE}.}
 \item{\code{get_sensitivity()}}{Get the location detection sensitivities
 of the allocated surveillance design.}
-\item{\code{get_confidence(growth = NULL)}}{Get the overall system
-sensitivity or detection confidence of the allocated surveillance
+\item{\code{get_system_sens(growth = NULL)}}{Get the overall system
+sensitivity or detection probability of the allocated surveillance
 design. The optional \code{growth} parameter may provide a vector of
 relative increasing multipliers (e.g. 1, 1.8, 4.3, 7.5) applied to the
 cell-level design \code{prevalence} over time or a sequence of
@@ -129,8 +131,8 @@ returned for each multiplier or time/repeat.}
 collection of raster TIF and comma-separated value (CSV) files,
 including the surveillance \code{allocation} cells (TIF) and
 coordinates (CSV), \code{sensitivity} (TIF), and a \code{summary}
-(CSV) of the total allocation and the detection confidence (system
-sensitivity). \code{Terra} raster write options may be passed to the
+(CSV) of the total allocation and the system sensitivity or detection
+probability. \code{Terra} raster write options may be passed to the
 function for saving grid-based designs.}
 \item{\code{set_cores(cores)}}{Set the number of cores available for
 parallel processing and thus enable parallel processing for
@@ -142,7 +144,7 @@ Builds a class to represent surveillance design functionality for the
 effective allocation of surveillance resources that are each decreasingly
 effective across a spatial range, modeled via an exponential decay kernel,
 and specified with a surveillance resource budget and/or an overall desired
-detection confidence.
+system-wide sensitivity or detection probability.
 }
 \references{
 Anderson, D. P., Ramsey, D. S. L., Nugent, G., Bosson, M., Livingstone,

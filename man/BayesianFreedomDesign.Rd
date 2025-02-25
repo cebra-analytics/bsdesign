@@ -10,10 +10,10 @@ BayesianFreedomDesign(
   detected = FALSE,
   pr_detect = NULL,
   pr_persist = 1,
-  pr_freedom = 0.5,
+  prior_freedom = 0.5,
   pr_intro = 0,
   iterations = NULL,
-  confidence = NULL,
+  target_freedom = NULL,
   ...
 )
 
@@ -22,10 +22,10 @@ BayesianFreedomDesign(
   detected = FALSE,
   pr_detect = NULL,
   pr_persist = 1,
-  pr_freedom = 0.5,
+  prior_freedom = 0.5,
   pr_intro = 0,
   iterations = NULL,
-  confidence = NULL,
+  target_freedom = NULL,
   ...
 )
 }
@@ -38,12 +38,12 @@ species was detected/sighted at previous intervals. Default is
 \code{FALSE} implying nothing detected.}
 
 \item{pr_detect}{The probability of detecting the invasive species given its
-presence. Also known as system sensitivity or detection confidence for
-a surveillance system. Default is \code{NULL} implying only detection
-records are available. Temporally changing values may be provided by a
-numeric vector, the length of which should be sufficient for the expected
-number of \code{iterations}, given the specified stopping criteria, else
-the last value of the vector is repeated.}
+presence. Also known as system sensitivity for surveillance systems.
+Default is \code{NULL} implying only detection records are available.
+Temporally changing values may be provided by a numeric vector, the length
+of which should be sufficient for the expected number of
+\code{iterations}, given the specified stopping criteria, else the last
+value of the vector is repeated.}
 
 \item{pr_persist}{The probability that the invasive species persists at each
 time interval (specified by the \code{time_unit} parameter in the
@@ -55,7 +55,7 @@ numeric vector, the length of which should be sufficient for the expected
 number of \code{iterations}, given the specified stopping criteria, else
 the last value of the vector is repeated.}
 
-\item{pr_freedom}{The prior probability of invasive species freedom or
+\item{prior_freedom}{The prior probability of invasive species freedom or
 absence used in the first iteration of the Bayesian process. Values are
 typically estimated via expert elicitation. Default is \code{0.5} for an
 uninformed prior.}
@@ -70,10 +70,10 @@ when \code{pr_detect} is given.}
 \item{iterations}{The number of time intervals (specified by the
 \code{time_unit} parameter in the \code{context}), or sequential
 surveillance system applications, used to estimate the likelihood of area
-freedom. Default is \code{NULL} implying \code{confidence} will be
-utilized as a stopping mechanism.}
+freedom. Default is \code{NULL} implying probability of freedom
+\code{target_freedom} will be utilized as a stopping mechanism.}
 
-\item{confidence}{The target confidence level (e.g. 0.95) in area freedom,
+\item{target_freedom}{The target probability of area freedom (e.g. 0.95),
 or the probability of freedom (absence) given a sequence of no detection
 via a surveillance system. Default is \code{NULL} implying that the
 \code{iterations} parameter will be utilized as a stopping mechanism.}
@@ -86,16 +86,17 @@ inherited and extended functions from the base \code{AreaFreedomDesign}
 class to provide evidence for area freedom, given detection records,
 over a number of iterations, via Bayesian approaches:
 \describe{
-\item{\code{get_evidence()}}{Get a sequence of values of confidence in
+\item{\code{get_evidence()}}{Get a sequence of values of probability of
 area freedom, or probability of absence given no detection of an
 invasive species, for each iteration or time interval specified, or
-for the iterations required to satisfy the target \code{confidence}.}
+for the iterations required to satisfy the target probability of
+freedom (\code{target_freedom}).}
 \item{\code{get_iterations()}}{Get the number of time intervals, or
 sequential surveillance system applications, used to provide evidence
 for area freedom. The value returned will be either the specified
 \code{iterations} parameter, or the iterations recorded when the
-specified target \code{confidence} level for absence given no
-detection is reached.}
+specified target probability of freedom (\code{target_freedom}), or
+probability of absence given no detection, is reached.}
 \item{\code{save_design()}}{Save the area freedom design as a
 comma-separated value (CSV) file containing iterative evidence for
 area freedom.}

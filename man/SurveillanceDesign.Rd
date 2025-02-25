@@ -9,13 +9,13 @@ SurveillanceDesign(
   context,
   divisions,
   establish_pr = NULL,
-  optimal = c("cost", "saving", "benefit", "detection", "none"),
+  optimal = c("cost", "saving", "benefit", "detections", "sensitivity", "none"),
   mgmt_cost = list(),
   benefit = NULL,
   alloc_cost = NULL,
   fixed_cost = NULL,
   budget = NULL,
-  confidence = NULL,
+  system_sens = NULL,
   min_alloc = NULL,
   discrete_alloc = FALSE,
   exist_alloc = NULL,
@@ -28,13 +28,13 @@ SurveillanceDesign(
   context,
   divisions,
   establish_pr = NULL,
-  optimal = c("cost", "saving", "benefit", "detection", "none"),
+  optimal = c("cost", "saving", "benefit", "detections", "sensitivity", "none"),
   mgmt_cost = list(),
   benefit = NULL,
   alloc_cost = NULL,
   fixed_cost = NULL,
   budget = NULL,
-  confidence = NULL,
+  system_sens = NULL,
   min_alloc = NULL,
   discrete_alloc = FALSE,
   exist_alloc = NULL,
@@ -60,9 +60,9 @@ an attribute \code{relative = TRUE} is attached to the parameter.}
 \item{optimal}{The strategy used for finding an effective surveillance
 resource allocation. One of (minimum) \code{"cost"}, (maximum)
 \code{"saving"} (or cost-dependent benefit), (maximum) \code{"benefit"}
-(independent of surveillance costs), or (maximum) \code{"detection"}
-sensitivity, or \code{"none"} for representing existing
-surveillance designs only.}
+(independent of surveillance costs), (maximum) number of
+\code{"detections"}, (maximum) overall system-wide \code{"sensitivity"}
+or \code{"none"} for representing existing surveillance designs only.}
 
 \item{mgmt_cost}{A list of vectors to represent management costs specific to
 the method implemented in the inherited class. Each vector specifies costs
@@ -93,8 +93,9 @@ consistent with \code{alloc_cost} when specified. Otherwise the units
 should be consistent with the \code{surv_qty_unit} parameter specified in
 the \code{context}.}
 
-\item{confidence}{The desired (minimum) system sensitivity or detection
-confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.}
+\item{system_sens}{The desired (minimum) system sensitivity or detection
+probability of the surveillance design (e.g. 0.95). Default is
+\code{NULL}.}
 
 \item{min_alloc}{A vector of minimum permissible allocated surveillance
 resource quantities at each division part (location, category, etc.)
@@ -128,12 +129,12 @@ sensitivities:
 \item{\code{get_divisions()}}{Get divisions object.}
 \item{\code{get_allocation()}}{Get allocated resources via specified
 strategy, utilizing costs, benefits, budget constraints, and/or
-desired detection confidence level.}
+desired system sensitivity or detection probability.}
 \item{\code{get_sensitivity()}}{Get the division part detection
 sensitivities of the allocated surveillance design combined with any
 existing sensitivities specified via \code{exist_sens}.}
-\item{\code{get_confidence(growth = NULL)}}{Get the overall system
-sensitivity or detection confidence of the surveillance design. The
+\item{\code{get_system_sens(growth = NULL)}}{Get the overall system
+sensitivity or detection probability of the surveillance design. The
 optional \code{growth} parameter may provide a vector of relative
 increasing multipliers (e.g. 1, 1.8, 4.3, 7.5) applied to the
 prevalence or density of the design over time or a sequence of
@@ -144,8 +145,8 @@ returned for each multiplier or time/repeat.}
 collection of raster TIF and/or comma-separated value (CSV) files,
 appropriate for the \code{divisions} type, including the surveillance
 \code{allocation}, \code{sensitivity}, and a \code{summary} (CSV) of
-the total allocation, total costs (when applicable), and the
-detection confidence (system sensitivity). \code{Terra} raster write
+the total allocation, total costs (when applicable), and the overall
+system sensitivity or detection probability. \code{Terra} raster write
 options may be passed to the function for saving grid-based designs.}
 }
 }
@@ -154,7 +155,7 @@ Builds a base class to represent surveillance design functionality for the
 effective allocation of surveillance resources across one or more divisions
 (parts, locations, categories, etc.) via methods that utilize surveillance
 and/or incursion management costs, benefits, detection sensitivities,
-and/or overall detection confidence.
+and/or an overall desired system-wide sensitivity or detection probability.
 }
 \references{
 Cannon, R. M. (2009). Inspecting and monitoring on a restricted budget -

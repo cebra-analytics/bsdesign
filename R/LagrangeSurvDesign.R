@@ -5,7 +5,7 @@
 #' divisions (parts, locations, categories, etc.) via Lagrange-based methods
 #' for optimizing objective functions specified with surveillance and/or
 #' incursion management costs, benefits, detection sensitivities, and/or
-#' overall detection confidence.
+#' overall system-wide sensitivity or detection probability.
 #'
 #' @param context A \code{Context} or inherited class object representing the
 #'   context of a bio-security surveillance and area freedom design.
@@ -32,7 +32,7 @@
 #'   category, etc.) specified by \code{divisions}.
 #' @param alpha_unconstr The marginal benefit value to utilize when the search
 #'   for the optimal resource allocation is not constrained via a \code{budget}
-#'   or a desired \code{confidence}.
+#'   or a desired system sensitivity (\code{system_sens}).
 #' @param alpha_min The minimum marginal benefit value to utilize when
 #'   searching for the optimal resource allocation.
 #' @param f_unit_sens A function for calculating the unit (division part)
@@ -47,15 +47,16 @@
 #'   specified by \code{divisions}.
 #' @param budget The cost budget or constraint for the resource allocation in
 #'   the surveillance design. Default is \code{NULL}.
-#' @param confidence The desired (minimum) system sensitivity or detection
-#'   confidence of the surveillance design (e.g. 0.95). Default is \code{NULL}.
+#' @param system_sens The desired (minimum) system sensitivity or detection
+#'   probability of the surveillance design (e.g. 0.95). Default is
+#'   \code{NULL}.
 #' @param min_alloc A vector of minimum permissible allocated surveillance
 #'   resource quantities at each division part (location, category, etc.)
 #'   specified by \code{divisions}. Used to avoid impractically low allocation
 #'   quantities. Default is \code{NULL}.
 #' @param search_alpha A logical indicator to search for the optimal resource
 #'   allocation, even when it is not constrained (via \code{budget} or
-#'   \code{confidence}), such as when fixed costs are present. Default is
+#'   \code{system_sens}), such as when fixed costs are present. Default is
 #'   \code{FALSE} indicates that search only occurs when constrained.
 #' @param ... Additional parameters.
 #' @return A \code{LagrangeSurvDesign} class object (list) containing functions
@@ -63,7 +64,8 @@
 #'   \describe{
 #'     \item{\code{get_cost_allocation()}}{Get allocated surveillance resources
 #'       (costs) via Lagrange-based method, utilizing costs, benefits, budget
-#'       constraints, and/or desired detection confidence level.}
+#'       constraints, and/or desired system sensitivity or detection
+#'       probability.}
 #'   }
 #' @references
 #'   Cannon, R. M. (2009). Inspecting and monitoring on a restricted budget -
@@ -96,7 +98,7 @@ LagrangeSurvDesign <- function(context,
                                f_unit_sens,
                                f_inv_unit_sens,
                                budget = NULL,
-                               confidence = NULL,
+                               system_sens = NULL,
                                min_alloc = NULL,
                                search_alpha = FALSE, ...) {
   UseMethod("LagrangeSurvDesign")
@@ -115,7 +117,7 @@ LagrangeSurvDesign.Context <- function(context,
                                        f_unit_sens,
                                        f_inv_unit_sens,
                                        budget = NULL,
-                                       confidence = NULL,
+                                       system_sens = NULL,
                                        min_alloc = NULL,
                                        search_alpha = FALSE, ...) {
 
@@ -172,13 +174,13 @@ LagrangeSurvDesign.Context <- function(context,
                "function(unit_sens)."), call. = FALSE)
   }
 
-  # Check budget, confidence, min_alloc, and search_alpha (indicator)
+  # Check budget, system_sens, min_alloc, and search_alpha (indicator)
   if (!is.null(budget) && (!is.numeric(budget) || budget <= 0)) {
     stop("The budget parameter must be numeric and > 0.", call. = FALSE)
   }
-  if (!is.null(confidence) &&
-      (!is.numeric(confidence) || confidence < 0 || confidence > 1)) {
-    stop("The detection confidence parameter must be numeric, >= 0 and <= 1.",
+  if (!is.null(system_sens) &&
+      (!is.numeric(system_sens) || system_sens < 0 || system_sens > 1)) {
+    stop("The system sensitivity parameter must be numeric, >= 0 and <= 1.",
          call. = FALSE)
   }
   if (!is.null(min_alloc) &&
@@ -204,14 +206,14 @@ LagrangeSurvDesign.Context <- function(context,
   ## given the surveillance resource quantity allocation qty_alloc
   ## where qty_alloc = (x_alloc - fixed_cost)/alloc_cost
 
-  # Optimal cost allocation for alpha value within budget or confidence level
+  # Optimal cost allocation for alpha value within budget or system sensitivity
   allocate <- function(alpha) {
 
     # Generate full allocation
     x_alloc <- f_pos(alpha)
 
-    # Optimal within budget or target confidence
-    if (is.numeric(budget) || is.numeric(confidence)) {
+    # Optimal within budget or target system sensitivity
+    if (is.numeric(budget) || is.numeric(system_sens)) {
 
       # Order by f(f+(a))/f+(a)
       rank_values <- abs(f_obj(x_alloc)/x_alloc)
@@ -234,14 +236,14 @@ LagrangeSurvDesign.Context <- function(context,
         }
       }
 
-      # Optimal up to confidence-level
-      if (is.numeric(confidence)) {
+      # Optimal up to system sensitivity
+      if (is.numeric(system_sens)) {
 
         # Unit sensitivity
         exist_sens <- f_unit_sens(0)
         new_sens <- f_unit_sens(x_alloc)
 
-        # Calculate confidence
+        # Calculate system sensitivity
         if (length(nonzero)) {
           if (relative_establish_pr) {
             cum_conf <- ((sum(establish_pr*exist_sens) +
@@ -260,21 +262,21 @@ LagrangeSurvDesign.Context <- function(context,
           cum_conf <- 0
         }
 
-        # Select allocation up to confidence level
-        over_conf <- which(cum_conf > confidence)
-        idx_w <- idx[nonzero][-over_conf] # within confidence
+        # Select allocation up to system sensitivity
+        over_conf <- which(cum_conf > system_sens)
+        idx_w <- idx[nonzero][-over_conf] # within system_sens
         i_th <- idx[nonzero][over_conf[1]] # at threshold
         idx_o <- c(idx[nonzero][over_conf[-1]], idx[-nonzero]) # over or zero
         if (length(over_conf)) {
           if (relative_establish_pr) {
             th_sens <-
-              (confidence*sum(establish_pr) -
+              (system_sens*sum(establish_pr) -
                  (sum((establish_pr*new_sens)[idx_w]) +
                     sum((establish_pr*exist_sens)[idx_o])))/
               establish_pr[i_th]
           } else {
             th_sens <-
-              (1 - ((1 - confidence*(1 - prod(1 - establish_pr)))/
+              (1 - ((1 - system_sens*(1 - prod(1 - establish_pr)))/
                       (prod((1 - establish_pr*new_sens)[idx_w])*
                          prod((1 - establish_pr*exist_sens)[idx_o]))))/
               establish_pr[i_th]
@@ -283,14 +285,14 @@ LagrangeSurvDesign.Context <- function(context,
           x_alloc[idx_o] <- 0
         }
 
-        # Add confidence as an attribute
+        # Add system_sens as an attribute
         if (relative_establish_pr) {
           conf <- (sum(establish_pr*f_unit_sens(x_alloc))/sum(establish_pr))
         } else {
           conf <- ((1 - prod(1 - establish_pr*f_unit_sens(x_alloc)))/
                      (1 - prod(1 - establish_pr)))
         }
-        attr(x_alloc, "confidence") <- conf
+        attr(x_alloc, "system_sens") <- conf
       }
     }
 
@@ -310,7 +312,7 @@ LagrangeSurvDesign.Context <- function(context,
     best_alpha <- alpha_unconstr
 
     # Search for minimum objective via marginal benefit (alpha) values
-    if (is.numeric(budget) || is.numeric(confidence) || search_alpha) {
+    if (is.numeric(budget) || is.numeric(system_sens) || search_alpha) {
       interval <- (0:100)/100*alpha_min
       alpha_range <- range(interval)[2] - range(interval)[1]
       precision <- 8 # for alpha
@@ -320,11 +322,11 @@ LagrangeSurvDesign.Context <- function(context,
         alloc <- as.data.frame(t(sapply(interval[-1], function(a) {
           alloc <- allocate(a)
           c(obj = sum(f_obj(alloc)), total = attr(alloc, "total"),
-            confidence = attr(alloc, "confidence"))})))
+            system_sens = attr(alloc, "system_sens"))})))
 
         # Choose alpha corresponding to the last repeated minimum objective
-        if (is.numeric(confidence) && max(alloc$confidence) >= confidence) {
-          idx <- which(alloc$confidence >= confidence)
+        if (is.numeric(system_sens) && max(alloc$system_sens) >= system_sens) {
+          idx <- which(alloc$system_sens >= system_sens)
           idx <- idx[which(alloc$total[idx] <= min(alloc$total[idx]))]
           if (min(alloc$obj) < 0) {
             i <- max(idx[which(alloc$obj[idx] <=

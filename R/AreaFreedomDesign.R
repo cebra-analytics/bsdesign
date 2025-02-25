@@ -11,12 +11,12 @@
 #'   species was detected/sighted at previous intervals. Default is
 #'   \code{FALSE} implying nothing detected.
 #' @param pr_detect The probability of detecting the invasive species given its
-#'   presence. Also known as system sensitivity or detection confidence for
-#'   surveillance systems. Default is \code{NULL} implying only detection
-#'   records are available. Temporally changing values may be provided by a
-#'   numeric vector, the length of which should be sufficient for the expected
-#'   number of \code{iterations}, given the specified stopping criteria, else
-#'   the last value of the vector is repeated.
+#'   presence. Also known as system sensitivity for surveillance systems.
+#'   Default is \code{NULL} implying only detection records are available.
+#'   Temporally changing values may be provided by a numeric vector, the length
+#'   of which should be sufficient for the expected number of
+#'   \code{iterations}, given the specified stopping criteria, else the last
+#'   value of the vector is repeated.
 #' @param pr_persist The probability that the invasive species persists at each
 #'   time interval (specified by the \code{time_unit} parameter in the
 #'   \code{context}). Default is \code{1} implies that the invasive species
@@ -30,12 +30,12 @@
 #'   surveillance system applications, used to estimate the likelihood
 #'   of area freedom. Default is \code{NULL} implying another stopping
 #'   mechanism is utilized, such as a threshold probability or target
-#'   confidence in freedom (see inherited classes).
+#'   probability of freedom (see inherited classes).
 #' @param ... Additional parameters.
 #' @return A \code{AreaFreedomDesign} base class object (list) containing
 #'   functions to provide evidence for area freedom, given detection records,
 #'   over a number of iterations, including the likelihood an invasive species
-#'   evades detection (for hypothesis testing), or the confidence in freedom
+#'   evades detection (for hypothesis testing), or the probability of freedom
 #'   (obtained via Bayesian approaches). The following template functions are
 #'   provided in the base class:
 #'   \describe{
@@ -48,7 +48,7 @@
 #'       of area freedom. The value returned will be either the specified
 #'       \code{iterations} parameter, or the iterations recorded when a
 #'       specified stopping criteria for the freedom evidence has been
-#'       satisfied, such as a threshold probability or target confidence in
+#'       satisfied, such as a threshold probability or target probability of
 #'       freedom (see inherited classes).}
 #'     \item{\code{save_design()}}{Save the area freedom design as a
 #'       comma-separated value (CSV) file containing iterative evidence for
