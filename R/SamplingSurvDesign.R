@@ -445,6 +445,7 @@ SamplingSurvDesign.Context <- function(context,
                       values[idx])^(1/(prevalence[idx]*total_indiv[idx] - 1))))
            )
         idx <- which(values > 0)
+        values[-idx] <- 0
         values[idx] <- (pmax(min_alloc[idx]*sample_cost[idx], values[idx]) +
                           fixed_cost[idx])
         values[idx] <- pmin(values[idx],
@@ -469,6 +470,7 @@ SamplingSurvDesign.Context <- function(context,
                   log(1/establish_pr[idx] - 1) +
                   log(1 - exist_sens[idx]))), 0)
           idx <- which(values > 0)
+          values[-idx] <- 0
           values[idx] <- (pmax(min_alloc[idx]*sample_cost[idx], values[idx]) +
                             fixed_cost[idx])
         } else {

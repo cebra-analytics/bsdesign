@@ -412,7 +412,7 @@ test_that("allocates discrete integer allocations", {
     budget = test_ref$budget$ind_95,
     discrete_alloc = TRUE))
   expect_silent(alloc2 <- surv_design$get_allocation())
-  expect_true(all(alloc1 != alloc2))
+  expect_true(sum(alloc1 != alloc2) > 3)
   expect_equal(sum(alloc2), test_ref$budget$ind_95)
   expect_equal(surv_design$get_sensitivity(),
                1 - ((1 - 1*alloc2/total_indiv)

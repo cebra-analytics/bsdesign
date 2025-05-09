@@ -243,7 +243,7 @@ LagrangeSurvDesign.Context <- function(context,
         exist_sens <- f_unit_sens(0)
         new_sens <- f_unit_sens(x_alloc)
 
-        # Calculate system sensitivity
+        # Calculate cumulative system sensitivity
         if (length(nonzero)) {
           if (relative_establish_pr) {
             cum_conf <- ((sum(establish_pr*exist_sens) +
