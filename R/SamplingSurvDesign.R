@@ -116,9 +116,10 @@
 #'     \item{\code{save_design(...)}}{Save the surveillance design as a
 #'       collection of raster TIF and/or comma-separated value (CSV) files,
 #'       appropriate for the \code{divisions} type, including the surveillance
-#'       \code{allocation}, \code{sensitivity}, and a \code{summary} (CSV) of
-#'       the total allocation, total costs (when applicable), and the overall
-#'       system sensitivity or detection probability. \code{Terra} raster write
+#'       \code{allocation}, \code{sensitivity}, \code{cost} (combined
+#'       allocation and fixed cost), and a \code{summary} (CSV) of the total
+#'       allocation, total costs (when applicable), and the overall system
+#'       sensitivity or detection probability. \code{Terra} raster write
 #'       options may be passed to the function for saving grid-based designs.}
 #'   }
 #' @references
@@ -268,6 +269,10 @@ SamplingSurvDesign.Context <- function(context,
 
   # Match optimal arguments
   optimal <- match.arg(optimal)
+
+  # Output cost?
+  output_cost <- list(sample_cost = is.numeric(sample_cost),
+                      fixed_cost = is.numeric(fixed_cost))
 
   # Resolve sample_sens, prevalence, total_indiv, sample_cost, fixed_cost,
   # min_alloc, and exist_sens
@@ -760,22 +765,37 @@ SamplingSurvDesign.Context <- function(context,
   # Save the surveillance design as a collection of appropriate files
   self$save_design <- function(...) {
 
-    # Save allocation and sensitivity
+    # Save allocation, sensitivity, and cost (when applicable)
+    if (any(unlist(output_cost))) {
+      cost <- (self$get_allocation() > 0)*fixed_cost
+      if (output_cost$sample_cost) {
+        cost <- cost + self$get_allocation()*sample_cost
+      }
+    }
     if (divisions$get_type() == "grid") {
       terra::writeRaster(divisions$get_rast(self$get_allocation()),
                          "allocation.tif", ...)
       terra::writeRaster(divisions$get_rast(self$get_sensitivity()),
                          "sensitivity.tif", ...)
+      if (any(unlist(output_cost))) {
+        terra::writeRaster(divisions$get_rast(cost), "cost.tif", ...)
+      }
     } else if (divisions$get_type() == "patch") {
-      write.csv(cbind(divisions$get_coords(extra_cols = TRUE),
-                      allocation = self$get_allocation(),
-                      sensitivity = self$get_sensitivity()),
-                file = "design.csv", row.names = FALSE)
+      design_df <- cbind(divisions$get_coords(extra_cols = TRUE),
+                         allocation = self$get_allocation(),
+                         sensitivity = self$get_sensitivity())
+      if (any(unlist(output_cost))) {
+        design_df$cost <- round(cost, 2)
+      }
+      write.csv(design_df, file = "design.csv", row.names = FALSE)
     } else if (divisions$get_type() == "other") {
-      write.csv(cbind(divisions$get_data(),
-                      allocation = self$get_allocation(),
-                      sensitivity = self$get_sensitivity()),
-                file = "design.csv", row.names = FALSE)
+      design_df <- cbind(divisions$get_data(),
+                         allocation = self$get_allocation(),
+                         sensitivity = self$get_sensitivity())
+      if (any(unlist(output_cost))) {
+        design_df$cost <- round(cost, 2)
+      }
+      write.csv(design_df, file = "design.csv", row.names = FALSE)
     }
 
     # Save summary
