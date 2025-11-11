@@ -270,7 +270,7 @@ SamplingSurvDesign.Context <- function(context,
   # Match optimal arguments
   optimal <- match.arg(optimal)
 
-  # Output cost?
+  # Output surveillance cost?
   output_cost <- list(sample_cost = is.numeric(sample_cost),
                       fixed_cost = is.numeric(fixed_cost))
 
@@ -778,14 +778,14 @@ SamplingSurvDesign.Context <- function(context,
       terra::writeRaster(divisions$get_rast(self$get_sensitivity()),
                          "sensitivity.tif", ...)
       if (any(unlist(output_cost))) {
-        terra::writeRaster(divisions$get_rast(cost), "cost.tif", ...)
+        terra::writeRaster(divisions$get_rast(cost), "surv_cost.tif", ...)
       }
     } else if (divisions$get_type() == "patch") {
       design_df <- cbind(divisions$get_coords(extra_cols = TRUE),
                          allocation = self$get_allocation(),
                          sensitivity = self$get_sensitivity())
       if (any(unlist(output_cost))) {
-        design_df$cost <- round(cost, 2)
+        design_df$surv_cost <- round(cost, 2)
       }
       write.csv(design_df, file = "design.csv", row.names = FALSE)
     } else if (divisions$get_type() == "other") {
@@ -793,7 +793,7 @@ SamplingSurvDesign.Context <- function(context,
                          allocation = self$get_allocation(),
                          sensitivity = self$get_sensitivity())
       if (any(unlist(output_cost))) {
-        design_df$cost <- round(cost, 2)
+        design_df$surv_cost <- round(cost, 2)
       }
       write.csv(design_df, file = "design.csv", row.names = FALSE)
     }
