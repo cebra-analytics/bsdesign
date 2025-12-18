@@ -84,10 +84,13 @@
 #'     \item{\code{save_design(...)}}{Save the surveillance design as a
 #'       collection of raster TIF and comma-separated value (CSV) files,
 #'       including the surveillance \code{allocation} cells (TIF) and
-#'       coordinates (CSV), \code{sensitivity} (TIF), and a \code{summary}
-#'       (CSV) of the total allocation and the system sensitivity or detection
-#'       probability. \code{Terra} raster write options may be passed to the
-#'       function for saving grid-based designs.}
+#'       coordinates (CSV), the corresponding sensitivity \code{alloc_sens}
+#'       (TIF) when existing sensitivity is included, the overall
+#'       \code{sensitivity} (TIF), and a \code{summary} (CSV) of the total
+#'       allocation, and the overall allocation sensitivity (\code{alloc_sens})
+#'       when applicable, and the system-wide sensitivity (\code{system_sens}).
+#'       \code{Terra} raster write options may be passed to the function for
+#'       saving grid-based designs.}
 #'     \item{\code{set_cores(cores)}}{Set the number of cores available for
 #'       parallel processing and thus enable parallel processing for
 #'       calculating optimal resource allocation.}
@@ -242,6 +245,9 @@ RangeKernelSurvDesign.Context <- function(context,
            call. = FALSE)
     }
 
+    # Total existing allocation
+    total_exist_alloc <- sum(exist_alloc)
+
     # Clear (numeric vector) allocation
     exist_alloc <- NULL
   }
@@ -249,8 +255,10 @@ RangeKernelSurvDesign.Context <- function(context,
   # Resolve exist_sens
   if (is.null(exist_sens)) {
     exist_sens <- rep(0, parts)
+    exist_sens_present <- FALSE
   } else {
     exist_sens <- super$get_sensitivity() # combine via base class
+    exist_sens_present <- TRUE
   }
 
   # Set the number of cores available for parallel processing
@@ -384,7 +392,7 @@ RangeKernelSurvDesign.Context <- function(context,
 
   # Get the location detection sensitivities of the surveillance design
   sensitivity <- NULL
-  self$get_sensitivity <- function() {
+  self$get_sensitivity <- function(incl_exist = TRUE) {
     if (is.null(sensitivity)) {
 
       # Calculate sensitivities for allocated or specified locations
@@ -398,7 +406,11 @@ RangeKernelSurvDesign.Context <- function(context,
         }
 
         # Calculate unit sensitivities
-        sensitivity <<- exist_sens
+        if (incl_exist) {
+          sensitivity <<- exist_sens
+        } else {
+          sensitivity <<- exist_sens*0
+        }
         for (i in 1:length(surv_units)) {
           idx <- surv_units[[i]]$idx
           sensitivity[idx] <<- sapply(1:length(idx), function(j) {
@@ -445,16 +457,37 @@ RangeKernelSurvDesign.Context <- function(context,
   self$save_design <- function(...) {
 
     # Save allocation and sensitivity
-    terra::writeRaster(divisions$get_rast(self$get_allocation()),
-                       "allocation_cells.tif", ...)
-    write.csv(self$get_allocation(coords = TRUE),
-              file = "allocation_coords.csv", row.names = FALSE)
+    if (optimal != "none") {
+      terra::writeRaster(divisions$get_rast(self$get_allocation()),
+                         "allocation_cells.tif", ...)
+      write.csv(self$get_allocation(coords = TRUE),
+                file = "allocation_coords.csv", row.names = FALSE)
+    }
+    if (optimal != "none" && exist_sens_present) {
+      terra::writeRaster(
+        divisions$get_rast(self$get_sensitivity(incl_exist = FALSE)),
+        "alloc_sens.tif", ...)
+      alloc_sens <- self$get_system_sens()
+      sensitivity <<- NULL # reset
+    }
     terra::writeRaster(divisions$get_rast(self$get_sensitivity()),
                        "sensitivity.tif", ...)
 
     # Save summary
-    summary_data <- data.frame(total_alloc = sum(self$get_allocation()),
-                               system_sens = self$get_system_sens())
+    if (optimal == "none") {
+      if (!is.null(exist_vect)) {
+        total_allocation <- total_exist_alloc
+      } else {
+        total_allocation <- 0
+      }
+    } else {
+      total_allocation <- sum(self$get_allocation())
+    }
+    summary_data <- data.frame(total_allocation = total_allocation)
+    if (optimal != "none" && exist_sens_present) {
+      summary_data$alloc_sens <- alloc_sens
+    }
+    summary_data$system_sens <- self$get_system_sens()
     write.csv(summary_data, file = "summary.csv", row.names = FALSE)
 
     return(summary_data)

@@ -104,12 +104,14 @@
 #'     \item{\code{save_design(...)}}{Save the surveillance design as a
 #'       collection of raster TIF and/or comma-separated value (CSV) files,
 #'       appropriate for the \code{divisions} type, including the surveillance
-#'       \code{allocation}, \code{sensitivity}, \code{surv_cost} (combined
-#'       surveillance allocation and fixed costs), and a \code{summary} (CSV)
-#'       of the total allocation, total costs (when applicable), and the
-#'       overall system sensitivity or detection probability. \code{Terra}
-#'       raster write options may be passed to the function for saving
-#'       grid-based designs.}
+#'       \code{allocation}, the corresponding sensitivity \code{alloc_sens}
+#'       when existing sensitivity is included, the overall \code{sensitivity},
+#'       \code{surv_cost} (combined surveillance allocation and fixed costs),
+#'       and a \code{summary} (CSV) of the total allocation, total costs (when
+#'       applicable), and the overall allocation sensitivity
+#'       (\code{alloc_sens}) when applicable, and the system-wide sensitivity
+#'       (\code{system_sens}). \code{Terra} raster write options may be passed
+#'       to the function for saving grid-based designs.}
 #'   }
 #' @references
 #'   Anderson, D. P., Gormley, A. M., Ramsey, D. S. L., Nugent, G., Martin,
@@ -254,8 +256,10 @@ SpatialSurvDesign.Context <- function(context,
   }
   if (is.null(exist_sens)) {
     exist_sens <- rep(0, parts)
+    exist_sens_present <- FALSE
   } else {
     exist_sens <- super$get_sensitivity() # combine via base class
+    exist_sens_present <- TRUE
   }
 
   # Check and resolve empty optimal strategy parameters
@@ -397,7 +401,13 @@ SpatialSurvDesign.Context <- function(context,
   set_lagrange_params()
 
   # Function for calculating sensitivities
-  calculate_sensitivity <- function(n_alloc) {
+  calculate_sensitivity <- function(n_alloc, incl_exist = TRUE) {
+
+    # Include existing sensitivity?
+    if (!incl_exist) {
+      exist_sens <- 0
+    }
+
     return(1 - (1 - exist_sens)*exp(-1*lambda*n_alloc))
   }
 
@@ -555,25 +565,53 @@ SpatialSurvDesign.Context <- function(context,
       }
     }
     if (divisions$get_type() == "grid") {
-      terra::writeRaster(divisions$get_rast(self$get_allocation()),
-                         "allocation.tif", ...)
+      if (optimal != "none") {
+        terra::writeRaster(divisions$get_rast(self$get_allocation()),
+                           "allocation.tif", ...)
+        if (exist_sens_present) {
+          terra::writeRaster(
+            divisions$get_rast(calculate_sensitivity(self$get_allocation(),
+                                                     incl_exist = FALSE)),
+            "alloc_sens.tif", ...)
+        }
+      }
       terra::writeRaster(divisions$get_rast(self$get_sensitivity()),
                          "sensitivity.tif", ...)
       if (any(unlist(output_cost))) {
         terra::writeRaster(divisions$get_rast(cost), "surv_cost.tif", ...)
       }
     } else if (divisions$get_type() == "patch") {
-      design_df <- cbind(divisions$get_coords(extra_cols = TRUE),
-                         allocation = self$get_allocation(),
-                         sensitivity = self$get_sensitivity())
+      design_df <- divisions$get_coords(extra_cols = TRUE)
+      if (optimal == "none") {
+        if (!is.null(exist_alloc)) {
+          design_df$exist_alloc <- exist_alloc
+        }
+      } else {
+        design_df$allocation <- self$get_allocation()
+        if (exist_sens_present) {
+          design_df$alloc_sens <- calculate_sensitivity(self$get_allocation(),
+                                                        incl_exist = FALSE)
+        }
+      }
+      design_df$sensitivity <- self$get_sensitivity()
       if (any(unlist(output_cost))) {
         design_df$surv_cost <- round(cost, 2)
       }
       write.csv(design_df, file = "design.csv", row.names = FALSE)
     } else if (divisions$get_type() == "other") {
-      design_df <- cbind(divisions$get_data(),
-                         allocation = self$get_allocation(),
-                         sensitivity = self$get_sensitivity())
+      design_df <- divisions$get_data()
+      if (optimal == "none") {
+        if (!is.null(exist_alloc)) {
+          design_df$exist_alloc <- exist_alloc
+        }
+      } else {
+        design_df$allocation <- self$get_allocation()
+        if (exist_sens_present) {
+          design_df$alloc_sens <- calculate_sensitivity(self$get_allocation(),
+                                                        incl_exist = FALSE)
+        }
+      }
+      design_df$sensitivity <- self$get_sensitivity()
       if (any(unlist(output_cost))) {
         design_df$surv_cost <- round(cost, 2)
       }
@@ -581,7 +619,16 @@ SpatialSurvDesign.Context <- function(context,
     }
 
     # Save summary
-    summary_data <- data.frame(total_allocation = sum(self$get_allocation()))
+    if (optimal == "none") {
+      if (!is.null(exist_alloc)) {
+        total_allocation <- sum(exist_alloc)
+      } else {
+        total_allocation <- 0
+      }
+    } else {
+      total_allocation <- sum(self$get_allocation())
+    }
+    summary_data <- data.frame(total_allocation = total_allocation)
     if (!all(alloc_cost == 1)) {
       summary_data$allocation_cost <- sum(self$get_allocation()*alloc_cost)
     }
@@ -599,6 +646,10 @@ SpatialSurvDesign.Context <- function(context,
     if (optimal == "saving") {
       summary_data$total_saving <- sum(establish_pr*benefit*
                                          self$get_sensitivity())
+    }
+    if (optimal != "none" && exist_sens_present) {
+      summary_data$alloc_sens <- calculate_system_sens(
+        calculate_sensitivity(self$get_allocation(), incl_exist = FALSE))
     }
     summary_data$system_sens <- self$get_system_sens()
     write.csv(summary_data, file = "summary.csv", row.names = FALSE)

@@ -163,12 +163,14 @@ returned for each multiplier or time/repeat.}
 \item{\code{save_design(...)}}{Save the surveillance design as a
 collection of raster TIF and/or comma-separated value (CSV) files,
 appropriate for the \code{divisions} type, including the surveillance
-\code{allocation}, \code{sensitivity}, \code{surv_cost} (combined
-surveillance allocation and fixed costs), and a \code{summary} (CSV)
-of the total allocation, total costs (when applicable), and the
-overall system sensitivity or detection probability. \code{Terra}
-raster write options may be passed to the function for saving
-grid-based designs.}
+\code{allocation}, the corresponding sensitivity \code{alloc_sens}
+when existing sensitivity is included, the overall \code{sensitivity},
+\code{surv_cost} (combined surveillance allocation and fixed costs),
+and a \code{summary} (CSV) of the total allocation, total costs (when
+applicable), and the overall allocation sensitivity
+(\code{alloc_sens}) when applicable, and the system-wide sensitivity
+(\code{system_sens}). \code{Terra} raster write options may be passed
+to the function for saving grid-based designs.}
 }
 }
 \description{
