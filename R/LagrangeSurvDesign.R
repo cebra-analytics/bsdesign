@@ -314,12 +314,13 @@ LagrangeSurvDesign.Context <- function(context,
     # Search for minimum objective via marginal benefit (alpha) values
     if (is.numeric(budget) || is.numeric(system_sens) || search_alpha) {
       interval <- (0:100)/100*alpha_min
-      alpha_range <- range(interval)[2] - range(interval)[1]
-      precision <- 12 # for alpha
-      while (alpha_range > abs(best_alpha*10^(-1*precision))) {
+      best_obj <- c() # track change in best objective
+      precision <- 12 # for objective
+      while (length(best_obj) < 2 ||
+             abs(diff(best_obj)[1]) > 10^(-1*precision)) {
 
-        # Get allocation for each alpha in interval
-        alloc <- as.data.frame(t(sapply(interval[-1], function(a) {
+        # Get allocation for each alpha in interval # TODO investigate how to include interval[1] ####
+        alloc <- as.data.frame(t(sapply(interval, function(a) {
           alloc <- allocate(a)
           c(obj = sum(f_obj(alloc)), total = attr(alloc, "total"),
             system_sens = attr(alloc, "system_sens"))})))
@@ -338,15 +339,17 @@ LagrangeSurvDesign.Context <- function(context,
         } else {
           i <- max(which(alloc$obj <= min(alloc$obj)))
         }
-        best_alpha <- interval[i + 1]
+        best_alpha <- interval[i]
+        best_obj <- c(alloc$obj[i], best_obj)
 
         # Update interval and range for next iteration
-        if (i < length(interval) - 1) {
-          interval <- (0:100)/100*(interval[i + 2] - interval[i]) + interval[i]
-        } else {
+        if (i == 1) { # first
           interval <- (0:100)/100*(interval[i + 1] - interval[i]) + interval[i]
+        } else if (i == length(interval)) { # last
+          interval <- (0:100)/100*(interval[i] - interval[i - 1]) + interval[i - 1]
+        } else { # between
+          interval <- (0:100)/100*(interval[i + 1] - interval[i - 1]) + interval[i - 1]
         }
-        alpha_range <- range(interval)[2] - range(interval)[1]
       }
     }
 
