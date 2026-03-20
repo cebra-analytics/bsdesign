@@ -26,7 +26,7 @@ test_that("initializes with context, divisions, and valid parameters", {
     establish_pr = test_ref$establish_pr,
     total_indiv = 10,
     optimal = "none") ,
-    paste("The total individuals parameter must be numeric with values > 0",
+    paste("The total individuals parameter must be numeric with values >= 0",
           "for each division part."))
   expect_error(surv_design <- SamplingSurvDesign(
     context = Context("test"),

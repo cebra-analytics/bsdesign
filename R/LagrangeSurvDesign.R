@@ -317,9 +317,9 @@ LagrangeSurvDesign.Context <- function(context,
       best_obj <- c() # track change in best objective
       precision <- 12 # for objective
       while (length(best_obj) < 2 ||
-             abs(diff(best_obj)[1]) > 10^(-1*precision)) {
+             abs(diff(best_obj)[1]/best_obj[1]) > 10^(-1*precision)) {
 
-        # Get allocation for each alpha in interval # TODO investigate how to include interval[1] ####
+        # Get allocation for each alpha in interval # TODO investigate how to include interval[1] when sample_type == "discrete" && is.numeric(total_indiv) ####
         alloc <- as.data.frame(t(sapply(interval, function(a) {
           alloc <- allocate(a)
           c(obj = sum(f_obj(alloc)), total = attr(alloc, "total"),
