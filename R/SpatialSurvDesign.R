@@ -336,7 +336,7 @@ SpatialSurvDesign.Context <- function(context,
     f_pos <<- function(alpha) {
       values <- lambda/alloc_cost*benefit*establish_pr*(1 - exist_sens)
       idx <- which(values > 0)
-      if (optimal == "sensitivity" && !relative_establish_pr) {
+      if (length(idx) && optimal == "sensitivity" && !relative_establish_pr) {
 
         # handle establish_pr of 1 via substituting for close to 1
         if (any(establish_pr == 1)) {
@@ -345,31 +345,50 @@ SpatialSurvDesign.Context <- function(context,
 
         # maximum sensitivity
         idx <- idx[which(alpha > -1*lambda[idx]/alloc_cost[idx])]
-        values[-idx] <- 0
-        values[idx] <- pmax(
-          (alloc_cost[idx]/lambda[idx]*
-             (log(-1*lambda[idx]/alloc_cost[idx]/alpha - 1) -
-                log(1/establish_pr[idx] - 1) +
-                log(1 - exist_sens[idx]))), 0)
-        idx <- which(values > 0)
-        values[idx] <- (pmax(min_alloc[idx]*alloc_cost[idx], values[idx]) +
-                          fixed_cost[idx])
+        if (length(idx)) {
+          values[-idx] <- 0
+          values[idx] <- pmax(
+            (alloc_cost[idx]/lambda[idx]*
+               (log(-1*lambda[idx]/alloc_cost[idx]/alpha - 1) -
+                  log(1/establish_pr[idx] - 1) +
+                  log(1 - exist_sens[idx]))), 0)
+          idx <- which(values > 0)
+          if (length(idx)) {
+            values[idx] <- pmax(min_alloc[idx]*alloc_cost[idx], values[idx])
+            if (discrete_alloc) {
+              values[idx] <-
+                round(values[idx]/alloc_cost[idx])*alloc_cost[idx]
+            }
+            values[idx] <- values[idx] + fixed_cost[idx]
+          } else {
+            values[] <- 0
+          }
+        } else {
+          values[] <- 0
+        }
 
-      } else {
+      } else if (length(idx)) {
 
         # minimum cost or maximum benefit (benefit = 1 for detections)
         incl_x <- (optimal %in% c("cost", "saving"))
         idx <- idx[which((alpha - 1*incl_x) >= -1*values[idx])]
-        values[-idx] <- 0
-        values[idx] <-
-          (pmax(min_alloc[idx]*alloc_cost[idx],
-                (-1*alloc_cost[idx]/lambda[idx]*
-                   log(-1*(alpha - 1*incl_x)/values[idx]))) +
-             fixed_cost[idx])
+        if (length(idx)) {
+          values[-idx] <- 0
+          values[idx] <- pmax(min_alloc[idx]*alloc_cost[idx],
+                              (-1*alloc_cost[idx]/lambda[idx]*
+                                 log(-1*(alpha - 1*incl_x)/values[idx])))
+          if (discrete_alloc) {
+            values[idx] <-
+              ceiling(values[idx]/alloc_cost[idx])*alloc_cost[idx]
+          }
+          values[idx] <- values[idx] + fixed_cost[idx]
 
-        # limit to zero cost allocation via f_obj(0)
-        if (optimal %in% c("cost", "saving")) {
-          values <- (values < benefit*establish_pr*(1 - exist_sens))*values
+          # limit to zero cost allocation via f_obj(0)
+          if (optimal %in% c("cost", "saving")) {
+            values <- (values < benefit*establish_pr*(1 - exist_sens))*values
+          }
+        } else {
+          values[] <- 0
         }
       }
 
@@ -392,6 +411,9 @@ SpatialSurvDesign.Context <- function(context,
     # Function for calculating inverse of unit sensitivity
     f_inv_unit_sens <<- function(unit_sens) {
       x_alloc <- -1*alloc_cost/lambda*log((1 - unit_sens)/(1 - exist_sens))
+      if (discrete_alloc) {
+        x_alloc <- ceiling(x_alloc/alloc_cost)*alloc_cost
+      }
       return(x_alloc + (x_alloc > 0)*fixed_cost)
     }
 
@@ -466,31 +488,31 @@ SpatialSurvDesign.Context <- function(context,
                                                  search_alpha = search_alpha)
         x_alloc <- lagrangeSurvDesign$get_cost_allocation()
 
+        # Get (additional) quantity allocation
+        n_alloc <- (x_alloc >= fixed_cost)*(x_alloc - fixed_cost)/alloc_cost
+
         # Optimal resource allocation
         if (discrete_alloc) {
 
           # Add discrete allocation
-          n_alloc <- floor((x_alloc >= fixed_cost)*
-                             (x_alloc - fixed_cost)/alloc_cost)
-          # n_alloc <- (n_alloc*alloc_cost > fixed_cost)*n_alloc
           qty_alloc <<- qty_alloc + n_alloc
 
           # Alter parameters and indicate further allocation required
           fixed_cost[which(qty_alloc > 0)] <<- 0
           exist_sens <<- calculate_sensitivity(n_alloc)
-          add_allocation <- (sum(x_alloc) > 0)
+          add_allocation <- (sum(n_alloc) > 0)
           if (is.numeric(budget)) {
             total_x_alloc <- sum(qty_alloc*alloc_cost +
                                    (qty_alloc > 0)*fixed_cost_orig)
-            add_allocation <- (total_x_alloc < budget && add_allocation)
-            budget <<- budget - total_x_alloc
+            add_allocation <- (total_x_alloc < budget_orig && add_allocation)
+            budget <<- budget_orig - total_x_alloc
           }
           if (is.numeric(system_sens)) {
             add_allocation <-
               (calculate_system_sens(exist_sens) < system_sens &&
                  add_allocation)
           }
-          min_alloc[which(qty_alloc > 0)] <<- 1
+          min_alloc[which(qty_alloc > 0)] <<- 0
 
           # Reset Lagrange parameters
           set_lagrange_params()
@@ -498,8 +520,7 @@ SpatialSurvDesign.Context <- function(context,
         } else {
 
           # Continuous allocation
-          qty_alloc <<- ((x_alloc >= fixed_cost)*
-                           (x_alloc - fixed_cost)/alloc_cost)
+          qty_alloc <<- n_alloc
           add_allocation <- FALSE
         }
       }

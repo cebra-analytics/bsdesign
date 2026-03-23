@@ -579,6 +579,11 @@ SamplingSurvDesign.Context <- function(context,
         x_alloc <- -1*sample_cost/lambda*log((1 - unit_sens)/(1 - exist_sens))
       }
 
+      # Discrete allocation
+      if (discrete_alloc) {
+        x_alloc <- ceiling(x_alloc/alloc_cost)*alloc_cost
+      }
+
       return(x_alloc + (x_alloc > 0)*fixed_cost)
     }
 
@@ -626,7 +631,7 @@ SamplingSurvDesign.Context <- function(context,
 
   # Get the allocated surveillance resource values of the surveillance design
   qty_alloc <- NULL
-  self$get_allocation <- function() { # TODO loop for discrete alloc
+  self$get_allocation <- function() {
     if (optimal != "none" && is.null(qty_alloc)) {
 
       if (discrete_alloc) {

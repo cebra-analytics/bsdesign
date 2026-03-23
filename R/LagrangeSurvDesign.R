@@ -314,13 +314,18 @@ LagrangeSurvDesign.Context <- function(context,
     # Search for minimum objective via marginal benefit (alpha) values
     if (is.numeric(budget) || is.numeric(system_sens) || search_alpha) {
       interval <- (0:100)/100*alpha_min
-      best_obj <- c() # track change in best objective
+      best_obj <- c()
       precision <- 12 # for objective
-      while (length(best_obj) < 2 ||
+      while (length(best_obj) < precision ||
              abs(diff(best_obj)[1]/best_obj[1]) > 10^(-1*precision)) {
 
         # Get allocation for each alpha in interval # TODO investigate how to include interval[1] when sample_type == "discrete" && is.numeric(total_indiv) ####
-        alloc <- as.data.frame(t(sapply(interval, function(a) {
+        if (alpha_unconstr == -1 && interval[1] == 0) {
+          interval_constr <- interval[-1]
+        } else {
+          interval_constr <- interval
+        }
+        alloc <- as.data.frame(t(sapply(interval_constr, function(a) {
           alloc <- allocate(a)
           c(obj = sum(f_obj(alloc)), total = attr(alloc, "total"),
             system_sens = attr(alloc, "system_sens"))})))
@@ -328,21 +333,20 @@ LagrangeSurvDesign.Context <- function(context,
         # Choose alpha corresponding to the last repeated minimum objective
         if (is.numeric(system_sens) && max(alloc$system_sens) >= system_sens) {
           idx <- which(alloc$system_sens >= system_sens)
-          idx <- idx[which(alloc$total[idx] <= min(alloc$total[idx]))]
-          if (min(alloc$obj) < 0) {
-            i <- max(idx[which(alloc$obj[idx] <=
-                                 min(alloc$obj[idx])*(1 - 10^(-1*precision)))])
-          } else {
-            i <- max(idx[which(alloc$obj[idx] <=
-                                 min(alloc$obj[idx])*(1 + 10^(-1*precision)))])
-          }
+          idx <- idx[which(
+            abs((alloc$obj[idx] - min(alloc$obj[idx]))/min(alloc$obj[idx]))
+            <= 10^(-1*precision))]
+          i <- idx[which.min(alloc$total[idx])]
         } else {
           i <- max(which(alloc$obj <= min(alloc$obj)))
         }
-        best_alpha <- interval[i]
+        best_alpha <- interval_constr[i]
         best_obj <- c(alloc$obj[i], best_obj)
 
         # Update interval and range for next iteration
+        if (alpha_unconstr == -1 && interval[1] == 0) {
+          i <- i + 1
+        }
         if (i == 1) { # first
           interval <- (0:100)/100*(interval[i + 1] - interval[i]) + interval[i]
         } else if (i == length(interval)) { # last
