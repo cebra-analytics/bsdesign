@@ -19,6 +19,7 @@ LagrangeSurvDesign(
   budget = NULL,
   system_sens = NULL,
   min_alloc = NULL,
+  f_discrete_alloc = NULL,
   search_alpha = FALSE,
   ...
 )
@@ -37,6 +38,7 @@ LagrangeSurvDesign(
   budget = NULL,
   system_sens = NULL,
   min_alloc = NULL,
+  f_discrete_alloc = NULL,
   search_alpha = FALSE,
   ...
 )
@@ -73,7 +75,7 @@ category, etc.) specified by \code{divisions}.}
 
 \item{alpha_unconstr}{The marginal benefit value to utilize when the search
 for the optimal resource allocation is not constrained via a \code{budget}
-or a desired system sensitivity (\code{system_sens}).}
+or target system sensitivity (\code{system_sens}).}
 
 \item{alpha_min}{The minimum marginal benefit value to utilize when
 searching for the optimal resource allocation.}
@@ -101,6 +103,13 @@ probability of the surveillance design (e.g. 0.95). Default is
 resource quantities at each division part (location, category, etc.)
 specified by \code{divisions}. Used to avoid impractically low allocation
 quantities. Default is \code{NULL}.}
+
+\item{f_discrete_alloc}{A function for converting the resource allocation so
+that the underlying quantity allocation has discrete units when
+applicable. The function should be in the form \code{function(x_alloc)},
+where \code{x_alloc} represents a candidate resource allocation at each
+division part (location, category, etc.) specified by \code{divisions}.
+Default is \code{NULL} when the underlying allocation may be continuous.}
 
 \item{search_alpha}{A logical indicator to search for the optimal resource
 allocation, even when it is not constrained (via \code{budget} or

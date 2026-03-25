@@ -32,7 +32,7 @@
 #'   category, etc.) specified by \code{divisions}.
 #' @param alpha_unconstr The marginal benefit value to utilize when the search
 #'   for the optimal resource allocation is not constrained via a \code{budget}
-#'   or a desired system sensitivity (\code{system_sens}).
+#'   or target system sensitivity (\code{system_sens}).
 #' @param alpha_min The minimum marginal benefit value to utilize when
 #'   searching for the optimal resource allocation.
 #' @param f_unit_sens A function for calculating the unit (division part)
@@ -54,6 +54,12 @@
 #'   resource quantities at each division part (location, category, etc.)
 #'   specified by \code{divisions}. Used to avoid impractically low allocation
 #'   quantities. Default is \code{NULL}.
+#' @param f_discrete_alloc A function for converting the resource allocation so
+#'   that the underlying quantity allocation has discrete units when
+#'   applicable. The function should be in the form \code{function(x_alloc)},
+#'   where \code{x_alloc} represents a candidate resource allocation at each
+#'   division part (location, category, etc.) specified by \code{divisions}.
+#'   Default is \code{NULL} when the underlying allocation may be continuous.
 #' @param search_alpha A logical indicator to search for the optimal resource
 #'   allocation, even when it is not constrained (via \code{budget} or
 #'   \code{system_sens}), such as when fixed costs are present. Default is
@@ -100,6 +106,7 @@ LagrangeSurvDesign <- function(context,
                                budget = NULL,
                                system_sens = NULL,
                                min_alloc = NULL,
+                               f_discrete_alloc = NULL,
                                search_alpha = FALSE, ...) {
   UseMethod("LagrangeSurvDesign")
 }
@@ -119,6 +126,7 @@ LagrangeSurvDesign.Context <- function(context,
                                        budget = NULL,
                                        system_sens = NULL,
                                        min_alloc = NULL,
+                                       f_discrete_alloc = NULL,
                                        search_alpha = FALSE, ...) {
 
   # Check divisions
@@ -187,6 +195,12 @@ LagrangeSurvDesign.Context <- function(context,
       (!is.numeric(min_alloc) || !length(min_alloc) %in% c(1, parts))) {
     stop(paste("The minimum allocation parameter must be a numeric vector",
                "with values for each division part."), call. = FALSE)
+  }
+  if (!is.null(f_discrete_alloc) &&
+      (!is.function(f_discrete_alloc) ||
+       length(formalArgs(f_discrete_alloc)) != 1)) {
+    stop(paste("The discrete allocation function should have form",
+               "function(x_alloc)."), call. = FALSE)
   }
   if (!is.logical(search_alpha)) {
     stop("The search alpha indicator parameter must be logical.",
@@ -294,6 +308,11 @@ LagrangeSurvDesign.Context <- function(context,
         }
         attr(x_alloc, "system_sens") <- conf
       }
+
+      # Discrete (underlying unit) allocation
+      if (!is.null(f_discrete_alloc)) {
+        x_alloc <- f_discrete_alloc(x_alloc)
+      }
     }
 
     # Add total as an attribute
@@ -315,11 +334,13 @@ LagrangeSurvDesign.Context <- function(context,
     if (is.numeric(budget) || is.numeric(system_sens) || search_alpha) {
       interval <- (0:100)/100*alpha_min
       best_obj <- c()
+      best_alpha_list <- c()
       precision <- 12 # for objective
-      while (length(best_obj) < precision ||
-             abs(diff(best_obj)[1]/best_obj[1]) > 10^(-1*precision)) {
+      while (length(best_obj) < 2 ||
+             (abs(diff(best_obj)[1]/best_obj[1]) > 10^(-1*precision) &&
+              abs(diff(best_alpha_list)[1]/alpha_min) > 10^(-1*precision))) {
 
-        # Get allocation for each alpha in interval # TODO investigate how to include interval[1] when sample_type == "discrete" && is.numeric(total_indiv) ####
+        # Get allocation for each alpha in interval
         if (alpha_unconstr == -1 && interval[1] == 0) {
           interval_constr <- interval[-1]
         } else {
@@ -333,15 +354,16 @@ LagrangeSurvDesign.Context <- function(context,
         # Choose alpha corresponding to the last repeated minimum objective
         if (is.numeric(system_sens) && max(alloc$system_sens) >= system_sens) {
           idx <- which(alloc$system_sens >= system_sens)
-          idx <- idx[which(
+          idx <- idx[which.min(alloc$total[idx])]
+          i <- max(idx[which(
             abs((alloc$obj[idx] - min(alloc$obj[idx]))/min(alloc$obj[idx]))
-            <= 10^(-1*precision))]
-          i <- idx[which.min(alloc$total[idx])]
+            <= 10^(-1*precision))])
         } else {
           i <- max(which(alloc$obj <= min(alloc$obj)))
         }
         best_alpha <- interval_constr[i]
         best_obj <- c(alloc$obj[i], best_obj)
+        best_alpha_list <- c(best_alpha, best_alpha_list)
 
         # Update interval and range for next iteration
         if (alpha_unconstr == -1 && interval[1] == 0) {
@@ -350,14 +372,16 @@ LagrangeSurvDesign.Context <- function(context,
         if (i == 1) { # first
           interval <- (0:100)/100*(interval[i + 1] - interval[i]) + interval[i]
         } else if (i == length(interval)) { # last
-          interval <- (0:100)/100*(interval[i] - interval[i - 1]) + interval[i - 1]
+          interval <- ((0:100)/100*(interval[i] - interval[i - 1]) +
+                         interval[i - 1])
         } else { # between
-          interval <- (0:100)/100*(interval[i + 1] - interval[i - 1]) + interval[i - 1]
+          interval <- ((0:100)/100*(interval[i + 1] - interval[i - 1]) +
+                         interval[i - 1])
         }
       }
     }
 
-    return(as.numeric(allocate(best_alpha)))
+    return(as.numeric(allocate(best_alpha[1])))
   }
 
   return(self)

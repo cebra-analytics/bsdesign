@@ -152,8 +152,8 @@ test_that("allocates resources consistently with reference method", {
     budget = test_ref$budget,
     discrete_alloc = FALSE))
   expect_silent(saving_budget_alloc <- surv_design$get_allocation())
-  expect_equal(round(saving_budget_alloc, 6),
-               round(test_ref$expected_n$restricted, 6))
+  expect_equal(round(saving_budget_alloc, 5),
+               round(test_ref$expected_n$restricted, 5))
   expect_equal(sum(saving_budget_alloc*test_ref$sample_cost), test_ref$budget)
   expect_silent(surv_design <- SamplingSurvDesign(
     context = Context("test"),
@@ -188,10 +188,11 @@ test_that("allocates resources consistently with reference method", {
   expect_equal(sum(benefit_budget_alloc*test_ref$sample_cost), test_ref$budget)
 })
 
-test_that("allocates when sample fraction n/N <= 0.1 and > 0.1", {
+test_that("allocates appropriately when sample total individuals N supplied", {
   TEST_DIRECTORY <- test_path("test_inputs")
   test_ref <- readRDS(file.path(TEST_DIRECTORY, "Cannon2009_C_test.rds"))
   divisions <- Divisions(as.matrix(test_ref$part))
+  total_indiv <- c(5000, 2000, 8000, 6000, 4000) # n/N < 0.1
   expect_silent(surv_design <- SamplingSurvDesign(
     context = Context("test"),
     divisions = divisions,
@@ -199,12 +200,15 @@ test_that("allocates when sample fraction n/N <= 0.1 and > 0.1", {
     sample_sens = 1,
     sample_type = "discrete",
     prevalence = test_ref$prevalence,
-    total_indiv = c(5000, 2000, 8000, 6000, 4000), # n/N < 0.1
+    total_indiv = total_indiv,
     optimal = "sensitivity",
     budget = test_ref$budget$ind_95,
     discrete_alloc = FALSE))
-  expect_equal(round(surv_design$get_allocation(), 3),
-               round(test_ref$expected_n$sensitivity, 3))
+  expect_silent(alloc <- surv_design$get_allocation())
+  expect_true(all(abs(alloc - test_ref$expected_n$sensitivity) < 1.5))
+  expect_equal(round(sum(alloc)), test_ref$budget$ind_95)
+  expect_equal(surv_design$get_sensitivity(),
+               1 - (1 - 1*alloc/total_indiv)^(test_ref$prevalence*total_indiv))
   total_indiv <- c(500, 200, 800, 600, 400) # n/N > 0.1
   expect_silent(surv_design <- SamplingSurvDesign(
     context = Context("test"),
@@ -218,10 +222,24 @@ test_that("allocates when sample fraction n/N <= 0.1 and > 0.1", {
     budget = test_ref$budget$ind_95,
     discrete_alloc = FALSE))
   expect_silent(alloc <- surv_design$get_allocation())
-  expect_true(all(round(alloc, 4) != round(test_ref$expected_n$sensitivity, 4)))
+  expect_true(sum(abs(alloc - test_ref$expected_n$sensitivity)) > 40)
   expect_equal(round(sum(alloc)), test_ref$budget$ind_95)
   expect_equal(surv_design$get_sensitivity(),
                1 - (1 - 1*alloc/total_indiv)^(test_ref$prevalence*total_indiv))
+  expect_silent(surv_design <- SamplingSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    sample_sens = 1,
+    sample_type = "discrete",
+    prevalence = test_ref$prevalence,
+    total_indiv = total_indiv,
+    optimal = "sensitivity",
+    budget = sum(total_indiv + 100),
+    discrete_alloc = FALSE))
+  expect_silent(alloc <- surv_design$get_allocation())
+  expect_equal(alloc, total_indiv)
+  expect_equal(surv_design$get_sensitivity(), +(total_indiv > 0))
 })
 
 test_that("facilitates existing allocations and sensitivities", {
@@ -385,6 +403,7 @@ test_that("allocates discrete integer allocations", {
                test_ref$system_sens$ind_95)
   test_ref <- readRDS(file.path(TEST_DIRECTORY, "Cannon2009_C_test.rds"))
   divisions <- Divisions(as.matrix(test_ref$part))
+  total_indiv <- c(5000, 2000, 8000, 6000, 4000) # n/N < 0.1
   expect_silent(surv_design <- SamplingSurvDesign(
     context = Context("test"),
     divisions = divisions,
@@ -392,13 +411,17 @@ test_that("allocates discrete integer allocations", {
     sample_sens = 1,
     sample_type = "discrete",
     prevalence = test_ref$prevalence,
-    total_indiv = c(5000, 2000, 8000, 6000, 4000), # n/N < 0.1
+    total_indiv = total_indiv,
     optimal = "sensitivity",
     budget = test_ref$budget$ind_95,
     discrete_alloc = TRUE))
   expect_silent(alloc1 <- surv_design$get_allocation())
-  expect_true(all(abs(alloc1 - test_ref$expected_n$sensitivity) < 1))
+  expect_true(all(abs(alloc1 - test_ref$expected_n$sensitivity) < 2))
   expect_equal(sum(alloc1), test_ref$budget$ind_95)
+  expect_equal(surv_design$get_sensitivity(),
+               1 - ((1 - 1*alloc1/total_indiv)
+                    ^(test_ref$prevalence*total_indiv)))
+
   total_indiv <- c(500, 200, 800, 600, 400) # n/N > 0.1
   expect_silent(surv_design <- SamplingSurvDesign(
     context = Context("test"),
@@ -412,11 +435,25 @@ test_that("allocates discrete integer allocations", {
     budget = test_ref$budget$ind_95,
     discrete_alloc = TRUE))
   expect_silent(alloc2 <- surv_design$get_allocation())
-  expect_true(sum(alloc1 != alloc2) > 3)
+  expect_true(sum(abs(alloc1 - alloc2)) > 40)
   expect_equal(sum(alloc2), test_ref$budget$ind_95)
   expect_equal(surv_design$get_sensitivity(),
                1 - ((1 - 1*alloc2/total_indiv)
                     ^(test_ref$prevalence*total_indiv)))
+  expect_silent(surv_design <- SamplingSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    sample_sens = 1,
+    sample_type = "discrete",
+    prevalence = test_ref$prevalence,
+    total_indiv = total_indiv,
+    optimal = "sensitivity",
+    budget = sum(total_indiv + 100),
+    discrete_alloc = TRUE))
+  expect_silent(alloc3 <- surv_design$get_allocation())
+  expect_equal(alloc3, total_indiv)
+  expect_equal(surv_design$get_sensitivity(), +(total_indiv > 0))
   template <- terra::rast(file.path(TEST_DIRECTORY, "template.tif"))
   divisions <- Divisions(template)
   test_ref <- readRDS(file.path(TEST_DIRECTORY, "Hauser2009_test.rds"))

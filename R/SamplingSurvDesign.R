@@ -533,7 +533,8 @@ SamplingSurvDesign.Context <- function(context,
     }
 
     # Unconstrained marginal benefit alpha
-    alpha_unconstr <<- (optimal %in% c("cost", "saving")) - 1
+    alpha_unconstr <<- (optimal %in% c("cost", "saving") ||
+                          is.numeric(total_indiv)) - 1
 
     # Minimum marginal benefit alpha
     alpha_min <<- min(f_deriv(fixed_cost))
@@ -581,14 +582,14 @@ SamplingSurvDesign.Context <- function(context,
 
       # Discrete allocation
       if (discrete_alloc) {
-        x_alloc <- ceiling(x_alloc/alloc_cost)*alloc_cost
+        x_alloc <- ceiling(x_alloc/sample_cost)*sample_cost
       }
 
       return(x_alloc + (x_alloc > 0)*fixed_cost)
     }
 
     # Search alpha for optimal objective (even when no constraints)
-    search_alpha <<- any(fixed_cost > 0 | min_alloc > 0)
+    search_alpha <<- any(fixed_cost > 0 | min_alloc > 0) || discrete_alloc
   }
   set_lagrange_params()
 
@@ -629,6 +630,15 @@ SamplingSurvDesign.Context <- function(context,
     }
   }
 
+  # Function for converting the cost allocation for discrete quantities
+  if (discrete_alloc) {
+    f_discrete_alloc <- function(x_alloc) {
+      return(floor(x_alloc/sample_cost)*sample_cost)
+    }
+  } else {
+    f_discrete_alloc <- NULL
+  }
+
   # Get the allocated surveillance resource values of the surveillance design
   qty_alloc <- NULL
   self$get_allocation <- function() {
@@ -659,20 +669,22 @@ SamplingSurvDesign.Context <- function(context,
         }
 
         # Get cost allocation x_alloc via Lagrange surveillance design
-        lagrangeSurvDesign <- LagrangeSurvDesign(context,
-                                                 divisions,
-                                                 establish_pr,
-                                                 f_obj,
-                                                 f_deriv,
-                                                 f_pos,
-                                                 alpha_unconstr,
-                                                 alpha_min,
-                                                 f_unit_sens,
-                                                 f_inv_unit_sens,
-                                                 budget = budget,
-                                                 system_sens = system_sens,
-                                                 min_alloc = min_x_alloc,
-                                                 search_alpha = search_alpha)
+        lagrangeSurvDesign <-
+          LagrangeSurvDesign(context,
+                             divisions,
+                             establish_pr,
+                             f_obj,
+                             f_deriv,
+                             f_pos,
+                             alpha_unconstr,
+                             alpha_min,
+                             f_unit_sens,
+                             f_inv_unit_sens,
+                             budget = budget,
+                             system_sens = system_sens,
+                             min_alloc = min_x_alloc,
+                             f_discrete_alloc = f_discrete_alloc,
+                             search_alpha = search_alpha)
         x_alloc <- lagrangeSurvDesign$get_cost_allocation()
 
         # Get (additional) quantity allocation

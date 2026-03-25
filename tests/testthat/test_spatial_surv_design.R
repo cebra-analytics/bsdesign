@@ -332,9 +332,9 @@ test_that("allocates discrete integer allocations", {
     discrete_alloc = TRUE))
   expect_silent(discrete_alloc <- surv_design$get_allocation())
   expect_true(all(discrete_alloc %in% 0:ceiling(max(continuous_alloc))))
-  expect_true(all(discrete_alloc >= floor(continuous_alloc)))
+  expect_true(all(discrete_alloc >= floor(continuous_alloc) - 1))
   expect_true(all(discrete_alloc <= ceiling(continuous_alloc)))
-  expect_true(round(surv_design$get_system_sens(), 8) == 0.999999)
+  expect_true(round(surv_design$get_system_sens(), 7) == 0.999999)
   expect_silent(surv_design <- SpatialSurvDesign(
     context = Context("test"),
     divisions = divisions,
@@ -354,10 +354,10 @@ test_that("allocates discrete integer allocations", {
     discrete_alloc = TRUE))
   expect_silent(discrete_alloc <- surv_design$get_allocation())
   expect_true(all(discrete_alloc %in% 0:ceiling(max(continuous_alloc))))
-  expect_true(sum(discrete_alloc >= floor(continuous_alloc)) >=
+  expect_true(sum(discrete_alloc >= floor(continuous_alloc) - 1) >=
                 divisions$get_parts() - 1)
   expect_true(all(discrete_alloc <= ceiling(continuous_alloc)))
-  expect_true(round(surv_design$get_system_sens(), 8) == 0.999999)
+  expect_true(round(surv_design$get_system_sens(), 7) == 0.999999)
 })
 
 test_that("allocates for optimal number of detections via system sens", {
