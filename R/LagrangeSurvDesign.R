@@ -308,11 +308,6 @@ LagrangeSurvDesign.Context <- function(context,
         }
         attr(x_alloc, "system_sens") <- conf
       }
-
-      # Discrete (underlying unit) allocation
-      if (!is.null(f_discrete_alloc)) {
-        x_alloc <- f_discrete_alloc(x_alloc)
-      }
     }
 
     # Add total as an attribute
