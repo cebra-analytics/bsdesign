@@ -482,7 +482,7 @@ SpatialSurvDesign.Context <- function(context,
           # Alter parameters and indicate further allocation required
           fixed_cost[which(qty_alloc > 0)] <<- 0
           exist_sens <<- calculate_sensitivity(n_alloc)
-          add_allocation <- (sum(n_alloc) > 0)
+          add_allocation <- (sum(n_alloc) > 0 || all(min_alloc < 1))
           if (is.numeric(budget)) {
             total_x_alloc <- sum(qty_alloc*alloc_cost +
                                    (qty_alloc > 0)*fixed_cost_orig)
