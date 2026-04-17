@@ -517,6 +517,10 @@ SamplingSurvDesign.Context <- function(context,
         }
       }
 
+      if (any(min_alloc > 0)) {
+        values <- values*(f_obj(values) <= f_obj(0))
+      }
+
       return(values)
     }
 

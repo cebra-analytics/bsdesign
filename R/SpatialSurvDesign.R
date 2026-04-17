@@ -349,6 +349,9 @@ SpatialSurvDesign.Context <- function(context,
           if (length(idx)) {
             values[idx] <- pmax(min_alloc[idx]*alloc_cost[idx],
                                 values[idx]) + fixed_cost[idx]
+            if (any(min_alloc > 0)) {
+              values <- values*(f_obj(values) <= f_obj(0))
+            }
           } else {
             values[] <- 0
           }
@@ -371,6 +374,8 @@ SpatialSurvDesign.Context <- function(context,
           # limit to zero cost allocation via f_obj(0)
           if (optimal %in% c("cost", "saving")) {
             values <- (values < benefit*establish_pr*(1 - exist_sens))*values
+          } else if (any(min_alloc > 0)) {
+            values <- values*(f_obj(values) <= f_obj(0))
           }
         } else {
           values[] <- 0
