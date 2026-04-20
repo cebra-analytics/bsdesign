@@ -303,7 +303,7 @@ SamplingSurvDesign.Context <- function(context,
       min_alloc <- rep(min_alloc, parts)
     }
     if (sample_type == "discrete" && is.numeric(total_indiv)) {
-      min_alloc <- min_alloc*(total_indiv >= min_alloc)
+      total_indiv <- total_indiv*(total_indiv >= min_alloc)
     }
   } else {
     min_alloc <- rep(0, parts)
@@ -517,8 +517,8 @@ SamplingSurvDesign.Context <- function(context,
         }
       }
 
-      if (any(min_alloc > 0)) {
-        values <- values*(f_obj(values) <= f_obj(0))
+      if (optimal %in% c("cost", "saving") && any(min_alloc > 0)) {
+        values <- values*(f_obj(values) < f_obj(0))
       }
 
       return(values)
