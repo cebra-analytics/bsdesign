@@ -303,7 +303,7 @@ SamplingSurvDesign.Context <- function(context,
       min_alloc <- rep(min_alloc, parts)
     }
     if (sample_type == "discrete" && is.numeric(total_indiv)) {
-      min_alloc <- min_alloc*(total_indiv >= min_alloc)
+      total_indiv <- total_indiv*(total_indiv >= min_alloc)
     }
   } else {
     min_alloc <- rep(0, parts)
@@ -456,12 +456,8 @@ SamplingSurvDesign.Context <- function(context,
           if (length(idx)) {
             values[-idx] <- 0
             values[idx] <- pmax(min_alloc[idx]*sample_cost[idx], values[idx])
-            values[idx] <- pmin(values[idx], total_indiv[idx]*sample_cost[idx])
-            if (discrete_alloc) {
-              values[idx] <-
-                ceiling(values[idx]/sample_cost[idx])*sample_cost[idx]
-            }
-            values[idx] <- values[idx] + fixed_cost[idx]
+            values[idx] <- pmin(total_indiv[idx]*sample_cost[idx],
+                                values[idx]) + fixed_cost[idx]
           } else {
             values[] <- 0
           }
@@ -490,12 +486,8 @@ SamplingSurvDesign.Context <- function(context,
             idx <- which(values > 0)
             if (length(idx)) {
               values[-idx] <- 0
-              values[idx] <- pmax(min_alloc[idx]*sample_cost[idx], values[idx])
-              if (discrete_alloc) {
-                values[idx] <-
-                  ceiling(values[idx]/sample_cost[idx])*sample_cost[idx]
-              }
-              values[idx] <- values[idx] + fixed_cost[idx]
+              values[idx] <- pmax(min_alloc[idx]*sample_cost[idx],
+                                  values[idx]) + fixed_cost[idx]
             } else {
               values[] <- 0
             }
@@ -510,14 +502,10 @@ SamplingSurvDesign.Context <- function(context,
           if (length(idx)) {
             values[-idx] <- 0
             values[idx] <-
-              pmax(min_alloc[idx]*sample_cost[idx],
-                   (-1*sample_cost[idx]/lambda[idx]*
-                      log(-1*(alpha - 1*incl_x)/values[idx])))
-            if (discrete_alloc) {
-              values[idx] <-
-                ceiling(values[idx]/sample_cost[idx])*sample_cost[idx]
-            }
-            values[idx] <- values[idx] + fixed_cost[idx]
+              (pmax(min_alloc[idx]*sample_cost[idx],
+                    (-1*sample_cost[idx]/lambda[idx]*
+                       log(-1*(alpha - 1*incl_x)/values[idx]))) +
+                 fixed_cost[idx])
 
             # limit to zero cost allocation via f_obj(0)
             if (optimal %in% c("cost", "saving")) {
@@ -527,6 +515,10 @@ SamplingSurvDesign.Context <- function(context,
             values[] <- 0
           }
         }
+      }
+
+      if (optimal %in% c("cost", "saving") && any(min_alloc > 0)) {
+        values <- values*(f_obj(values) < f_obj(0))
       }
 
       return(values)
@@ -580,11 +572,6 @@ SamplingSurvDesign.Context <- function(context,
         x_alloc <- -1*sample_cost/lambda*log((1 - unit_sens)/(1 - exist_sens))
       }
 
-      # Discrete allocation
-      if (discrete_alloc) {
-        x_alloc <- ceiling(x_alloc/sample_cost)*sample_cost
-      }
-
       return(x_alloc + (x_alloc > 0)*fixed_cost)
     }
 
@@ -628,15 +615,6 @@ SamplingSurvDesign.Context <- function(context,
       return((1 - prod(1 - establish_pr*sensitivity))/
                (1 - prod(1 - establish_pr)))
     }
-  }
-
-  # Function for converting the cost allocation for discrete quantities
-  if (discrete_alloc) {
-    f_discrete_alloc <- function(x_alloc) {
-      return(floor(x_alloc/sample_cost)*sample_cost)
-    }
-  } else {
-    f_discrete_alloc <- NULL
   }
 
   # Get the allocated surveillance resource values of the surveillance design
@@ -683,23 +661,21 @@ SamplingSurvDesign.Context <- function(context,
                              budget = budget,
                              system_sens = system_sens,
                              min_alloc = min_x_alloc,
-                             f_discrete_alloc = f_discrete_alloc,
                              search_alpha = search_alpha)
         x_alloc <- lagrangeSurvDesign$get_cost_allocation()
-
-        # Get (additional) quantity allocation
-        n_alloc <- (x_alloc >= fixed_cost)*(x_alloc - fixed_cost)/sample_cost
 
         # Optimal resource allocation
         if (discrete_alloc) {
 
           # Add discrete allocation
+          n_alloc <- floor((x_alloc >= fixed_cost)*
+                             (x_alloc - fixed_cost)/sample_cost)
           qty_alloc <<- qty_alloc + n_alloc
 
           # Alter parameters and indicate further allocation required
           fixed_cost[which(qty_alloc > 0)] <<- 0
           exist_sens <<- calculate_sensitivity(n_alloc)
-          add_allocation <- (sum(n_alloc) > 0)
+          add_allocation <- (sum(n_alloc) > 0 || all(min_alloc < 1))
           if (is.numeric(budget)) {
             total_x_alloc <- sum(qty_alloc*sample_cost +
                                    (qty_alloc > 0)*fixed_cost_orig)
@@ -711,7 +687,8 @@ SamplingSurvDesign.Context <- function(context,
               (calculate_system_sens(exist_sens) < system_sens &&
                  add_allocation)
           }
-          min_alloc[which(qty_alloc > 0)] <<- 0
+          min_alloc <<- pmax(ceiling(min_alloc), 1)
+          min_alloc[which(qty_alloc > 0)] <<- 1
           if (sample_type == "discrete" && is.numeric(total_indiv)) {
             total_indiv <<- total_indiv - n_alloc
           }
@@ -727,7 +704,8 @@ SamplingSurvDesign.Context <- function(context,
         } else {
 
           # Continuous allocation
-          qty_alloc <<- n_alloc
+          qty_alloc <<- ((x_alloc >= fixed_cost)*
+                           (x_alloc - fixed_cost)/sample_cost)
           add_allocation <- FALSE
         }
       }
