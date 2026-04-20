@@ -316,10 +316,11 @@ LagrangeSurvDesign.Context <- function(context,
       interval <- (0:100)/100*alpha_min
       best_obj <- c()
       best_alpha_list <- c()
-      precision <- 12 # for objective
+      precision <- 12 # for alpha & objective
       while (length(best_obj) < 2 ||
              (abs(diff(best_obj)[1]/best_obj[1]) > 10^(-1*precision) &&
-              abs(diff(best_alpha_list)[1]/alpha_min) > 10^(-1*precision))) {
+              abs(diff(best_alpha_list)[1]/
+                  min(best_alpha, -10^(-1*precision))) > 10^(-1*precision))) {
 
         # Get allocation for each alpha in interval
         if (alpha_unconstr == -1 && interval[1] == 0) {
@@ -362,7 +363,7 @@ LagrangeSurvDesign.Context <- function(context,
       }
     }
 
-    return(as.numeric(allocate(best_alpha[1])))
+    return(as.numeric(allocate(best_alpha)))
   }
 
   return(self)
