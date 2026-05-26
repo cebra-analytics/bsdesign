@@ -1,2 +1,408 @@
-# bsdesign
-Biosecurity Surveillance and Area Freedom Design
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+# bsdesign: Biosecurity Surveillance and Area Freedom Design
+
+<!-- badges: start -->
+
+[![Last
+commit](https://img.shields.io/github/last-commit/cebra-analytics/bsdesign.svg)](https://github.com/cebra-analytics/bsdesign/commits/main)
+<!-- badges: end -->
+
+The *bsdesign* package provides a collection of workflow components
+implemented in *R* (<https://www.r-project.org/>) as *S3* object
+classes, which encapsulate functionality for building design models for
+effective allocations of biosecurity surveillance resources and area
+freedom analysis. Surveillance and area freedom design models are
+constructed by building and linking workflow components as follows:
+
+1.  Define the context of the biosecurity surveillance and/or area
+    freedom design.
+2.  Specify the spatial or other divisions that the surveillance
+    resources are to be allocated across.
+3.  Assemble a surveillance design model with configuration appropriate
+    for the method and allocation conditions and generate the design.
+4.  Assemble an area freedom design model with configuration appropriate
+    for the method and generate the design.
+
+## Workflow components
+
+This section further describes the workflow components for building
+surveillance and area freedom design models.
+
+### Context
+
+The context of the biosecurity surveillance and/or area freedom design
+is defined via the *Context* object class, and outlines information
+about the study including:
+
+1.  The threat species name.
+2.  The type of invasive species or threat:
+    - Pest
+    - Weed
+    - Disease
+3.  The purpose of the surveillance:
+    - Early detection of the threat
+    - The delimitation of a threat incursion
+    - Post-eradication monitoring of a threat
+4.  The type of surveillance utilised:
+    - Surveys
+    - Traps
+    - Detectors
+    - Samples
+    - Reports (or general surveillance)
+    - Mixed surveillance
+5.  The unit to describe surveillance resource quantities:
+    - Units
+    - Hours
+    - Traps
+    - Detectors
+    - Samples
+    - User specified units
+6.  The unit to describe costs/savings, including surveillance resource
+    costs, incursion management costs, and/or surveillance benefit
+    savings:
+    - Dollars (\$)
+    - Hours
+    - User specified cost units
+7.  The unit to describe surveillance time intervals when applicable:
+    - Years
+    - Months
+    - Weeks
+    - Days
+    - Hours
+    - User specified time units
+8.  The unit to describe spatial distances and areas (distance squared)
+    when applicable:
+    - Metres
+    - Kilometres
+    - User specified distance units
+9.  The status of the invasive species presence:
+    - Never detected
+    - Detected
+    - Delimited
+    - Contained
+    - Eradicated
+10. An indication of whether area freedom is declared.
+11. An indication of whether absence or containment is required for
+    market access.
+12. The type of market access requirement:
+    - Threat absence
+    - Low prevalence of the threat
+    - The threat is contained
+
+### Divisions
+
+The spatial or other divisions that the surveillance resources are to be
+allocated across are specified via the *Divisions* object class and may
+be configured as either:
+
+1.  A grid-based spatial raster layer (GeoTIFF file), whereby
+    surveillance design parameters are specified, and allocations of
+    surveillance resources are generated, across the active (non-NA)
+    cell locations.
+2.  A network of spatial locations or patches defined via a table of
+    longitude and latitude coordinates (CSV file), across which
+    surveillance design parameters are specified, and allocations of
+    surveillance resources are generated.
+3.  Non-spatial divisions (or spatial divisions without specified
+    locations) defined via a table (CSV file), whereby surveillance
+    design parameters are specified, and allocations of surveillance
+    resources are generated, across divisions such as resource types,
+    management categories, species, etc.
+
+### Surveillance designs
+
+Surveillance designs may utilise various methods for generating
+effective surveillance resource allocations across specified
+*divisions*, and calculating surveillance sensitivities. The
+*SurveillanceDesign* object class provides a generic *base class* or
+template, with configuration and functionality common to different
+surveillance design approaches, including:
+
+- Linking to a *Context* class object.
+- Linking to a *Divisions* class object.
+- Generating an effective surveillance resource allocation.
+- Calculating the surveillance sensitivity (the probability of detection
+  when the threat is present).
+- Calculating the system-wide surveillance sensitivity across all
+  divisions.
+- Saving surveillance designs.
+
+Several surveillance design approaches have been encapsulated in object
+classes that are based on (or *inherit*) the *SurveillanceDesign* class.
+Most generic functionality provided in the *SurveillanceDesign* class is
+overridden by *inherited* classes with implementations specific to the
+design method encapsulated. The following *inherited* object classes
+implement different design methods:
+
+1.  *AreaGrowthSurvDesign*: Implements a surveillance design method
+    described in Epanchin-Niell et al. (2012) for the cost-effective
+    allocation of surveillance sampling densities across one or more
+    spatial sub-regions. The approach incorporates area-based population
+    growth of one or more populations (having discrete population size
+    classes) within each sub-region, and utilises surveillance and other
+    management costs, including costs associated with eradication,
+    damages, and failure to contain incursions. The method
+    implementation includes configuration for:
+    - The surveillance *context* via a *Context* class object.
+    - The *divisions* for specifying the sub-regions via a *Divisions*
+      class object.
+    - The area covered by each sub-region.
+    - The expected number of populations to establish in each sub-region
+      per time interval (*establish rate*).
+    - The area-based radial population *growth rate* in distance per
+      time interval.
+    - The maximum size class for populations represented in the growth
+      model.
+    - The maximum number of populations in a size class.
+    - A function for calculating the area of a population given its size
+      class and the growth rate, which by default is:  
+      $f(growth\_rate, size\_class)=\pi\cdot(growth\_rate\cdot size\_class)^2$
+    - The sample sensitivity for each sub-region.
+    - A list of estimated management costs (*mgmt cost*) for population
+      incursions, including:
+      - Eradication cost per area
+      - Damage cost per area
+      - Penalty cost per population of maximum size class
+    - The cost per sample of allocated surveillance resources at each
+      sub-region.
+    - The cost *budget* or constraint (number of samples available) for
+      the sampling allocation in the surveillance design.
+2.  *MultilevelSurvDesign*: Implements a multi-level sampling design
+    methods described in Kean, Burnip, & Pathan (2015) for the effective
+    allocation of surveillance sampling across one or more levels or
+    stages, along with system-wide sensitivity calculation approaches
+    outlined in Cannon (2009). The method implementation includes
+    configuration for:
+    - The surveillance *context* via a *Context* class object.
+    - The *divisions* (a *Divisions* class object) for specifying one or
+      more multi-stage levels, ordered from lowest to highest
+      (e.g. leaves, trees, rows, orchards). The lowest level can utilise
+      either *continuous* density-based or *discrete* sampling. Higher
+      levels can only utilise *discrete* sampling. Note that more than
+      five levels may not be computationally feasible.
+    - A single sample sensitivity value for the lowest level of the
+      multi-level/stage sampling design.
+    - The type of sampling used for the lowest level of the multilevel
+      sampling, either:
+      - Discrete
+      - Continuous
+    - The sampling design *prevalence* for each multi-level/stage. Note
+      that this parameter may represent apparent prevalence
+      (Cannon, 2009) when the sensitivity is set to 1.
+    - The total number of individual *discrete* sampling units
+      (e.g. leaves, trees, rows,orchards) present at each multi-stage
+      level.
+    - The *design density* for when the lowest level of the multilevel
+      sampling is *continuous*.
+    - The area of a single sample when the lowest level for when the
+      lowest level of the multi-level sampling is *continuous*. Note
+      that when set to 1, the total number of samples will be equivalent
+      to the total area sampled.
+    - The cost of samples at each level. An attribute *units* may be
+      used to specify the cost units (e.g. “\$” or “hours”).
+    - The desired (minimum) system-wide sensitivity or detection
+      probability of the surveillance design (e.g. 0.95).
+3.  *RangeKernelSurvDesign*: Implements a surveillance design method
+    described in Anderson et al. (2013; 2017; 2022) for the effective
+    allocation of surveillance resources that are decreasingly effective
+    across a spatial range, modelled via an exponential decay kernel.
+    The functionality is extended with optimisation approaches,
+    including those described in McCarthy et al. (2010) and Moore,
+    McCarthy, & Lecomte (2016). The extended method implementation
+    includes configuration for:
+    - The surveillance *context* via a *Context* class object.
+    - The *divisions* for specifying the spatial locations (grid-cells)
+      for the design via a *Divisions* class object.
+    - Establishment or occurrence probabilities of the threat at each
+      spatial location. Values are assumed to be relative when their
+      maximum is greater than 1, or an attribute *relative* is attached
+      to the parameter and set to *TRUE*.
+    - Maximum detection or capture rates (*lambda*) for each spatial
+      location. Maximum detection/capture is achieved when a
+      surveillance resource is placed in the centre of the home range of
+      an invasive species individual or colony. Detection/capture rate
+      decays with distance via an exponential kernel such that the
+      detection/capture probability of each allocated resource can be
+      expressed via:  
+      $1 - (1 - lambda\cdot exp(\frac{-distance^2}{2\cdot sigma^2})^{intervals})$  
+      for a given number of time *intervals* and up to a maximum
+      distance of 4$\times$*sigma*, where *sigma* is the home range
+      decay parameter.
+    - The spatial decay parameter (*sigma*) for the (half-Normal) home
+      range kernel (above). Note that *sigma* also specifies the maximum
+      effective distance of detection/capture resources (i.e. twice the
+      home range radius or 4$\times$*sigma*).
+4.  *SamplingSurvDesign*:
+
+(in progress)
+
+5.  *SpatialSurvDesign*:
+
+(in progress)
+
+### Area freedom designs
+
+(coming soon)
+
+## Installation
+
+You can install the latest version of *bsdesign* from
+[GitHub](https://github.com/) with:
+
+``` r
+remotes::install_github("cebra-analytics/bsdesign")
+```
+
+## Surveillance example
+
+The following example builds a surveillance design for Orange Hawkweed
+(*Hieracium aurantiacum*), an exotic weed for Australia, which
+approximately reproduces the surveillance design described in Hauser &
+McCarthy (2009). In the following steps we build the workflow
+components, run the design model, and examine the surveillance design
+results.
+
+### Step 1: Context
+
+(coming soon)
+
+### Step 2: Divisions
+
+In our example we will allocate surveillance resources across grid-based
+spatial divisions. The region of interest for our Hawkweed spread model
+is the Bogong High Plains area surrounding the ski-resort township of
+Falls Creek in Victoria, Australia. We derive template raster (GeoTIFF)
+for the region from the National Vegetation Information System (NVIS)
+V7.0 (NVIS, 2025) raster layers. We also use the NVIS data in step 2.
+Users may download [NVIS Raster
+Geodatabases](https://www.dcceew.gov.au/environment/environment-information-australia/national-vegetation-information-system/data-products)
+and place them in a suitable directory (e.g. *downloaded_data*) before
+loading and transforming the NVIS layer. We build our *Divisions* class
+object with our 100 m resolution template.
+
+``` r
+# Load NVIS major vegetation groups (MGV)
+nvis_rast <- terra::rast(
+  paste0("../downloaded_data/NVIS_V7_0_AUST_RASTERS_EXT_ALL/",
+         "NVIS_V7_0_AUST_EXT.gdb"))[["NVIS7_0_AUST_EXT_MVG_ALB"]]
+# Crop to the region of interest
+region_nvis_rast <- terra::crop(nvis_rast,
+                                c(1354000, 1372000, -4120000, -4103000))
+# Divisions class object configured with a masked NVIS template
+divisions <- bsdesign::Divisions(+(region_nvis_rast > 0))
+terra::plot(divisions$get_rast(1), colNA = "grey",
+            main = "Hawkweed example grid-based divisions")
+```
+
+<img src="man/figures/README-example_2-1.png" width="100%" style="display: block; margin: auto;" />
+
+### Step 3: Surveillance design
+
+(coming soon)
+
+### Area freedom example
+
+(coming soon)
+
+## References
+
+Anderson, D. P., Gormley, A. M., Ramsey, D. S. L., Nugent, G., Martin,
+P. A. J., Bosson, M., Livingstone, P., & Byrom, A. E. (2017).
+‘Bio-economic optimisation of surveillance to confirm broadscale
+eradications of invasive pests and diseases’. *Biological Invasions*,
+19(10), 2869–2884.
+[doi:10.1007/s1053001714905](https://doi.org/10.1007/s1053001714905)
+
+Anderson, D. P., Pepper, M. A., Travers, S., Michaels, T. A., Sullivan,
+K., & Ramsey, D. S. L. (2022). ‘Confirming the broadscale eradication
+success of nutria (Myocastor coypus) from the Delmarva Peninsula, USA’.
+*Biological Invasions*.
+[doi:10.1007/s1053002202855x](https://doi.org/10.1007/s1053002202855x)
+
+Anderson, D. P., Ramsey, D. S. L., Nugent, G., Bosson, M., Livingstone,
+P., Martin, P. A. J., Sergeant, E., Gormley, A. M., & Warburton, B.
+(2013). ‘A novel approach to assess the probability of disease
+eradication from a wild-animal reservoir host’. *Epidemiology and
+Infection*, 141(7), 1509–1521.
+[doi:10.1017/S095026881200310X](https://doi.org/10.1017/S095026881200310X)
+
+Barclay, H. J., & Hargrove, J. W. (2005). ‘Probability models to
+facilitate a declaration of pest-free status, with special reference to
+tsetse (Diptera: Glossinidae)’. *Bulletin Of Entomological Research
+(London)*, 95(1), 1–12.
+[doi:10.1079/BER2004331](https://doi.org/10.1079/BER2004331)
+
+Cannon, R. M. (2009). ‘Inspecting and monitoring on a restricted
+budget - where best to look?’ *Preventive Veterinary Medicine*, 92(1–2),
+163-174.
+[doi:10.1016/j.prevetmed.2009.06.009](https://doi.org/10.1016/j.prevetmed.2009.06.009)
+
+CRC (2003). Orange Hawkweed Weed Management Guide (2003) CRC for Weed
+Management. Accessed in 2026 via
+<https://weeds.org.au/profiles/orange-hawkweed/>
+
+Epanchin-Niell, R. S., Haight, R. G., Berec, L., Kean, J. M., &
+Liebhold, A. M. (2012). ‘Optimal surveillance and eradication of
+invasive species in heterogeneous landscapes’. *Ecology Letters*, 15(8),
+803–812.
+\[<doi:10.1111/j.14610248.2012.01800.x>\](<https://doi.org/10.1111/j.14610248.2012.01800.x>\]
+
+Hauser, C. E., Giljohann, K. M., Rigby, M., Herbert, K., Curran, I.,
+Pascoe, C., Williams, N. S. G., Cousens, R. D., & Moore, J. L. (2016).
+‘Practicable methods for delimiting a plant invasion’. *Diversity and
+Distributions*, 22(1/2), 136–147.
+[doi:10.1111/ddi.12388](https://doi.org/10.1111/ddi.12388)
+
+Hauser, C. E., & McCarthy, M. A. (2009). ‘Streamlining “search and
+destroy”: cost-effective surveillance for invasive species management’.
+*Ecology Letters*, 12(7), 683–692.
+[doi:10.1111/j.1461-0248.2009.01323.x](https://doi.org/10.1111/j.1461-0248.2009.01323.x)
+
+Kean, J. M., Burnip, G. M. & Pathan, A. (2015). Detection survey design
+for decision making during biosecurity incursions. In F. Jarrad, S.
+Low-Choy & K. Mengersen (eds.), *Biosecurity surveillance: Quantitative
+approaches* (pp. 238– 250). Wallingford, UK: CABI.
+[doi:10.1079/9781780643595.0000](https://doi.org/10.1079/9781780643595.0000)
+
+Magarey, R. C., Reynolds, M., Dominiak, B. C., Sergeant, E., Agnew,
+J.,Ward, A., & Thompson, N. (2019). ‘Review of sugarcane Fiji leaf gall
+disease in Australia and the declaration of pest freedom in Central
+Queensland’. *Crop Protection*, 121, 113–120.
+[doi:10.1016/j.cropro.2019.03.022](https://doi.org/10.1016/j.cropro.2019.03.022)
+
+McCarthy, M. A., Thompson, C. J., Hauser, C., Burgman, M. A.,
+Possingham, H. P., Moir, M. L., Tiensin, T., & Gilbert, M. (2010).
+‘Resource allocation for efficient environmental management’. *Ecology
+Letters*, 13(10), 1280–1289.
+[doi:10.1111/j.14610248.2010.01522.x](https://doi.org/10.1111/j.14610248.2010.01522.x)
+
+Moore, A. L., McCarthy, M. A., & Lecomte, N. (2016). ‘Optimizing
+ecological survey effort over space and time’. *Methods in Ecology and
+Evolution*, 7(8), 891–899.
+[doi:10.1111/2041210X.12564](https://doi.org/10.1111/2041210X.12564)
+
+National Vegetation Information System (NVIS) V7.0
+<https://www.dcceew.gov.au/> from copyright Commonwealth of Australia
+2025
+
+Regan, T. J., McCarthy, M. A., Baxter, P. W., Panetta, F. D., &
+Possingham, H. P. (2006). ‘Optimal eradication: when to stop looking for
+an invasive plant’. *Ecology Letters*, 9(7), 759–766.
+[doi:10.1111/j.14610248.2006.00920.x](https://doi.org/10.1111/j.14610248.2006.00920.x)
+
+Rout, T. (2017). ‘Declaring Eradication of an Invasive Species’. In A.
+Robinson, T. Walshe, M. Burgman, & M. Nunn (Eds.), *Invasive Species:
+Risk Assessment and Management* (pp. 334-347). Cambridge: Cambridge
+University Press.
+[doi:10.1017/9781139019606.017](https://doi.org/10.1017/9781139019606.017)
+
+Solow, A. R. (1993). ‘Inferring Extinction from Sighting Data’.
+*Ecology*, 74(3), 962–964.
+[doi:10.2307/1940821](https://doi.org/10.2307/1940821)
+
+Williams, N. S. G., Hahs, A. K., & Morgan, J. W. (2008). ‘A
+Dispersal-Constrained Habitat Suitability Model for Predicting Invasion
+of Alpine Vegetation’. *Ecological Applications*, 18(2), 347–359.
+[doi:10.1890/07-0868.1](https://doi.org/10.1890/07-0868.1)
