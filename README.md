@@ -228,12 +228,12 @@ implement different design methods:
       expressed via:  
       $1 - (1 - lambda\cdot exp(\frac{-distance^2}{2\cdot sigma^2})^{intervals})$  
       for a given number of time *intervals* and up to a maximum
-      distance of 4$\times$*sigma*, where *sigma* is the home range
+      distance of 4 $\times$ *sigma*, where *sigma* is the home range
       decay parameter.
     - The spatial decay parameter (*sigma*) for the (half-Normal) home
       range kernel (above). Note that *sigma* also specifies the maximum
       effective distance of detection/capture resources (i.e. twice the
-      home range radius or 4$\times$*sigma*).
+      home range radius or 4 $\times$ *sigma*).
 4.  *SamplingSurvDesign*:
 
 (in progress)

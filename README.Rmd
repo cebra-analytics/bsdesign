@@ -148,8 +148,8 @@ design (e.g. 0.95).
     - Establishment or occurrence probabilities of the threat at each spatial location. Values are assumed to be relative when their maximum is greater than 1, or an attribute *relative* is attached to the parameter and set to *TRUE*.
     - Maximum detection or capture rates (*lambda*) for each spatial location. Maximum detection/capture is achieved when a surveillance resource is placed in the centre of the home range of an invasive species individual or colony. Detection/capture rate decays with distance via an exponential kernel such that the detection/capture probability of each allocated resource can be expressed via:\
     $1 - (1 - lambda\cdot exp(\frac{-distance^2}{2\cdot sigma^2})^{intervals})$\
-    for a given number of time *intervals* and up to a maximum distance of 4$\times$*sigma*, where *sigma* is the home range decay parameter.
-    - The spatial decay parameter (*sigma*) for the (half-Normal) home range kernel (above). Note that *sigma* also specifies the maximum effective distance of detection/capture resources (i.e. twice the home range radius or 4$\times$*sigma*).
+    for a given number of time *intervals* and up to a maximum distance of 4 $\times$ *sigma*, where *sigma* is the home range decay parameter.
+    - The spatial decay parameter (*sigma*) for the (half-Normal) home range kernel (above). Note that *sigma* also specifies the maximum effective distance of detection/capture resources (i.e. twice the home range radius or 4 $\times$ *sigma*).
 
 4. *SamplingSurvDesign*:
 
