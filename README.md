@@ -215,10 +215,10 @@ implement different design methods:
     - The surveillance *context* via a *Context* class object.
     - The *divisions* for specifying the spatial locations (grid-cells)
       for the design via a *Divisions* class object.
-    - Establishment or occurrence probabilities of the threat at each
-      spatial location. Values are assumed to be relative when their
-      maximum is greater than 1, or an attribute *relative* is attached
-      to the parameter and set to *TRUE*.
+    - The establishment or occurrence probabilities of the threat at
+      each spatial location. Values are assumed to be relative when
+      their maximum is greater than 1, or an attribute *relative* is
+      attached to the parameter and set to *TRUE*.
     - Maximum detection or capture rates (*lambda*) for each spatial
       location. Maximum detection/capture is achieved when a
       surveillance resource is placed in the centre of the home range of
@@ -226,7 +226,7 @@ implement different design methods:
       decays with distance via an exponential kernel such that the
       detection/capture probability of each allocated resource can be
       expressed via:  
-      $1 - (1 - lambda\cdot exp(\frac{-distance^2}{2\cdot sigma^2})^{intervals})$  
+      $1 - (1 - lambda\cdot exp(\frac{-distance^2}{2\cdot sigma^2}))^{intervals}$  
       for a given number of time *intervals* and up to a maximum
       distance of 4 $\times$ *sigma*, where *sigma* is the home range
       decay parameter.
@@ -234,11 +234,165 @@ implement different design methods:
       range kernel (above). Note that *sigma* also specifies the maximum
       effective distance of detection/capture resources (i.e. twice the
       home range radius or 4 $\times$ *sigma*).
-4.  *SamplingSurvDesign*:
+    - The number of time *intervals* that each detection/capture
+      resource or device is utilised (e.g. nights a trap is set).
+    - The cell-level design *prevalence* indicating the minimum number
+      of location cells that are expected to be infected with the
+      invasive species if the region of interest is infected. Values
+      greater than 1 can be used as a proxy to population growth over
+      time.
+    - The strategy (*optimal*) used for finding an effective
+      surveillance resource allocation, either:
+      - Maximum overall system-wide detection sensitivity
+      - None for representing existing surveillance designs
+    - The cost *budget* or constraint for the number of surveillance
+      resource units or devices available for allocation in the
+      surveillance design.
+    - The desired (minimum) system-wide sensitivity or detection
+      probability of the surveillance design (e.g. 0.95). Used for
+      *optimal* maximum detection sensitivity.
+    - Existing surveillance resource quantities at each spatial
+      location. Used when *optimal* is specified as “none”.
+    - Detection sensitivities of existing surveillance present at each
+      spatial location.
+4.  *SamplingSurvDesign*: Implements an extended surveillance design
+    method for the effective allocation of surveillance sampling across
+    spatial or other divisions. The extended method is derived from
+    sampling approaches described in Kean, Burnip, & Pathan (2015),
+    sampling optimisation approaches described in Cannon (2009), along
+    with generalised optimisation approaches described in Hauser &
+    McCarthy (2009), McCarthy et al. (2010), and Moore, McCarthy, &
+    Lecomte (2016). The generalised optimisation functionality is
+    encapsulated within the *LagrangeSurvDesign* object class (see
+    below), which is utilised within both the *SamplingSurvDesign* and
+    *SpatialSurvDesign* (see next section) object classes. The sampling
+    surveillance design method includes configuration for:
+    - The surveillance *context* via a *Context* class object.
+    - The *divisions* for specifying the spatial locations or other
+      divisions for the design via a *Divisions* class object.
+    - The establishment or occurrence probabilities of the threat at
+      each location or other division. Values are assumed to be relative
+      when their maximum is greater than 1, or an attribute *relative*
+      is attached to the parameter and set to *TRUE*.
+    - Sample sensitivity, or the probability of detection when the
+      threat is present, for each location or other division.
+    - The type of sampling used (as per Kean, Burnip, & Pathan, 2015),
+      either:
+      - Discrete
+      - Continuous
+    - The *discrete* sampling design *prevalence* for each location or
+      other division. Note that this parameter may represent apparent
+      prevalence (Cannon, 2009) when the sensitivity is set to 1.
+    - The total number of individual *discrete* sampling units
+      (e.g. plants, animals) present at each location or other division.
+      This parameter is required when \> 10% of the total sampling units
+      are expected to be sampled, otherwise it is assumed that \<= 10%
+      of the total sampling units are sampled.
+    - The *continuous* sampling *design density* for each location or
+      other division.
+    - The area of a single sample for a *continuous* sampling design.
+      Note that when set to 1, the total number of samples will be
+      equivalent to the total area sampled.
+    - The strategy (*optimal*) used for finding an effective
+      surveillance resource allocation, either:
+      - Minimum cost
+      - Maximum saving (or cost-dependent benefit)
+      - Maximum benefit (independent of surveillance costs)
+      - Maximum number of detections
+      - Maximum overall system-wide sensitivity
+      - None for representing existing surveillance designs
+    - Estimated management costs for when the incursion is detected and
+      undetected at each location or other division. Used for *optimal*
+      minimum cost.
+    - Estimated savings (cost-based *benefit*) at each location or other
+      division. Used for *optimal* maximum saving.
+    - Estimated (non-monetary) quantified *benefit* at each location or
+      other division. Used for *optimal* maximum benefit.
+    - Cost per allocated sample at each location or other division.
+    - Fixed costs, such as travel costs or time, at each location or
+      other division.
+    - The cost *budget* or constraint for the sampling allocation in the
+      surveillance design.
+    - The desired (minimum) system-wide sensitivity or detection
+      probability of the surveillance design (e.g. 0.95). Used for
+      *optimal* maximum overall system-wide sensitivity.
+    - The minimum permissible sampling allocation at each location or
+      other division, to avoid impractically low sampling allocations.
+    - An indication of whether the sampling allocation at each location
+      or other division should be discrete integers (e.g. *discrete*
+      samples), or continuous quantities (e.g. sampled area or sample
+      batches).
+    - Existing surveillance resource quantities at each location or
+      other division. Used when *optimal* is specified as “none”.
+    - Detection sensitivities of existing surveillance present at each
+      location or other division.
+5.  *SpatialSurvDesign*: Implements an extended surveillance design
+    method for the effective allocation of surveillance resources across
+    spatial (or other) divisions. The extended method is derived from
+    optimisation approaches described in Hauser & McCarthy (2009),
+    McCarthy et al. (2010), and Moore, McCarthy, & Lecomte (2016), along
+    with approaches for incorporating existing detection sensitivities
+    derived from those described in Anderson et al. (2017). The
+    optimisation functionality is encapsulated within the
+    *LagrangeSurvDesign* object class (see below), which is utilised
+    within both the *SamplingSurvDesign* (see previous section) and
+    *SpatialSurvDesign* object classes. The surveillance design method
+    includes configuration for:
+    - The surveillance *context* via a *Context* class object.
+    - The *divisions* for specifying the spatial locations (or other
+      divisions) for the design via a *Divisions* class object.
+    - The establishment or occurrence probabilities of the threat at
+      each location (or other division). Values are assumed to be
+      relative when their maximum is greater than 1, or an attribute
+      *relative* is attached to the parameter and set to *TRUE*.
+    - The efficacy (*lambda*) or detection rates for each location (or
+      other division), such that the probability of detecting an
+      incursion when present at a location can be expressed via:  
+      $pr(detect|presence) = 1 - exp(-lambda\cdot allocation)$  
+      for a given *allocation* of surveillance resources.
+    - The cell-level design *prevalence* indicating the minimum number
+      of location cells that are expected to be infected with the
+      invasive species if the region of interest is infected. Values
+      greater than 1 can be used as a proxy to population growth over
+      time. Used when *divisions* specifies a cell-based (raster)
+      region.
+    - The strategy (*optimal*) used for finding an effective
+      surveillance resource allocation, either:
+      - Minimum cost
+      - Maximum saving (or cost-dependent benefit)
+      - Maximum benefit (independent of surveillance costs)
+      - Maximum number of detections
+      - Maximum overall system-wide sensitivity
+      - None for representing existing surveillance designs
+    - Estimated management costs for when the incursion is detected and
+      undetected at each location (or other division). Used for
+      *optimal* minimum cost.
+    - Estimated savings (cost-based *benefit*) at each location (or
+      other division). Used for *optimal* maximum saving.
+    - Estimated (non-monetary) quantified *benefit* at each location (or
+      other division). Used for *optimal* maximum benefit.
+    - Cost per unit of allocated surveillance resources at each location
+      (or other division).
+    - Fixed costs, such as travel costs or time, at each location (or
+      other division).
+    - The cost *budget* or constraint for the resource allocation in the
+      surveillance design.
+    - The desired (minimum) system-wide sensitivity or detection
+      probability of the surveillance design (e.g. 0.95). Used for
+      *optimal* maximum overall system-wide sensitivity.
+    - The minimum permissible allocated surveillance resource quantities
+      at each location (or other division), to avoid impractically low
+      allocation quantities.
+    - An indication of whether the allocated surveillance resource
+      quantities at each location (or other division) should be discrete
+      integers (e.g. discrete surveillance units such as traps or
+      detectors), or continuous quantities (e.g. survey hours).
+    - Existing surveillance resource quantities at each location (or
+      other division). Used when *optimal* is specified as “none”.
+    - Detection sensitivities of existing surveillance present at each
+      location (or other division).
 
-(in progress)
-
-5.  *SpatialSurvDesign*:
+#### Lagrange surveillance design optimisation
 
 (in progress)
 
