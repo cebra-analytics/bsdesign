@@ -274,25 +274,44 @@ implement different design methods:
       each location or other division. Values are assumed to be relative
       when their maximum is greater than 1, or an attribute *relative*
       is attached to the parameter and set to *TRUE*.
-    - Sample sensitivity, or the probability of detection when the
-      threat is present, for each location or other division.
+    - Sample sensitivity (*sample_sens*), or the probability of
+      detection when the threat is present, for each location or other
+      division.
     - The type of sampling used (as per Kean, Burnip, & Pathan, 2015),
       either:
-      - Discrete
-      - Continuous
+      - *Discrete* - whereby the overall sensitivity at each location or
+        other division is calculated for a given *allocation* of
+        samples, from a total number of individual sampling units, at a
+        sampling design *prevalence* level, via either:
+        - $1 – (1 – sample\_sens\cdot prevalence)^{allocation}$  
+          when up to 10% of the total units are sampled
+          (i.e. $allocation \leq 0.1\cdot total\_indiv$), or assumed
+          when $N$ is unknown; or
+        - $1 – (1 – \frac{sample\_sens\cdot allocation}{total\_indiv})^{prevalence\cdot total\_indiv}$  
+          when more than 10% of the total units are sampled (i.e
+          $allocation > 0.1\cdot total\_indiv$).
+      - *Continuous* - whereby the overall sensitivity at each location
+        or other division is calculated for a given total area sampled
+        within the location/division, at a specified sampling *design
+        density*, via:  
+        $1 – exp(–sample\_sens\cdot total\_area\_sampled\cdot design\_dens)$  
+        Alternatively, the area of a single sample (*sample_area*) may
+        be specified, thus an *allocation* of samples will sample a
+        total area of $allocation\times sample\_area$.
     - The *discrete* sampling design *prevalence* for each location or
       other division. Note that this parameter may represent apparent
       prevalence (Cannon, 2009) when the sensitivity is set to 1.
-    - The total number of individual *discrete* sampling units
-      (e.g. plants, animals) present at each location or other division.
-      This parameter is required when \> 10% of the total sampling units
-      are expected to be sampled, otherwise it is assumed that \<= 10%
-      of the total sampling units are sampled.
-    - The *continuous* sampling *design density* for each location or
-      other division.
-    - The area of a single sample for a *continuous* sampling design.
-      Note that when set to 1, the total number of samples will be
-      equivalent to the total area sampled.
+    - The total number of individual (*total_indiv*) *discrete* sampling
+      units (e.g. plants, animals) present at each location or other
+      division. This parameter is required when \> 10% of the total
+      sampling units are expected to be sampled, otherwise it is assumed
+      that \<= 10% of the total sampling units are sampled.
+    - The *continuous* sampling design density (*design_dens*) for each
+      location or other division.
+    - The area of a single sample (*sample_area*) for a *continuous*
+      sampling design. Note that when set to 1, the total number of
+      samples (*allocation*) will be equivalent to the total area
+      sampled.
     - The strategy (*optimal*) used for finding an effective
       surveillance resource allocation, either:
       - Minimum cost
@@ -456,7 +475,7 @@ terra::plot(divisions$get_rast(1), colNA = "grey",
 
 (coming soon)
 
-### Area freedom example
+## Area freedom example
 
 (coming soon)
 
