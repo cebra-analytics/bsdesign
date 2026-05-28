@@ -52,7 +52,7 @@ attached to the parameter.}
 
 \item{lambda}{A vector of maximum detection or capture rates for each
 spatial location specified by \code{divisions}. Maximum detection/capture
-is achieved when a surveillance resource is placed in the center of the
+is achieved when a surveillance resource is placed at the centre of the
 home range of an invasive species individual or colony. Detection/capture
 rate decays with distance via an exponential kernel such that the
 detection/capture probability of each allocated resource can be expressed
