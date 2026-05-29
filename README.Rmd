@@ -140,7 +140,7 @@ growth rate ($g$), which by default is:\
                 - The total number of sampling units ($N$) present at each level (e.g. leaves per tree, trees per row, rows per orchard).
             - The overall sensitivity $s(n)$ is calculated for a given allocation of samples ($n$) at each level via either:
                 - $s(n) = 1 – (1 – p\cdot P)^{n}$\
-                when up to 10% of the total units are sampled (i.e. $n \leq 0.15 \cdot N$), or (assumed) when $N$ is unknown.
+                when up to 10% of the total units are sampled (i.e. $n \leq 0.1 \cdot N$), or (assumed) when $N$ is unknown.
                 - $s(n) = 1 – (1 – p\cdot n/N)^{P\cdot N}$\
                 when more than 10% of the total units are sampled (i.e. $n > 0.1 \cdot N$).
         - Continuous sampling - whereby a total area is sampled within the lowest level of the design.
