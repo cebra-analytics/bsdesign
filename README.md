@@ -202,8 +202,7 @@ implement different design methods:
           allocation of samples ($n$) at each level via either:
           - $s(n) = 1 – (1 – p\cdot P)^{n}$  
             when up to 10% of the total units are sampled
-            (i.e. $n \leq 0.1\cdot N$), or (assumed) when $N$ is
-            unknown.
+            (i.e. $n <= 0.1\cdot N$), or (assumed) when $N$ is unknown.
           - $s(n) = 1 – (1 – p\cdot n/N)^{P\cdot N}$  
             when more than 10% of the total units are sampled (i.e
             $n > 0.1\cdot N$).
