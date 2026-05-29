@@ -34,7 +34,7 @@ surveillance and area freedom design models.
 
 The context of the biosecurity surveillance and/or area freedom design
 is defined via the *Context* object class, and outlines information
-about the study including:
+(where applicable and available) about the study including:
 
 1.  The threat species name.
 2.  The type of invasive species or threat:
@@ -198,13 +198,13 @@ implement different design methods:
           - The total number of sampling units ($N$) present at each
             level (e.g. leaves per tree, trees per row, rows per
             orchard).
-        - The overall sensitivity is calculated for a given allocation
-          of samples ($n$) at each level via either:
-          - $1 – (1 – p\cdot P)^{n}$  
+        - The overall sensitivity $s(n)$ is calculated for a given
+          allocation of samples ($n$) at each level via either:
+          - $s(n) = 1 – (1 – p\cdot P)^{n}$  
             when up to 10% of the total units are sampled
             (i.e. $n \leq 0.1\cdot N$), or (assumed) when $N$ is
             unknown.
-          - $1 – (1 – p\cdot n/N)^{P\cdot N}$  
+          - $s(n) = 1 – (1 – p\cdot n/N)^{P\cdot N}$  
             when more than 10% of the total units are sampled (i.e
             $n > 0.1\cdot N$).
       - Continuous sampling - whereby a total area is sampled within the
@@ -217,11 +217,11 @@ implement different design methods:
           - Area of a single sample ($a$) at the lowest level (only).
             Note that when set to 1, the total number of samples ($n$)
             will be equivalent to the total area sampled ($A$).
-        - The overall sensitivity is calculated for a given total area
-          sampled ($A$), or allocation of (area) samples ($n$), at the
-          lowest level via either:
-          - $1 – exp(–p\cdot A\cdot D)$  
-          - $1 – exp(–p\cdot n\cdot a\cdot D)$
+        - The overall sensitivity $s(n)$ is calculated for a given total
+          area sampled ($A$), or allocation of (area) samples ($n$), at
+          the lowest level via either:
+          - $s(n) = 1 – exp(–p\cdot A\cdot D)$  
+          - $s(n) = 1 – exp(–p\cdot n\cdot a\cdot D)$
     - Finding an effective or optimal multi-level sampling design based
       on:
       - The cost of sampling at each level.
@@ -250,7 +250,7 @@ implement different design methods:
       - The spatial decay parameter ($\sigma$) for the (half-Normal)
         home range kernel. Note that $\sigma$ also specifies the maximum
         effective distance of detection/capture resources (i.e. twice
-        the home range radius or 4 $\times \sigma$).
+        the home range radius or $4\times \sigma$).
       - The number of time intervals ($t$) that each detection/capture
         resource or device is utilised (e.g. nights a trap is set).
       - An exponential (half-Normal) kernel for calculating
@@ -312,13 +312,14 @@ implement different design methods:
           - The total number of individual sampling units ($N$), such as
             plants or animals, present at each location or other
             division.
-        - The overall sensitivity is calculated for a given allocation
-          of samples ($n$) at a location or division via either:
-          - $1 – (1 – p\cdot P)^{n}$  
+        - The overall sensitivity $s(n)$ is calculated for a given
+          allocation of samples ($n$) at a location or division via
+          either:
+          - $s(n) = 1 – (1 – p\cdot P)^{n}$  
             when up to 10% of the total units are sampled
             (i.e. $n \leq 0.1\cdot N$), or (assumed) when $N$ is
             unknown.
-          - $1 – (1 – p\cdot n/N)^{P\cdot N}$  
+          - $s(n) = 1 – (1 – p\cdot n/N)^{P\cdot N}$  
             when more than 10% of the total units are sampled (i.e
             $n > 0.1\cdot N$).
       - Continuous sampling - whereby a total area is sampled within
@@ -331,11 +332,11 @@ implement different design methods:
           - Area of a single sample ($a$). Note that when set to 1, the
             total number of samples ($n$) will be equivalent to the
             total area sampled ($A$).
-        - The overall sensitivity is calculated for a given total area
-          sampled ($A$), or allocation of (area) samples ($n$), within a
-          location or division via either:
-          - $1 – exp(–p\cdot A\cdot D)$  
-          - $1 – exp(–p\cdot n\cdot a\cdot D)$
+        - The overall sensitivity $s(n)$ is calculated for a given total
+          area sampled ($A$), or allocation of (area) samples ($n$),
+          within a location or division via either:
+          - $s(n) = 1 – exp(–p\cdot A\cdot D)$  
+          - $s(n) = 1 – exp(–p\cdot n\cdot a\cdot D)$
     - Finding an effective or optimal sampling design based on:
       - An optimisation strategy, either:
         - Minimum cost
@@ -398,10 +399,10 @@ implement different design methods:
       McCarthy, & Lecomte (2016) via:
       - The efficacy ($\lambda$) or detection rates for each location
         (or other division).
-      - The equation for calculating sensitivity for a given allocation
-        ($n$) of surveillance resources at a location (or other
-        division):  
-        $1 - exp(-\lambda\cdot n)$  
+      - The equation for calculating sensitivity $s(n)$ for a given
+        allocation ($n$) of surveillance resources at a location (or
+        other division):  
+        $s(n) = 1 - exp(-\lambda\cdot n)$  
     - The cell-level design *prevalence* indicating the minimum number
       of location cells that are expected to be infected with the
       invasive species if the region of interest is infected. Values
@@ -454,7 +455,78 @@ implement different design methods:
 
 #### Lagrange surveillance design optimisation
 
-(in progress)
+The *LagrangeSurvDesign* object class encapsulates an implementation of
+generalised optimisation approaches for the effective allocation of
+surveillance resources across one or more divisions (parts, locations,
+categories, etc.) via Lagrange-based methods described in Hauser &
+McCarthy (2009), McCarthy et al. (2010), and Moore, McCarthy, & Lecomte
+(2016). The implemented method is summarised by the following steps (see
+Moore, McCarthy, & Lecomte, 2016 - Appendix S3):
+
+1.  Formulate an objective function $f(n)$ for a given surveillance
+    resource allocation ($n$) across locations or other divisions, based
+    on:
+    - The establishment or occurrence probabilities at each
+      location/division.
+    - The sensitivity formulation $s(n)$ (see previous sections).
+    - An optimisation strategy, such as:
+      - Minimum total costs
+      - Maximum overall savings
+      - Maximum benefit
+      - Maximum number of detections
+      - Maximum system-wide sensitivity
+    - Detection/allocation costs, management costs, savings, or
+      non-monetary benefits where applicable.
+    - Criteria for avoiding negative allocations or allocations costing
+      more than savings (where applicable), or other mathematical
+      constraints (e.g. avoid dividing by zero), dependent on the
+      formulation. The objective function is usually discontinuous due
+      to criteria.  
+    - The objective function is commonly a summation across
+      locations/divisions ($i$):  
+      $f(n) = \sum_if_i(n_i)$  
+      Except for the objective function for maximum system-wide
+      sensitivity ($s_{system}$) where:  
+      $s_{system}(n) = 1 - \prod_i(1-s(n_i))$ is utilised in the
+      formulation of $f(n)$.
+2.  Derive the (partial) derivative $f'(n)$ (or marginal benefit) of the
+    objective function. The optimal solution occurs when the marginal
+    benefit is constant ($\alpha$), that is:  
+    $f_i'(n_i) = \alpha$ for all locations/divisions ($i$).
+3.  Derive the pseudo-inverse $f^+(\alpha)$ of the derivative function
+    via algebraic rearrangement of the derivative (if possible), such
+    that given an *alpha* value ($\alpha$) the function generates
+    allocations ($n_i$) for each location/division ($i$).
+4.  Perform an iterative search for the *alpha* value that corresponds
+    to the optimal solution for the objective function $f(n)$, given any
+    budget or other constraints (e.g. desired minimum system-wide
+    sensitivity). Note that budget or other constraints are optional for
+    cost or saving-based optimisation.
+
+The *LagrangeSurvDesign* object class is utilise within both the
+*SamplingSurvDesign* and *SpatialSurvDesign* object classes (see
+previous sections), and includes configuration for:
+
+- The surveillance context via a *Context* class object.
+- The spatial locations or other divisions for the design via a
+  *Divisions* class object.
+- The establishment or occurrence probabilities of the threat at each
+  location or other division. Relative probabilities may be utilised.
+- The formulated functions (as above) specific to configured
+  surveillance designs (within *SamplingSurvDesign* and
+  *SpatialSurvDesign* object classes), including:
+  - The objective function $f(n)$.
+  - The (partial) derivative $f'(n)$ of the objective function.
+  - The pseudo-inverse $f^+(\alpha)$ of the derivative function, plus
+    configuration for $\alpha$ value constraints.
+- Functions for calculating sensitivity $s_i(n_i)$ and its inverse
+  (i.e. allocations) $n_i(s_i)$ at each location/division ($i$).
+- Optimisation constraints:
+  - The cost budget or maximum number of surveillance resources
+    available.
+  - The desired (minimum) system-wide sensitivity or detection
+    probability of the surveillance design (e.g. 0.95).
+  - Minimum allocation quantities at each location/division.
 
 ### Area freedom designs
 
