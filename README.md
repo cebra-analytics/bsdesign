@@ -160,7 +160,7 @@ implement different design methods:
       - A function for calculating the area of a population given its
         size class ($s$) and the growth rate ($g$), which by default
         is:  
-        $f(g, s)=\pi\cdot(g\cdot s)^2$
+        $f(g, s)=\pi(gs)^2$
     - The sample sensitivity for each sub-region.
     - Cost-based optimisation, including parameters for:
       - A list of estimated management costs for population incursions,
@@ -200,12 +200,12 @@ implement different design methods:
             orchard).
         - The overall sensitivity $s(n)$ is calculated for a given
           allocation of samples ($n$) at each level via either:
-          - $s(n) = 1 – (1 – p\cdot P)^{n}$  
+          - $s(n) = 1 – (1 – pP)^{n}$  
             when up to 10% of the total units are sampled (i.e.
-            $n \leq 0.1\cdot N$), or (assumed) when $N$ is unknown.
-          - $s(n) = 1 – (1 – p\cdot n/N)^{P\cdot N}$  
+            $n \leq 0.1N$), or (assumed) when $N$ is unknown.
+          - $s(n) = 1 – (1 – pn/N)^{PN}$  
             when more than 10% of the total units are sampled (i.e.
-            $n > 0.1\cdot N$).
+            $n > 0.1N$).
       - Continuous sampling - whereby a total area is sampled within the
         lowest level of the design.
         - Sampling parameters include:
@@ -219,8 +219,8 @@ implement different design methods:
         - The overall sensitivity $s(n)$ is calculated for a given total
           area sampled ($A$), or allocation of (area) samples ($n$), at
           the lowest level via either:
-          - $s(n) = 1 – exp(–p\cdot A\cdot D)$  
-          - $s(n) = 1 – exp(–p\cdot n\cdot a\cdot D)$
+          - $s(n) = 1 – exp(–pAD)$  
+          - $s(n) = 1 – exp(–pnaD)$
     - Finding an effective or optimal multi-level sampling design based
       on:
       - The cost of sampling at each level.
@@ -254,7 +254,7 @@ implement different design methods:
         resource or device is utilised (e.g. nights a trap is set).
       - An exponential (half-Normal) kernel for calculating
         detection/capture rates, which decays with distance ($d$):  
-        $1 - (1 - \lambda\cdot exp(-d^2/(2\cdot \sigma^2)))^t$  
+        $1 - (1 - \lambda\cdot exp(-d^2/(2\sigma^2)))^t$  
     - The cell-level design *prevalence* indicating the minimum number
       of location cells that are expected to be infected with the
       invasive species if the region of interest is infected. Values
@@ -314,12 +314,12 @@ implement different design methods:
         - The overall sensitivity $s(n)$ is calculated for a given
           allocation of samples ($n$) at a location or division via
           either:
-          - $s(n) = 1 – (1 – p\cdot P)^{n}$  
+          - $s(n) = 1 – (1 – pP)^{n}$  
             when up to 10% of the total units are sampled (i.e.
-            $n \leq 0.1\cdot N$), or (assumed) when $N$ is unknown.
-          - $s(n) = 1 – (1 – p\cdot n/N)^{P\cdot N}$  
+            $n \leq 0.1N$), or (assumed) when $N$ is unknown.
+          - $s(n) = 1 – (1 – pn/N)^{PN}$  
             when more than 10% of the total units are sampled (i.e.
-            $n > 0.1\cdot N$).
+            $n > 0.1N$).
       - Continuous sampling - whereby a total area is sampled within
         each each location or other division.
         - Sampling parameters include:
@@ -333,8 +333,8 @@ implement different design methods:
         - The overall sensitivity $s(n)$ is calculated for a given total
           area sampled ($A$), or allocation of (area) samples ($n$),
           within a location or division via either:
-          - $s(n) = 1 – exp(–p\cdot A\cdot D)$  
-          - $s(n) = 1 – exp(–p\cdot n\cdot a\cdot D)$
+          - $s(n) = 1 – exp(–pAD)$  
+          - $s(n) = 1 – exp(–pnaD)$
     - Finding an effective or optimal sampling design based on:
       - An optimisation strategy, either:
         - Minimum cost
@@ -400,7 +400,7 @@ implement different design methods:
       - The equation for calculating sensitivity $s(n)$ for a given
         allocation ($n$) of surveillance resources at a location (or
         other division):  
-        $s(n) = 1 - exp(-\lambda\cdot n)$  
+        $s(n) = 1 - exp(-\lambda n)$  
     - The cell-level design *prevalence* indicating the minimum number
       of location cells that are expected to be infected with the
       invasive species if the region of interest is infected. Values
@@ -464,8 +464,8 @@ Moore, McCarthy, & Lecomte, 2016 - Appendix S3):
 1.  Formulate an objective function $f(n)$ for a given surveillance
     resource allocation ($n$) across locations or other divisions, based
     on:
-    - The establishment or occurrence probabilities at each
-      location/division.
+    - The establishment or occurrence probabilities ($p_i$) at each
+      location/division ($i$).
     - The sensitivity formulation $s(n)$ (see previous sections).
     - An optimisation strategy, such as:
       - Minimum total costs
@@ -480,16 +480,17 @@ Moore, McCarthy, & Lecomte, 2016 - Appendix S3):
       constraints (e.g. avoid dividing by zero), dependent on the
       formulation. The objective function is usually discontinuous due
       to criteria.  
-    - The objective function is commonly a summation across
+    - The objective function is commonly a weighted summation across
       locations/divisions ($i$):  
-      $f(n) = \sum_if_i(n_i)$  
+      $f(n) = \sum_ip_if_i(n_i)/\sum_ip_i$  
       Except for the objective function for maximum system-wide
       sensitivity ($s_{system}$) where:  
       $s_{system}(n) = 1 - \prod_i(1-s(n_i))$ is utilised in the
       formulation of $f(n)$.
-2.  Derive the (partial) derivative $f'(n)$ (or marginal benefit) of the
-    objective function. The optimal solution occurs when the marginal
-    benefit is constant ($\alpha$), that is:  
+2.  Derive the (partial) derivative(s) $f'(n)$ (or marginal benefit) of
+    the objective function. The optimal solution occurs when the
+    marginal benefit is constant ($\alpha$) across locations/divisions
+    ($i$), that is:  
     $f_i'(n_i) = \alpha$ for all locations/divisions ($i$).
 3.  Derive the pseudo-inverse $f^+(\alpha)$ of the derivative function
     via algebraic rearrangement of the derivative (if possible), such
@@ -514,7 +515,7 @@ previous sections), and includes configuration for:
   surveillance designs (within *SamplingSurvDesign* and
   *SpatialSurvDesign* object classes), including:
   - The objective function $f(n)$.
-  - The (partial) derivative $f'(n)$ of the objective function.
+  - The (partial) derivative(s) $f'(n)$ of the objective function.
   - The pseudo-inverse $f^+(\alpha)$ of the derivative function, plus
     configuration for $\alpha$ value constraints.
 - Functions for calculating sensitivity $s_i(n_i)$ and its inverse (i.e.
@@ -528,7 +529,80 @@ previous sections), and includes configuration for:
 
 ### Area freedom designs
 
-(coming soon)
+Area freedom designs may utilise various methods for generating temporal
+evidence for area freedom (the probability of system-wide absence when
+not detected) for a biosecurity threat. The *AreaFreedomDesign* object
+class provides a generic base class or template, with configuration and
+functionality common to different area freedom design approaches,
+including:
+
+- Linking to a Context class object.
+- Calculating evidence for area freedom across time based on:
+  - A system-wide temporal detection record for a threat.
+  - Iterative temporal (past, present, and/or future) applications of a
+    surveillance system (using system-wide sensitivities).
+  - Threat persistence (probability of survival).
+- Saving area freedom designs.
+
+Several area freedom design approaches have been encapsulated in object
+classes that are based on (or inherit) the *AreaFreedomDesign* class.
+Most generic functionality provided in the *AreaFreedomDesign* class is
+overridden by inherited classes with implementations specific to the
+design method encapsulated. The following inherited object classes
+implement different design methods:
+
+1.  *BayesianFreedomDesign*: Implements area freedom design
+    functionality utilising Bayesian approaches to assess the likelihood
+    of freedom, or a biosecurity threat being absent when it has not
+    been detected for a sequence of time intervals or applications of a
+    surveillance system, as described in Anderson et al. (2013; 2017;
+    2022), Magarey et al. (2019), Rout (2017), and Solow (1993). The
+    approach utilises an iterative Bayesian process, whereby beginning
+    with an initial estimate of the prior probability of freedom
+    $Pr(free)$ and the system-wide sensitivity of the surveillance
+    system ($s_{system}$), the probability of freedom (given no
+    detections) $Pr(free|undetected)$ is calculated and utilised for
+    estimating the prior probability for next iteration, and so on:  
+    $Pr(free|undetected)_t = Pr(free)_{t-1}/(1 - s_{system}\cdot(1 - Pr(free)_{t-1}))$  
+    The Bayesian area freedom design method includes configuration for:
+    - The surveillance context via a *Context* class object.
+    - A detection record indicating the system-wide presence or absence
+      of the threat over a temporal sequence, past to present when
+      applicable.
+    - The (optionally) temporal (past, present, and/or future)
+      probability of detecting the threat when it is present, or
+      system-wide sensitivity of the surveillance system.
+    - The probability that the threat persists at each time interval
+      (optionally temporal).
+    - The prior probability of area freedom or threat absence used in
+      the first iteration of the Bayesian process. Typically estimated
+      via expert elicitation, or an uninformed prior of 0.5 is used when
+      unknown.
+    - The probability that the threat is (re-)introduced $Pr(intro)$ or
+      newly arrives and establishes at each time interval. When
+      utilised, prior probabilities are modified as follows for
+      subsequent iterations (as per Anderson et al., 2013):  
+      $Pr(free)_{t-1} = Pr(free|undetected)_{t-1}\cdot(1-Pr(intro)_t)$  
+    - The stopping criteria for the iterative Bayesian process may be
+      either:
+      - The number of iterations, time intervals, or sequential
+        surveillance system applications.
+      - The target probability of area freedom (e.g. 0.95), or the
+        probability of freedom (absence) given a sequence of no
+        detections via a surveillance system. Generally the approach
+        utilised is determined by specifying either the detection record
+        (using the approach described in Rout, 2017 and Solow, 1993), or
+        the probability of detection parameter (using the approaches
+        described in Anderson et al. 2013 and Magarey et al. 2019). The
+        latter takes precedence if both are provide.
+2.  *HypothTestFreedomDesign*: Implements area freedom design
+    functionality utilising hypothesis testing approaches to assess the
+    likelihood of a threat being present when it has not been detected
+    for a sequence of time intervals or applications of a surveillance
+    system, as described in Barclay & Hargrove (2005), Regan et al.
+    (2006), Rout (2017), and Solow (1993). The approach utilises a
+    simple hypothesis test with a null hypothesis that the and an
+    alternative hypothesis, given a p-value (e.g. 0.05): (in progress)
 
 ## Installation
 
