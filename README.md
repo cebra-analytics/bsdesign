@@ -563,6 +563,9 @@ classes implement different design methods:
     system $Pr(detect|present)$, the probability of freedom (given no
     detections) $Pr(free|undetected)$ is calculated and utilised for
     estimating the prior probability for next iteration, and so on:  
+    $Pr(free|undetected) = Pr(free)/(1 - Pr(detect|present)\cdot(1 - Pr(free)))$  
+    $Pr(free|undetected)_t = Pr(free)_t/(1 - Pr(detect|present)_t\cdot(1 - Pr(free)_t))$  
+    $Pr(free|undetected)_t = Pr(free)_t/(1 - Pr(detect|present)_t\cdot(1 - Pr(free)_t))$  
     $Pr(free|undetected)_t = Pr(free)_t/(1 - Pr(detect|present)_t\cdot(1 - Pr(free)_t))$  
     then $Pr(free)_{t+1} = Pr(free|undetected)_t$  
     The Bayesian area freedom design method includes configuration for:
