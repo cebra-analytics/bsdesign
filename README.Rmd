@@ -306,25 +306,41 @@ Area freedom designs may utilise various methods for generating temporal evidenc
     - Threat persistence (probability of survival).
 - Saving area freedom designs.
 
-Several area freedom design approaches have been encapsulated in object classes that are based on (or inherit) the *AreaFreedomDesign* class. Most generic functionality provided in the *AreaFreedomDesign* class is overridden by inherited classes with implementations specific to the design method encapsulated. The following inherited object classes implement different design methods:
+Several area freedom design approaches have been encapsulated in two object classes that are based on (or inherit) the *AreaFreedomDesign* class. Most generic functionality provided in the *AreaFreedomDesign* class is overridden by inherited classes with implementations specific to the design method encapsulated. The following inherited object classes implement different design methods:
 
-1. *BayesianFreedomDesign*: Implements area freedom design functionality utilising Bayesian approaches to assess the likelihood of freedom, or a biosecurity threat being absent when it has not been detected for a sequence of time intervals or applications of a surveillance system, as described in Anderson et al\. (2013; 2017; 2022), Magarey et al\. (2019), Rout (2017), and Solow (1993). The approach utilises an iterative Bayesian process, whereby beginning with an initial estimate of the prior probability of freedom $Pr(free)$ and the system-wide sensitivity of the surveillance system ($s_{system}$), the probability of freedom (given no detections) $Pr(free|undetected)$ is calculated and utilised for estimating the prior probability for next iteration, and so on:\
-    $Pr(free|undetected)_t = Pr(free)_{t-1}/(1 - s_{system}\cdot(1 - Pr(free)_{t-1}))$\
+1. *BayesianFreedomDesign*: Implements area freedom design functionality utilising Bayesian approaches to assess the likelihood of freedom, or a biosecurity threat being absent when it has not been detected for a sequence of time intervals or applications of a surveillance system, as described in Anderson et al\. (2013; 2017; 2022), Magarey et al\. (2019), Rout (2017), and Solow (1993). The approach utilises an iterative Bayesian process, whereby beginning with an initial estimate of the prior probability of freedom $Pr(free)$ and the system-wide sensitivity of the surveillance system $Pr(detect|present)$, the probability of freedom (given no detections) $Pr(free|undetected)$ is calculated and utilised for estimating the prior probability for next iteration, and so on:\
+    $Pr(free|undetected)_t = Pr(free)_t/(1 - Pr(detect|present)_t\cdot(1 - Pr(free)_t))$\
+    then $Pr(free)_{t+1} = Pr(free|undetected)_t$\
 The Bayesian area freedom design method includes configuration for:
     - The surveillance context via a *Context* class object.
     - A detection record indicating the system-wide presence or absence of the threat over a  temporal sequence, past to present when applicable.
-    - The (optionally) temporal (past, present, and/or future) probability of detecting the threat when it is present, or system-wide sensitivity of the surveillance system. 
-    - The probability that the threat persists at each time interval (optionally temporal).
+    - The (optionally) temporal (past, present, and/or future) probability of detecting the threat when it is present, or system-wide sensitivity of the surveillance system $Pr(detect|present)$.
     - The prior probability of area freedom or threat absence used in the first iteration of the Bayesian process. Typically estimated via expert elicitation, or an uninformed prior of 0.5 is used when unknown.
-    - The probability that the threat is (re-)introduced $Pr(intro)$ or newly arrives and establishes at each time interval. When utilised, prior probabilities are modified as follows for subsequent iterations (as per Anderson et al., 2013):\
-    $Pr(free)_{t-1} = Pr(free|undetected)_{t-1}\cdot(1-Pr(intro)_t)$\
+    - The probability that the threat persists $Pr(persist)$ across time intervals between surveillance applications (optionally temporal). When utilised, prior probabilities are modified as follows for subsequent iterations (as similarly described in Rout, 2017):\
+    $Pr(free)_{t+1} = 1 - (1 - Pr(free)_{t+1})\cdot Pr(persist)_t$\
+    - The probability that the threat is (re-)introduced $Pr(intro)$ or newly arrives and establishes across time intervals. When utilised, prior probabilities are modified as follows for subsequent iterations (as per Anderson et al., 2013):\
+    $Pr(free)_{t+1} = Pr(free)_{t+1}\cdot(1 - Pr(intro))$\
     - The stopping criteria for the iterative Bayesian process may be either:
         - The number of iterations, time intervals, or sequential surveillance system applications.
         - The target probability of area freedom (e.g. 0.95), or the probability of freedom
 (absence) given a sequence of no detections via a surveillance system.
 Generally the approach utilised is determined by specifying either the detection record (using the approach described in Rout, 2017 and Solow, 1993), or the probability of detection parameter (using the approaches described in Anderson et al\. 2013 and Magarey et al\. 2019). The latter takes precedence if both are provide.
 
-2. *HypothTestFreedomDesign*: Implements area freedom design functionality utilising hypothesis testing approaches to assess the likelihood of a threat being present when it has not been detected for a sequence of time intervals or applications of a surveillance system, as described in Barclay & Hargrove (2005), Regan et al\. (2006), Rout (2017), and Solow (1993). The approach utilises a simple hypothesis test with a null hypothesis that the and an alternative hypothesis, given a p-value (e.g. 0.05): (in progress)
+2. *HypothTestFreedomDesign*: Implements area freedom design functionality utilising hypothesis testing approaches to assess the likelihood of a threat being present and not detected for a sequence of time intervals or applications of a surveillance system, as described in Barclay & Hargrove (2005), Regan et al\. (2006), Rout (2017), and Solow (1993). The approach utilises a simple hypothesis test with a null hypothesis that the threat is present despite not being detected by a surveillance system with sensitivity $Pr(detect|present)$, and an alternative hypothesis that the threat is not present. We reject the null hypothesis (in favour of the alternative) when the probability of it being true is unlikely, or below a specified level denoted the a p-value (e.g. 0.05). The (upper limit of the) probability of presence when not detected is calculated across a sequence of applications of the surveillance system via:\
+    $Pr(present\cap undetected)_t \leq \prod_{i=1}^t 1 - Pr(detect|present)_i$\
+    Note that the calculation provides an upper limit given $Pr(present) \leq 1$.\
+The hypothesis test area freedom design method includes configuration for:
+    - The surveillance context via a *Context* class object.
+    - A detection record indicating the system-wide presence or absence of the threat over a  temporal sequence, past to present when applicable.
+    - The (optionally) temporal (past, present, and/or future) probability of detecting the threat when it is present, or system-wide sensitivity of the surveillance system $Pr(detect|present)$.
+    - The probability that the threat persists $Pr(persist)$ across time intervals between surveillance applications (optionally temporal). When utilised, the probabilities are modified as follows (as described in Rout, 2017):\
+    $Pr(present\cap undetected)_t \leq \prod_{i=1}^tPr(persist)_i\cdot(1 - Pr(detect|present)_i)$\
+    - The probability that the threat persists at each time interval (optionally temporal).
+    - The stopping criteria for the iterative hypothesis test process may be either:
+        - The number of iterations, time intervals, or sequential surveillance system applications.
+        - The threshold probability or *p-value* (e.g. 0.05) for rejecting the null hypothesis that the threat is present despite a sequence of no detections via a surveillance
+system.
+Generally the approach utilised is determined by specifying either the detection record (using the approach described in Rout, 2017 and Solow, 1993), or the probability of detection parameter (using the approaches described in Barclay & Hargrove, 2005, Regan et al\., 2006, and Rout, 2017). The latter takes precedence if both are provide.
 
 ## Installation
 

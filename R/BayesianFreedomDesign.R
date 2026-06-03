@@ -17,13 +17,14 @@
 #'   of which should be sufficient for the expected number of
 #'   \code{iterations}, given the specified stopping criteria, else the last
 #'   value of the vector is repeated.
-#' @param pr_persist The probability that the invasive species persists at each
-#'   time interval (specified by the \code{time_unit} parameter in the
-#'   \code{context}). Default is \code{1} implies that the invasive species
-#'   will persist across time intervals if present, representing the worst case
-#'   scenario when persistence probability is unknown. Only utilized when
-#'   \code{pr_detect} is given. Temporally changing values may be provided by a
-#'   numeric vector, the length of which should be sufficient for the expected
+#' @param pr_persist The probability that the invasive species persists across
+#'   time intervals (specified by the \code{time_unit} parameter in the
+#'   \code{context}) between surveillance applications. Default is \code{1}
+#'   implies that the invasive species will persist across time intervals if
+#'   present, representing the worst case scenario when persistence
+#'   probability is unknown. Only utilized when \code{pr_detect} is given.
+#'   Temporally changing values may be provided by a numeric vector, the
+#'   length of which should be sufficient for one less than the expected
 #'   number of \code{iterations}, given the specified stopping criteria, else
 #'   the last value of the vector is repeated.
 #' @param prior_freedom The prior probability of invasive species freedom or
@@ -31,11 +32,11 @@
 #'   typically estimated via expert elicitation. Default is \code{0.5} for an
 #'   uninformed prior.
 #' @param pr_intro The probability that the invasive species is (re-)introduced
-#'   or newly arrives and establishes at each time interval. Discounts
-#'   subsequent iterative priors after the first Bayesian iteration. Default is
-#'   \code{0} implying that negligible (re-)introductions/arrivals of the
-#'   invasive species are expected across the time intervals. Only utilized
-#'   when \code{pr_detect} is given.
+#'   or newly arrives and establishes across time intervals between
+#'   surveillance applications. Discounts subsequent iterative priors after
+#'   the first Bayesian iteration. Default is \code{0} implying that negligible
+#'   (re-)introductions/arrivals of the invasive species are expected across
+#'   the time intervals. Only utilized when \code{pr_detect} is given.
 #' @param iterations The number of time intervals (specified by the
 #'   \code{time_unit} parameter in the \code{context}), or sequential
 #'   surveillance system applications, used to estimate the likelihood of area
@@ -191,11 +192,14 @@ BayesianFreedomDesign.Context <- function(context,
           } else {
             pr_persist_i <- pr_persist[length(pr_persist)]
           }
+          # Append Pr(free|undetected) as per Anderson et al. 2013
           pr_freedom <<- c(pr_freedom,
-                             (prior_freedom_i/
-                                (pr_persist_i*(1 - pr_detect_i)*
-                                   (1 - prior_freedom_i) + prior_freedom_i)))
-          prior_freedom_i <- pr_freedom[length(pr_freedom)]*(1 - pr_intro)
+                           (prior_freedom_i/
+                              (1 - pr_detect_i*(1 - prior_freedom_i))))
+          # Modify for next iteration
+          prior_freedom_i <-
+            ((1 - (1 - pr_freedom[length(pr_freedom)])*pr_persist_i)*
+               (1 - pr_intro))
         } else if (any(detected)) {
           Bayes_factor <- ((n_pres - 1)/
                              (((length(pr_freedom) + 1)/

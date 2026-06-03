@@ -2,8 +2,8 @@
 #'
 #' Builds a class to represent area freedom design functionality utilizing
 #' hypothesis testing approaches to assess the likelihood of an invasive
-#' species being present when it has not been detected for a sequence of time
-#' intervals or applications of a surveillance system.
+#' species not being detected for a sequence of time intervals or applications
+#' of a surveillance system despite being present.
 #'
 #' @param context A \code{Context} or inherited class object representing the
 #'   context of a bio-security surveillance and area freedom design.
@@ -17,23 +17,23 @@
 #'   of which should be sufficient for the expected number of
 #'   \code{iterations}, given the specified stopping criteria, else the last
 #'   value of the vector is repeated.
-#' @param pr_persist The probability that the invasive species persists at each
-#'   time interval (specified by the \code{time_unit} parameter in the
+#' @param pr_persist The probability that the invasive species persists across
+#'   time intervals (specified by the \code{time_unit} parameter in the
 #'   \code{context}). Default is \code{1} implies that the invasive species
 #'   will persist across time intervals if present, representing the worst case
 #'   scenario when persistence probability is unknown. Only utilized when
 #'   \code{pr_detect} is given. Temporally changing values may be provided by a
-#'   numeric vector, the length of which should be sufficient for the expected
-#'   number of \code{iterations}, given the specified stopping criteria, else
-#'   the last value of the vector is repeated.
+#'   numeric vector, the length of which should be sufficient for one less than
+#'   the expected number of \code{iterations}, given the specified stopping
+#'   criteria, else the last value of the vector is repeated.
 #' @param iterations The number of time intervals (specified by the
 #'   \code{time_unit} parameter in the \code{context}), or sequential
 #'   surveillance system applications, used to estimate the likelihood of area
 #'   freedom. Default is \code{NULL} implying that the \code{p_value} parameter
 #'   will be utilized as a stopping mechanism.
 #' @param p_value The threshold probability (e.g. 0.05) for rejecting the null
-#'   hypothesis that the invasive species remains present given a sequence of
-#'   no detection via a surveillance system. Default is \code{NULL} implying
+#'   hypothesis that the invasive species is present despite a sequence of
+#'   no detections via a surveillance system. Default is \code{NULL} implying
 #'   that the \code{iterations} parameter will be utilized as a stopping
 #'   mechanism.
 #' @param ... Additional parameters.
