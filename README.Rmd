@@ -334,10 +334,10 @@ Several area freedom design approaches have been encapsulated in two object clas
     $Pr(present\cap undetected) = (t_n/T)^n$\
     for $n$ positive detections, with the most recent at time $t_n$, within $T$ time intervals of the detection record (see Rout, 2017 - Figure 16.1).
     - The probability of detecting the threat when it is present, or system-wide sensitivity of the surveillance system $Pr(detect|present)$. This may be optionally temporal (past, present, and/or future). When using surveillance system sensitivity, the (upper limit of the) likelihood of undetected threat presence is calculated across a sequence of applications of the surveillance system via the following:\
-    $Pr(present\cap undetected) _t \leq \prod_{i=1}^t 1 - Pr(detect|present) _i$\
+    $Pr(present\cap undetected) _t \leq \prod_{i=1} ^t 1 - Pr(detect|present) _i$\
     Note that the calculation provides an upper limit given $Pr(present) \leq 1$.\
     - The surveillance-based approach may be modified by specifying the probability that the threat persists $Pr(persist)$ across time intervals between surveillance applications (optionally temporal). When utilised, the probabilities are modified as follows (as described in Rout, 2017):\
-    $Pr(present\cap undetected) _t \leq \prod_{i=1}^tPr(persist) _i\cdot(1 - Pr(detect|present) _i)$\
+    $Pr(present\cap undetected) _t \leq \prod_{i=1} ^t Pr(persist) _i\cdot(1 - Pr(detect|present) _i)$\
     - The stopping criteria for the iterative hypothesis test processes may be either:
         - The number of iterations, time intervals, or sequential surveillance system applications.
         - The threshold probability or *p-value* (e.g\. 0.05) for rejecting the null hypothesis that the threat is present despite a sequence of no detections.
