@@ -584,9 +584,10 @@ classes implement different design methods:
       sensitivity, the likelihood of freedom (given no detections) is
       calculated via an iterative Bayesian process as follows:  
       $Pr(free|undetected)_t = Pr(free)_t/(1 - Pr(detect|present)_t\cdot(1 - Pr(free)_t))$  
-      where $Pr(free)_1 = Pr(free)$ for the initial iteration $t = 1$  
+      where $Pr(free)_{1} = Pr(free)$ for the initial iteration
+      $t = 1$  
       and $Pr(free)_{t+1} = Pr(free|undetected)_t$ for subsequent
-      iterations $t > 1$
+      iterations $t > 1$.
     - The surveillance-based approach may be modified via the following:
       - The probability that the threat persists $Pr(persist)$ across
         time intervals between surveillance applications (optionally

@@ -316,8 +316,8 @@ Several area freedom design approaches have been encapsulated in two object clas
     where Bayes factor $B = (n - 1)/((T/t_n)^{n-1} - 1)$ for $n$ positive detections, with the most recent at time $t_n$, within $T$ time intervals of the detection record (see Rout, 2017 - Figure 16.1).
     - The probability of detecting the threat when it is present, or system-wide sensitivity of the surveillance system $Pr(detect|present)$. This may be optionally temporal (past, present, and/or future). When using surveillance system sensitivity, the likelihood of freedom (given no detections) is calculated via an iterative Bayesian process as follows:\
     $Pr(free|undetected)_t = Pr(free)_t/(1 - Pr(detect|present)_t\cdot(1 - Pr(free)_t))$\
-    where $Pr(free)_1 = Pr(free)$ for the initial iteration $t = 1$\
-    and $Pr(free)_{t+1} = Pr(free|undetected)_t$ for subsequent iterations $t > 1$
+    where $Pr(free)_{1} = Pr(free)$ for the initial iteration $t = 1$\
+    and $Pr(free)_{t+1} = Pr(free|undetected)_t$ for subsequent iterations $t > 1$.
     - The surveillance-based approach may be modified via the following:
         - The probability that the threat persists $Pr(persist)$ across time intervals between surveillance applications (optionally temporal). When utilised, prior probabilities are modified as follows for subsequent iterations (as similarly described in Rout, 2017):\
         $Pr(free)_{t+1} = 1 - (1 - Pr(free)_{t+1})\cdot Pr(persist)_t$\
