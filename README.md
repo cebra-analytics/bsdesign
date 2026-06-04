@@ -593,12 +593,12 @@ classes implement different design methods:
         temporal). When utilised, prior probabilities are modified as
         follows for subsequent iterations (as similarly described in
         Rout, 2017):  
-        $Pr(free)_{t+1} = 1 - (1 - Pr(free)_{t+1})\cdot Pr(persist)_t$  
+        $Pr(free) _{t+1} = 1 - (1 - Pr(free) _{t+1})\cdot Pr(persist) _t$  
       - The probability that the threat is (re-)introduced $Pr(intro)$
         or newly arrives and establishes across time intervals. When
         utilised, prior probabilities are modified as follows for
         subsequent iterations (as per Anderson et al., 2013):  
-        $Pr(free)_{t+1} = Pr(free)_{t+1}\cdot(1 - Pr(intro))$  
+        $Pr(free) _{t+1} = Pr(free) _{t+1}\cdot(1 - Pr(intro))$  
     - The stopping criteria for the iterative Bayesian processes may be
       either:
       - The number of iterations, time intervals, or sequential
@@ -639,7 +639,7 @@ classes implement different design methods:
       sensitivity, the (upper limit of the) likelihood of undetected
       threat presence is calculated across a sequence of applications of
       the surveillance system via the following:  
-      $Pr(present\cap undetected)_t \leq \prod_{i=1}^t 1 - Pr(detect|present)_i$  
+      $Pr(present\cap undetected) _t \leq \prod_{i=1}^t 1 - Pr(detect|present) _i$  
       Note that the calculation provides an upper limit given
       $Pr(present) \leq 1$.  
     - The surveillance-based approach may be modified by specifying the
@@ -647,7 +647,7 @@ classes implement different design methods:
       intervals between surveillance applications (optionally temporal).
       When utilised, the probabilities are modified as follows (as
       described in Rout, 2017):  
-      $Pr(present\cap undetected)_t \leq \prod_{i=1}^tPr(persist)_i\cdot(1 - Pr(detect|present)_i)$  
+      $Pr(present\cap undetected) _t \leq \prod_{i=1}^tPr(persist) _i\cdot(1 - Pr(detect|present) _i)$  
     - The stopping criteria for the iterative hypothesis test processes
       may be either:
       - The number of iterations, time intervals, or sequential
