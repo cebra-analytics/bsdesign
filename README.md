@@ -36,60 +36,35 @@ The context of the biosecurity surveillance and/or area freedom design
 is defined via the *Context* object class, and outlines information
 (where applicable and available) about the study including:
 
-1.  The threat species name.
-2.  The type of invasive species or threat:
-    - Pest
-    - Weed
-    - Disease
-3.  The purpose of the surveillance:
-    - Early detection of the threat
-    - The delimitation of a threat incursion
-    - Post-eradication monitoring of a threat
-4.  The type of surveillance utilised:
-    - Surveys
-    - Traps
-    - Detectors
-    - Samples
-    - Reports (or general surveillance)
-    - Mixed surveillance
-5.  The unit to describe surveillance resource quantities:
-    - Units
-    - Hours
-    - Traps
-    - Detectors
-    - Samples
-    - User specified units
-6.  The unit to describe costs/savings, including surveillance resource
-    costs, incursion management costs, and/or surveillance benefit
-    savings:
-    - Dollars (\$)
-    - Hours
-    - User specified cost units
-7.  The unit to describe surveillance time intervals when applicable:
-    - Years
-    - Months
-    - Weeks
-    - Days
-    - Hours
-    - User specified time units
-8.  The unit to describe spatial distances and areas (distance squared)
-    when applicable:
-    - Metres
-    - Kilometres
-    - User specified distance units
-9.  The status of the invasive species presence:
-    - Never detected
-    - Detected
-    - Delimited
-    - Contained
-    - Eradicated
-10. An indication of whether area freedom is declared.
-11. An indication of whether absence or containment is required for
-    market access.
-12. The type of market access requirement:
-    - Threat absence
-    - Low prevalence of the threat
-    - The threat is contained
+- The threat species name.
+- The type of invasive species or threat (pest, weed, or disease).
+- The purpose of the surveillance:
+  - Early detection of the threat.
+  - The delimitation of a threat incursion.
+  - Post-eradication monitoring of a threat.
+- The type of surveillance utilised (e.g. surveys, traps, samples).
+- The unit to describe surveillance resource quantities (e.g. hours,
+  units, samples).
+- The unit to describe costs/savings, including surveillance resource
+  costs, incursion management costs, and/or surveillance benefit savings
+  (e.g. \$, hours).
+- The unit to describe surveillance time intervals when applicable
+  (years, months, weeks, days, hours).
+- The unit to describe spatial distances and areas (distance squared)
+  when applicable (m, km).
+- The status of the invasive species presence:
+  - Never detected.
+  - Detected.
+  - Delimited.
+  - Contained.
+  - Eradicated.
+- An indication of whether area freedom is declared.
+- An indication of whether absence or containment is required for market
+  access.
+- The type of market access requirement:
+  - Threat absence.
+  - Low prevalence of the threat.
+  - The threat is contained.
 
 ### Divisions
 
@@ -97,19 +72,18 @@ The spatial or other divisions that the surveillance resources are to be
 allocated across are specified via the *Divisions* object class and may
 be configured as either:
 
-1.  A grid-based spatial raster layer (GeoTIFF file), whereby
-    surveillance design parameters are specified, and allocations of
-    surveillance resources are generated, across the active (non-NA)
-    cell locations.
-2.  A network of spatial locations or patches defined via a table of
-    longitude and latitude coordinates (CSV file), across which
-    surveillance design parameters are specified, and allocations of
-    surveillance resources are generated.
-3.  Non-spatial divisions (or spatial divisions without specified
-    locations) defined via a table (CSV file), whereby surveillance
-    design parameters are specified, and allocations of surveillance
-    resources are generated, across divisions such as resource types,
-    management categories, species, etc.
+- A grid-based spatial raster layer (GeoTIFF file), whereby surveillance
+  design parameters are specified, and allocations of surveillance
+  resources are generated, across the active (non-NA) cell locations.
+- A network of spatial locations or patches defined via a table of
+  longitude and latitude coordinates (CSV file), across which
+  surveillance design parameters are specified, and allocations of
+  surveillance resources are generated.
+- Non-spatial divisions (or spatial divisions without specified
+  locations) defined via a table (CSV file), whereby surveillance design
+  parameters are specified, and allocations of surveillance resources
+  are generated, across divisions such as resource types, management
+  categories, species, etc.
 
 ### Surveillance designs
 
