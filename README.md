@@ -573,7 +573,7 @@ classes implement different design methods:
       freedom (given no detections) may be iteratively calculated up to
       $T$ time intervals from the detection record via the following:  
       $Pr(free|undetected) = 1 - 1/(1 + Pr(free)/(B(1 - Pr(free))))$  
-      where Bayes factor $B = (n - 1)/((T/t_n)^{n-1} - 1)$ for $n$
+      where Bayes factor $B = (n - 1)/((T/t_n)^{n-1} - 1)$ for $n$
       positive detections, with the most recent at time $t_n$, within
       $T$ time intervals of the detection record (see Rout, 2017 -
       Figure 16.1).
@@ -585,7 +585,7 @@ classes implement different design methods:
       calculated via an iterative Bayesian process as follows:  
       $Pr(free|undetected)_t = Pr(free)_t/(1 - Pr(detect|present)_t\cdot(1 - Pr(free)_t))$  
       where $Pr(free)_1 = Pr(free)$ for the initial iteration $t = 1$  
-      and $Pr(free)_{t+1} = Pr(free|undetected)_t$ for subsequent
+      and $Pr(free)_{t+1} = Pr(free|undetected)_t$ for subsequent
       iterations $t > 1$
     - The surveillance-based approach may be modified via the following:
       - The probability that the threat persists $Pr(persist)$ across
@@ -603,7 +603,7 @@ classes implement different design methods:
       either:
       - The number of iterations, time intervals, or sequential
         surveillance system applications.
-      - The target probability of area freedom (e.g. 0.95), or the
+      - The target probability of area freedom (e.g. 0.95), or the
         probability of freedom (absence) given a sequence of no
         detections.
 2.  *HypothTestFreedomDesign*: Implements area freedom design
@@ -652,7 +652,7 @@ classes implement different design methods:
       may be either:
       - The number of iterations, time intervals, or sequential
         surveillance system applications.
-      - The threshold probability or *p-value* (e.g. 0.05) for rejecting
+      - The threshold probability or *p-value* (e.g. 0.05) for rejecting
         the null hypothesis that the threat is present despite a
         sequence of no detections.
 
