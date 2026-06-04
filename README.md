@@ -639,7 +639,7 @@ classes implement different design methods:
       sensitivity, the (upper limit of the) likelihood of undetected
       threat presence is calculated across a sequence of applications of
       the surveillance system via the following:  
-      $Pr(present\cap undetected) _t \leq \prod_{i=1} ^t 1 - Pr(detect|present) _i$  
+      $Pr(present\cap undetected) _t \leq \prod _{i=1} ^t 1 - Pr(detect|present) _i$  
       Note that the calculation provides an upper limit given
       $Pr(present) \leq 1$.  
     - The surveillance-based approach may be modified by specifying the
@@ -647,7 +647,7 @@ classes implement different design methods:
       intervals between surveillance applications (optionally temporal).
       When utilised, the probabilities are modified as follows (as
       described in Rout, 2017):  
-      $Pr(present\cap undetected) _t \leq \prod_{i=1} ^t Pr(persist) _i\cdot(1 - Pr(detect|present) _i)$  
+      $Pr(present\cap undetected) _t \leq \prod _{i=1} ^t Pr(persist) _i\cdot(1 - Pr(detect|present) _i)$  
     - The stopping criteria for the iterative hypothesis test processes
       may be either:
       - The number of iterations, time intervals, or sequential
