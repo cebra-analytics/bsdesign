@@ -328,7 +328,7 @@ Several area freedom design approaches have been encapsulated in two object clas
         - The target probability of area freedom (e.g\. 0.95), or the probability of freedom
 (absence) given a sequence of no detections.
 
-2. *HypothTestFreedomDesign*: Implements area freedom design functionality utilising hypothesis testing approaches to assess the likelihood of a threat being present and not detected for a sequence of time intervals or applications of a surveillance system. Each approach defines a hypothesis test with a null hypothesis that the threat is present despite not being detected, and an alternative hypothesis that the threat is not present. We reject the null hypothesis (in favour of the alternative) when the probability of it being true is unlikely, or below a specified level denoted the a p-value (e.g. 0.05). Hypothesis testing approaches may be used to iteratively assess the likelihood of undetected threat presence via detection records, as described in Rout (2017) and Solow (1993), or via the sensitivity of a surveillance system, as described in Barclay & Hargrove (2005), Regan et al\. (2006), and Rout (2017). The hypothesis test area freedom design method implementation includes configuration for:
+2. *HypothTestFreedomDesign*: Implements area freedom design functionality utilising hypothesis testing approaches to assess the likelihood of a threat being present and not detected for a sequence of time intervals or applications of a surveillance system. Each approach defines a hypothesis test with a null hypothesis that the threat is present despite not being detected, and an alternative hypothesis that the threat is not present. We reject the null hypothesis (in favour of the alternative) when the probability of it being true is unlikely, or below a specified level denoted the a p-value (e.g\. 0.05). Hypothesis testing approaches may be used to iteratively assess the likelihood of undetected threat presence via detection records, as described in Rout (2017) and Solow (1993), or via the sensitivity of a surveillance system, as described in Barclay & Hargrove (2005), Regan et al\. (2006), and Rout (2017). The hypothesis test area freedom design method implementation includes configuration for:
     - The surveillance context via a *Context* class object.
     - A detection record indicating the system-wide presence or absence of the threat over a  temporal sequence, past to present when applicable. When using a detection record, the likelihood of undetected threat presence may be iteratively calculated up to $T$ time intervals from the detection record via the following:\
     $Pr(present\cap undetected) = (t_n/T)^n$\
@@ -412,7 +412,7 @@ Hauser, C. E., Giljohann, K. M., Rigby, M., Herbert, K., Curran, I., Pascoe, C.,
 
 Hauser, C. E., & McCarthy, M. A. (2009). 'Streamlining "search and destroy": cost-effective surveillance for invasive species management'. *Ecology Letters*, 12(7), 683–692. [doi:10.1111/j.1461-0248.2009.01323.x](https://doi.org/10.1111/j.1461-0248.2009.01323.x)
 
-Kean, J. M., Burnip, G. M. & Pathan, A. (2015). Detection survey design for decision making during biosecurity incursions. In F. Jarrad, S. Low-Choy & K. Mengersen (eds.), *Biosecurity surveillance: Quantitative approaches* (pp. 238– 250). Wallingford, UK: CABI. [doi:10.1079/9781780643595.0000](https://doi.org/10.1079/9781780643595.0000)
+Kean, J. M., Burnip, G. M. & Pathan, A. (2015). Detection survey design for decision making during biosecurity incursions. In F. Jarrad, S. Low-Choy & K. Mengersen (eds.), *Biosecurity surveillance: Quantitative approaches* (pp\. 238– 250). Wallingford, UK: CABI. [doi:10.1079/9781780643595.0000](https://doi.org/10.1079/9781780643595.0000)
 
 Magarey, R. C., Reynolds, M., Dominiak, B. C., Sergeant, E., Agnew, J.,Ward, A., & Thompson, N.
 (2019). 'Review of sugarcane Fiji leaf gall disease in Australia and the declaration of pest freedom in Central Queensland'. *Crop Protection*, 121, 113–120. [doi:10.1016/j.cropro.2019.03.022](https://doi.org/10.1016/j.cropro.2019.03.022)
@@ -430,7 +430,7 @@ Regan, T. J., McCarthy, M. A., Baxter, P. W., Panetta, F. D., & Possingham, H. P
 [doi:10.1111/j.14610248.2006.00920.x](https://doi.org/10.1111/j.14610248.2006.00920.x)
 
 Rout, T. (2017). 'Declaring Eradication of an Invasive Species'. In A. Robinson, T. Walshe, M.
-Burgman, & M. Nunn (Eds.), *Invasive Species: Risk Assessment and Management* (pp. 334-347).
+Burgman, & M. Nunn (Eds.), *Invasive Species: Risk Assessment and Management* (pp\. 334-347).
 Cambridge: Cambridge University Press. [doi:10.1017/9781139019606.017](https://doi.org/10.1017/9781139019606.017)
 
 Solow, A. R. (1993). 'Inferring Extinction from Sighting Data'. *Ecology*, 74(3), 962–964. [doi:10.2307/1940821](https://doi.org/10.2307/1940821)

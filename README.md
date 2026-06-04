@@ -615,7 +615,7 @@ classes implement different design methods:
     hypothesis that the threat is not present. We reject the null
     hypothesis (in favour of the alternative) when the probability of it
     being true is unlikely, or below a specified level denoted the a
-    p-value (e.g. 0.05). Hypothesis testing approaches may be used to
+    p-value (e.g. 0.05). Hypothesis testing approaches may be used to
     iteratively assess the likelihood of undetected threat presence via
     detection records, as described in Rout (2017) and Solow (1993), or
     via the sensitivity of a surveillance system, as described in
@@ -773,7 +773,7 @@ destroy”: cost-effective surveillance for invasive species management’.
 Kean, J. M., Burnip, G. M. & Pathan, A. (2015). Detection survey design
 for decision making during biosecurity incursions. In F. Jarrad, S.
 Low-Choy & K. Mengersen (eds.), *Biosecurity surveillance: Quantitative
-approaches* (pp. 238– 250). Wallingford, UK: CABI.
+approaches* (pp. 238– 250). Wallingford, UK: CABI.
 [doi:10.1079/9781780643595.0000](https://doi.org/10.1079/9781780643595.0000)
 
 Magarey, R. C., Reynolds, M., Dominiak, B. C., Sergeant, E., Agnew,
@@ -804,7 +804,7 @@ an invasive plant’. *Ecology Letters*, 9(7), 759–766.
 
 Rout, T. (2017). ‘Declaring Eradication of an Invasive Species’. In A.
 Robinson, T. Walshe, M. Burgman, & M. Nunn (Eds.), *Invasive Species:
-Risk Assessment and Management* (pp. 334-347). Cambridge: Cambridge
+Risk Assessment and Management* (pp. 334-347). Cambridge: Cambridge
 University Press.
 [doi:10.1017/9781139019606.017](https://doi.org/10.1017/9781139019606.017)
 
