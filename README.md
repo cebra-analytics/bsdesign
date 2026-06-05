@@ -667,7 +667,30 @@ results.
 
 ### Step 1: Context
 
-(coming soon)
+We define the context of the Hawkweed surveillance, including details
+about the threat and the surveillance used. In the study described in
+Hauser & McCarthy (2009) yearly “search and destroy” surveys are
+conducted. Surveillance efforts and costs are measured in hours. The
+Hawkweed had been detected in past surveys and locally eradicated,
+although its persistence in the study area is unknown. There are no
+market requirements for Hawkweed area freedom, as it primarily an
+environmental threat. We build our *Context* class object with the
+relevant details.
+
+``` r
+# Hawkweed surveillance context
+context <- bsdesign::Context(species_name = "Hieracium aurantiacum",
+                             species_type = "weed",
+                             surveillance_purpose = "post-eradication",
+                             surveillance_type = "survey",
+                             surv_qty_unit = "hours",
+                             cost_unit = "hours",
+                             time_unit = "years",
+                             dist_unit = "metres",
+                             incursion_status = "detected",
+                             area_freedom = FALSE,
+                             market_access = FALSE)
+```
 
 ### Step 2: Divisions
 
@@ -701,7 +724,193 @@ terra::plot(divisions$get_rast(1), colNA = "grey",
 
 ### Step 3: Surveillance design
 
-(coming soon)
+We build our surveillance design model for allocating survey efforts
+across the grid-based region using the *SpatialSurvDesign* object class
+with configuration for:
+
+- The surveillance context via a *Context* class object.
+- The spatial locations for the design via a *Divisions* class object.
+- Establishment or occurrence probabilities of the threat at each
+  location (see below).
+- The efficacy ($\lambda$) or *lambda* (see below) for calculating the
+  sensitivity $s(n)$ for a given allocation ($n$) of surveillance
+  resources at each location via:
+  - $s(n) = 1 - exp(-\lambda n)$
+- Finding an effective or optimal survey effort allocation design based
+  on those described in Hauser & McCarthy (2009):
+  - A minimum cost optimisation strategy.
+  - Estimated management costs per (20 metre) grid-cell location were
+    estimated in Hauser & McCarthy (2009) as 400 hours for undetected
+    threat incursions and 40 hours for detected incursions. Since our
+    example model uses a different spatial resolution (100 metre) we
+    scale these management costs by 25.
+  - As per Hauser & McCarthy (2009), we will find survey allocations
+    with and without a cost budget of 1125 hours.
+
+Before building and running our surveillance designs (with and without a
+budget), we will create raster layers for the establishment
+probabilities and efficacy (*lambda*) values.
+
+#### Establishment probability layer
+
+The establishment or occurrence layer utilised in Hauser & McCarthy
+(2009) was based on the output of a simulated spread model (or
+“dispersal-constrained habitat suitability”) described in Williams et
+al. (2008). In our population spread simulation example described in the
+[bsspread package](https://github.com/cebra-analytics/bsspread), we
+approximately reproduced the model presented in Williams et al. (2008).
+Here we utilise the mean occupancy output (at time step 2) from our
+example spread model simulations, which may be downloaded from
+[here](https://github.com/cebra-analytics/bsdesign/tree/main/data) and
+copied into a *data* directory.
+
+In Williams et al. (2008) model simulations were initialised from
+numerous locations where the threat had been previously detected and
+locally eradicated. Their “dispersal-constrained habitat suitability”
+model contains values of no more than 0.1, which presumably accounts for
+unsuccessful detections/eradications, and potentially new threat
+incursions to the region. In our example spread model, however, we
+initialised every simulation with an established threat presence,
+thereby exaggerating the resulting likelihood of occupancy. We thus
+scale our mean occupancy output to make it consistent with that
+presented in Williams et al. (2008).
+
+``` r
+# Load the mean occupancy from the spread simulation example
+mean_occupancy_rast <- terra::rast("data/occupancy_t2_mean.tif")
+# Scale for consistency with Williams et al. (2008)
+establish_pr_rast <-
+  mean_occupancy_rast*0.1/terra::minmax(mean_occupancy_rast)[2]
+terra::plot(log(establish_pr_rast, base = 10), colNA = "black",
+            main = "Hawkweed establishment probability (log)")
+```
+
+<img src="man/figures/README-example_3_1-1.png" width="100%" style="display: block; margin: auto;" />
+
+#### Efficacy (*lambda*) layer
+
+The surveillance efficacy (*lambda*) utilised in Hauser & McCarthy
+(2009) was estimated with values, dependent on vegetation, of 2.3714 per
+minute for grass, and 0.6020 per minute for shrubby vegetation, for each
+surveyed 20 metre grid cell. Firstly, we will scale these values for our
+model, in which we utilise 100 metre grid cells and hourly survey effort
+allocations, by $60/25$. We then distribute these scaled efficacy values
+across the region based on the vegetation type from our cropped NVIS
+(NVIS, 2025) raster from step 2.
+
+``` r
+# Set efficacy (lambda) for grass and shrubby vegetation only
+efficacy_rast <- terra::classify(region_nvis_rast,
+                                 matrix(c(
+                                   17, 0.6020*60/25, # Shrublands
+                                   18, 0.6020*60/25, # Heathlands
+                                   19, 2.3714*60/25, # Tussock Grasslands
+                                   21, 2.3714*60/25  # Other Grasslands, etc.
+                                 ), ncol = 2, byrow = TRUE),
+                                 others = 0)
+terra::plot(efficacy_rast, main = "Hawkweed surveillance efficacy (per hour)",
+            colNA = "black")
+```
+
+<img src="man/figures/README-example_3_2-1.png" width="100%" style="display: block; margin: auto;" />
+
+#### Surveillance design without a budget
+
+Our first surveillance design involves finding an effective or optimal
+allocation of survey hours without a budget constraint. This is only
+possible for cost-based (or savings-based) optimisation, as the cost of
+surveillance is utilised in the optimisation. The minimum overall cost
+is achieved with the optimal balance of surveillance and management
+costs.
+
+``` r
+# Surveillance design without budget
+surv_design_no_budget <- bsdesign::SpatialSurvDesign(
+  context = context,
+  divisions = divisions,
+  establish_pr = establish_pr_rast[divisions$get_indices()][,1], # as vector
+  lambda = efficacy_rast[divisions$get_indices()][,1], # as vector
+  optimal = "cost",
+  mgmt_cost = list(undetected = 400*25,
+                   detected = 40*25), # hours
+  budget = NULL)
+output <- surv_design_no_budget$save_design()
+terra::plot(terra::rast("allocation.tif"),
+            main = "Hawkweed survey allocation (hours) - no budget",
+            colNA = "black")
+```
+
+<img src="man/figures/README-example_3_3_1-1.png" width="100%" style="display: block; margin: auto;" />
+
+The spatial distribution of the surveillance sensitivity (or probability
+of detection when present) is also saved with the design:
+
+``` r
+# Surveillance design sensitivity (without budget)
+terra::plot(terra::rast("sensitivity.tif"),
+            main = "Hawkweed survey sensitivity - no budget",
+            colNA = "black")
+```
+
+<img src="man/figures/README-example_3_3_2-1.png" width="100%" style="display: block; margin: auto;" />
+
+The saved design also provides a system-wide summary, including the
+total survey allocation, the total management cost, the total cost, and
+the system-wide sensitivity:
+
+``` r
+# Surveillance design summary (without budget)
+read.csv("summary.csv")
+#>   total_allocation mgmt_cost total_cost system_sens
+#> 1         16581.52  83252.81   99834.33           1
+```
+
+#### Surveillance design with a budget
+
+We will now re-run our surveillance design with a budget constraint of
+1125 hours (as per Hauser & McCarthy, 2009).
+
+``` r
+output <- file.remove(c("allocation.tif", "sensitivity.tif", "summary.csv"))
+# Surveillance design with budget
+surv_design_with_budget <- bsdesign::SpatialSurvDesign(
+  context = context,
+  divisions = divisions,
+  establish_pr = establish_pr_rast[divisions$get_indices()][,1], # as vector
+  lambda = efficacy_rast[divisions$get_indices()][,1], # as vector
+  optimal = "cost",
+  mgmt_cost = list(undetected = 400*25,
+                   detected = 40*25), # hours
+  budget = 1125)
+output <- surv_design_with_budget$save_design()
+terra::plot(terra::rast("allocation.tif"),
+            main = "Hawkweed survey allocation - 1125 hour budget",
+            colNA = "black")
+```
+
+<img src="man/figures/README-example_3_4_1-1.png" width="100%" style="display: block; margin: auto;" />
+
+Again, we’ll examine the spatial distribution of the surveillance
+sensitivity of our budget constrained allocation:
+
+``` r
+# Surveillance design sensitivity (with budget)
+terra::plot(terra::rast("sensitivity.tif"),
+            main = "Hawkweed survey sensitivity - with budget",
+            colNA = "black")
+```
+
+<img src="man/figures/README-example_3_4_2-1.png" width="100%" style="display: block; margin: auto;" />
+
+We’ll also examine our the system-wide summary of the budget-constrained
+design:
+
+``` r
+# Surveillance design summary (with budget)
+read.csv("summary.csv")
+#>   total_allocation mgmt_cost total_cost system_sens
+#> 1             1125  278978.8   280103.8           1
+```
 
 ## Area freedom example
 
