@@ -416,7 +416,7 @@ Before building and running our surveillance designs (with and without a budget)
 
 #### Establishment probability layer
 
-The establishment or occurrence layer utilised in Hauser & McCarthy (2009) was based on the output of a simulated spread model (or "dispersal-constrained habitat suitability") described in Williams et al\. (2008). In our population spread simulation example described in the [bsspread package](https://github.com/cebra-analytics/bsspread), we approximately reproduced the model presented in Williams et al\. (2008). Here we utilise the mean occupancy output (at time step 2) from our example spread model simulations, which may be downloaded from [here](https://github.com/cebra-analytics/bsdesign/tree/main/data) and copied into a *data* directory. 
+The establishment or occurrence layer utilised in Hauser & McCarthy (2009) was based on the output of a simulated spread model (or "dispersal-constrained habitat suitability") described in Williams et al\. (2008). In our population spread simulation example described in the [bsspread package](https://github.com/cebra-analytics/bsspread), we approximately reproduced the model presented in Williams et al\. (2008). Here we utilise the mean occupancy output (at time step 2) from our example spread model simulations, which may be downloaded from [here](https://github.com/cebra-analytics/bsdesign/tree/main/data) and copied into a *data* directory.
 
 In Williams et al\. (2008) model simulations were initialised from numerous locations where the threat had been previously detected and locally eradicated. Their "dispersal-constrained habitat suitability" model contains values of no more than 0.1, which presumably accounts for unsuccessful detections/eradications, and potentially new threat incursions to the region. In our example spread model, however, we initialised every simulation with an established threat presence, thereby exaggerating the resulting likelihood of occupancy. We thus scale our mean occupancy output to make it consistent with that presented in Williams et al\. (2008).
 
@@ -503,7 +503,7 @@ surv_design_with_budget <- bsdesign::SpatialSurvDesign(
   budget = 1125)
 output <- surv_design_with_budget$save_design()
 terra::plot(terra::rast("allocation.tif"),
-            main = "Hawkweed survey allocation - 1125 hour budget",
+            main = "Hawkweed survey allocation - with budget",
             colNA = "black")
 ```
 
@@ -522,10 +522,76 @@ We'll also examine our the system-wide summary of the budget-constrained design:
 # Surveillance design summary (with budget)
 read.csv("summary.csv")
 ```
+Note that our surveillance design for Orange Hawkweed produces a system-wide sensitivity, or probability of detection when present somewhere in the region, near to 1 due to the extensiveness of our design, which aims to manage, contain, and/or eradicate the Hawkweed threat.
 
 ## Area freedom example
 
-(coming soon)
+The following example builds a post-control area freedom design for our endemic Orange Hawkweed (*Hieracium aurantiacum*) threat (see above) for the Falls Creek area. In the following steps we build and run a post-control surveillance design and a subsequent area freedom design for the Hawkweed species, and examine the area freedom results.
+
+### Step 1: Post-control surveillance design
+
+Again, we build our surveillance design model for allocating survey efforts across the grid-based region using the *SpatialSurvDesign* object class with configuration for:
+
+- The surveillance context via a *Context* class object (as above).
+- The spatial locations for the design via a *Divisions* class object (as above).
+- Establishment or occurrence probabilities of the threat at each location (see below).
+- The efficacy ($\lambda$) or *lambda* (as above).
+- Finding an effective or optimal survey effort allocation design for post-control surveillance:
+    - A maximum sensitivity optimisation strategy.
+    - A target minimum system-wide sensitivity of 0.4.
+    - A minimum allocation time of 0.5 hours. 
+
+Before building and running our post-control surveillance design, we will create an updated raster layer for the establishment probabilities.
+
+#### Updated establishment probability layer
+
+Our initial establishment or occurrence probability $Pr(establish) _{initial}$ layer (as above) approximately reproduced the model presented in Williams et al\. (2008) via our population spread simulation example described in the [bsspread package](https://github.com/cebra-analytics/bsspread). Once our "search and destroy" surveillance (and control) has be applied, the establishment or occurrence probability for subsequent years $Pr(establish) _{post}$ will be approximately reduced such that:\
+$Pr(establish) _{post} = Pr(establish) _{initial}\cdot (1 - sensitivity)$\
+Here we assume that detected threats are locally eradicated with a probability corresponding to the local $sensitivity$ of the original "search and destroy" surveillance design.
+
+```{r example_4_1, message = FALSE, fig.align = "center"}
+# Updated establishment probability layer
+establish_pr_rast <- establish_pr_rast*(1 - terra::rast("sensitivity.tif"))
+terra::plot(log(establish_pr_rast, base = 10), colNA = "black",
+            main = "Post-control establishment probability (log)")
+```
+
+#### Updated surveillance design
+
+We will now re-run our post-control surveillance design with a budget constraint of 1125 hours (as per Hauser & McCarthy, 2009).
+
+```{r example_4_2, message = FALSE, fig.align = "center"}
+# Updated post-control surveillance design
+surv_design_updated <- bsdesign::SpatialSurvDesign(
+  context = context,
+  divisions = divisions,
+  establish_pr = establish_pr_rast[divisions$get_indices()][,1], # as vector
+  lambda = efficacy_rast[divisions$get_indices()][,1], # as vector
+  optimal = "sensitivity",
+  system_sens = 0.4,
+  min_alloc = 0.5)
+allocation <- surv_design_updated$get_allocation()
+terra::plot(divisions$get_rast(allocation),
+            main = "Hawkweed post-control survey allocation",
+            colNA = "black")
+surv_design_updated$get_system_sens()
+```
+
+... (in progress)
+
+```{r example_4_, message = FALSE, fig.align = "center"}
+# Hawkweed Bayesian area freedom design
+freedom_design <- bsdesign::BayesianFreedomDesign(context = context,
+                                                  detected = FALSE,
+                                                  pr_detect = 1,
+                                                  pr_persist = 1,
+                                                  prior_freedom = 0.5,
+                                                  pr_intro = 0,
+                                                  iterations = NULL,
+                                                  target_freedom = NULL)
+
+```
+
 
 ## References
 
