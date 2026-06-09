@@ -558,9 +558,10 @@ terra::plot(log(establish_pr_rast, base = 10), colNA = "black",
 
 #### Updated surveillance design
 
-We will now re-run our post-control surveillance design with a budget constraint of 1125 hours (as per Hauser & McCarthy, 2009).
+We will now build and run our post-control surveillance design.
 
 ```{r example_4_2, message = FALSE, fig.align = "center"}
+output <- file.remove(c("allocation.tif", "sensitivity.tif", "summary.csv"))
 # Updated post-control surveillance design
 surv_design_updated <- bsdesign::SpatialSurvDesign(
   context = context,
@@ -570,13 +571,18 @@ surv_design_updated <- bsdesign::SpatialSurvDesign(
   optimal = "sensitivity",
   system_sens = 0.4,
   min_alloc = 0.5)
-allocation <- surv_design_updated$get_allocation()
-terra::plot(divisions$get_rast(allocation),
+output <- surv_design_updated$save_design()
+terra::plot(terra::rast("allocation.tif"),
             main = "Hawkweed post-control survey allocation",
             colNA = "black")
-surv_design_updated$get_system_sens()
 ```
 
+Now we'll also examine the system-wide summary of the post-control surveillance design:
+
+```{r example_4_3, message = FALSE, fig.align = "center"}
+# Post-control surveillance design summary
+read.csv("summary.csv")
+```
 ... (in progress)
 
 ```{r example_4_, message = FALSE, fig.align = "center"}
