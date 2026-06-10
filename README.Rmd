@@ -418,7 +418,7 @@ Before building and running our surveillance designs (with and without a budget)
 
 The establishment or occurrence layer utilised in Hauser & McCarthy (2009) was based on the output of a simulated spread model (or "dispersal-constrained habitat suitability") described in Williams et al\. (2008). In our population spread simulation example described in the [bsspread package](https://github.com/cebra-analytics/bsspread), we approximately reproduced the model presented in Williams et al\. (2008). Here we utilise the mean occupancy output (at time step 2) from our example spread model simulations, which may be downloaded from [here](https://github.com/cebra-analytics/bsdesign/tree/main/data) and copied into a *data* directory.
 
-In Williams et al\. (2008) model simulations were initialised from numerous locations where the threat had been previously detected and locally eradicated. Their "dispersal-constrained habitat suitability" model contains values of no more than 0.1, which presumably accounts for unsuccessful detections/eradications, and potentially new threat incursions to the region. In our example spread model, however, we initialised every simulation with an established threat presence, thereby exaggerating the resulting likelihood of occupancy. We thus scale our mean occupancy output to make it consistent with that presented in Williams et al\. (2008).
+In Williams et al\. (2008) model simulations were initialised from numerous locations where the threat had been previously detected and locally eradicated. Their "dispersal-constrained habitat suitability" model contains values of no more than 0.1, which presumably accounts for successful eradications. In our example spread model, however, we initialised every simulation with an established threat presence, thereby exaggerating the resulting likelihood of occupancy. We thus scale our mean occupancy output to make it consistent with that presented in Williams et al\. (2008).
 
 ```{r example_3_1, message = FALSE, fig.align = "center"}
 # Load the mean occupancy from the spread simulation example
@@ -474,7 +474,7 @@ The spatial distribution of the surveillance sensitivity (or probability of dete
 ```{r example_3_3_2, message = FALSE, fig.align = "center"}
 # Surveillance design sensitivity (without budget)
 terra::plot(terra::rast("sensitivity.tif"),
-            main = "Hawkweed survey sensitivity - no budget",
+            main = "Surveillance sensitivity - no budget",
             colNA = "black")
 ```
 
@@ -487,10 +487,12 @@ read.csv("summary.csv")
 
 #### Surveillance design with a budget
 
-We will now re-run our surveillance design with a budget constraint of 1125 hours (as per Hauser & McCarthy, 2009).
+We will now re-run our surveillance design with a budget constraint of 1125 hours (as per Hauser & McCarthy, 2009). However, this time we will constrain our allocation to a minimum of 15 minutes (0.25 hours) to avoid impractically low survey allocations. We will also include general surveillance (and removal) conducted by the community in the Falls Creek township area, specified via an existing sensitivity of 0.9 in the township area, defined by a raster layer which may be downloaded from [here](https://github.com/cebra-analytics/bsdesign/tree/main/data) and copied into a *data* directory.
 
 ```{r example_3_4_1, message = FALSE, fig.align = "center"}
 output <- file.remove(c("allocation.tif", "sensitivity.tif", "summary.csv"))
+# Existing community surveillance sensitivity in the Falls Creek township
+exist_sens_rast <- terra::rast("data/falls_creek_town.tif")*0.9
 # Surveillance design with budget
 surv_design_with_budget <- bsdesign::SpatialSurvDesign(
   context = context,
@@ -500,19 +502,25 @@ surv_design_with_budget <- bsdesign::SpatialSurvDesign(
   optimal = "cost",
   mgmt_cost = list(undetected = 400*25,
                    detected = 40*25), # hours
-  budget = 1125)
+  budget = 1125,
+  min_alloc = 0.25,
+  exist_sens = exist_sens_rast[divisions$get_indices()][,1]) # as vector
 output <- surv_design_with_budget$save_design()
 terra::plot(terra::rast("allocation.tif"),
             main = "Hawkweed survey allocation - with budget",
             colNA = "black")
 ```
 
-Again, we'll examine the spatial distribution of the surveillance sensitivity of our budget constrained allocation:
+Again, we'll examine the spatial distribution of the surveillance sensitivity of our budget constrained allocation and the overall sensitivity including the existing sensitivity from our general community surveillance in the Falls Creek township area:
 
 ```{r example_3_4_2, message = FALSE, fig.align = "center"}
-# Surveillance design sensitivity (with budget)
+# Allocated surveillance design sensitivity (with budget)
+terra::plot(terra::rast("alloc_sens.tif"),
+            main = "Allocated survey sensitivity - with budget",
+            colNA = "black")
+# Overall surveillance design sensitivity (with budget)
 terra::plot(terra::rast("sensitivity.tif"),
-            main = "Hawkweed survey sensitivity - with budget",
+            main = "Overall sensitivity - with budget",
             colNA = "black")
 ```
 
@@ -522,7 +530,7 @@ We'll also examine our the system-wide summary of the budget-constrained design:
 # Surveillance design summary (with budget)
 read.csv("summary.csv")
 ```
-Note that our surveillance design for Orange Hawkweed produces a system-wide sensitivity, or probability of detection when present somewhere in the region, near to 1 due to the extensiveness of our design, which aims to manage, contain, and/or eradicate the Hawkweed threat.
+Note that our surveillance design for Orange Hawkweed produces a system-wide sensitivity, or probability of detection when present somewhere in the region, near to 1 due to the extensiveness of our design, which aims to contain or eradicate the Hawkweed threat.
 
 ## Area freedom example
 
@@ -537,22 +545,24 @@ Again, we build our surveillance design model for allocating survey efforts acro
 - Establishment or occurrence probabilities of the threat at each location (see below).
 - The efficacy ($\lambda$) or *lambda* (as above).
 - Finding an effective or optimal survey effort allocation design for post-control surveillance:
-    - A maximum sensitivity optimisation strategy.
+    - A minimum cost optimisation strategy.
+    - Estimated management costs (as before) of 400$\times$25 hours for undetected threat incursions and 40$\times$25 hours for detected incursions.
     - A target minimum system-wide sensitivity of 0.4.
-    - A minimum allocation time of 0.5 hours. 
+    - A minimum allocation time of 0.25 hours.
+    - A existing sensitivity of 0.9 in the Falls Creek township area.
 
 Before building and running our post-control surveillance design, we will create an updated raster layer for the establishment probabilities.
 
 #### Updated establishment probability layer
 
-Our initial establishment or occurrence probability $Pr(establish) _{initial}$ layer (as above) approximately reproduced the model presented in Williams et al\. (2008) via our population spread simulation example described in the [bsspread package](https://github.com/cebra-analytics/bsspread). Once our "search and destroy" surveillance (and control) has be applied, the establishment or occurrence probability for subsequent years $Pr(establish) _{post}$ will be approximately reduced such that:\
+Our initial establishment or occurrence probability $Pr(establish) _{initial}$ layer (as above) approximately reproduced the model presented in Williams et al\. (2008) via our population spread simulation example described in the [bsspread package](https://github.com/cebra-analytics/bsspread). Once our "search and destroy" surveillance (and control) has been applied, the occurrence probability for subsequent years $Pr(establish) _{post}$ will be approximately reduced such that:\
 $Pr(establish) _{post} = Pr(establish) _{initial}\cdot (1 - sensitivity)$\
 Here we assume that detected threats are locally eradicated with a probability corresponding to the local $sensitivity$ of the original "search and destroy" surveillance design.
 
 ```{r example_4_1, message = FALSE, fig.align = "center"}
 # Updated establishment probability layer
-establish_pr_rast <- establish_pr_rast*(1 - terra::rast("sensitivity.tif"))
-terra::plot(log(establish_pr_rast, base = 10), colNA = "black",
+new_establish_pr_rast <- establish_pr_rast*(1 - terra::rast("sensitivity.tif"))
+terra::plot(log(new_establish_pr_rast, base = 10), colNA = "black",
             main = "Post-control establishment probability (log)")
 ```
 
@@ -561,23 +571,36 @@ terra::plot(log(establish_pr_rast, base = 10), colNA = "black",
 We will now build and run our post-control surveillance design.
 
 ```{r example_4_2, message = FALSE, fig.align = "center"}
-output <- file.remove(c("allocation.tif", "sensitivity.tif", "summary.csv"))
+output <- file.remove(c("allocation.tif", "alloc_sens.tif",
+                        "sensitivity.tif", "summary.csv"))
 # Updated post-control surveillance design
 surv_design_updated <- bsdesign::SpatialSurvDesign(
   context = context,
   divisions = divisions,
   establish_pr = establish_pr_rast[divisions$get_indices()][,1], # as vector
   lambda = efficacy_rast[divisions$get_indices()][,1], # as vector
-  optimal = "sensitivity",
-  system_sens = 0.4,
-  min_alloc = 0.5)
+  optimal = "cost",
+  mgmt_cost = list(undetected = 400*25,
+                   detected = 40*25), # hours
+  system_sens = 0.9,
+  min_alloc = 0.25,
+  exist_sens = exist_sens_rast[divisions$get_indices()][,1]) # as vector
 output <- surv_design_updated$save_design()
 terra::plot(terra::rast("allocation.tif"),
             main = "Hawkweed post-control survey allocation",
             colNA = "black")
 ```
 
-Now we'll also examine the system-wide summary of the post-control surveillance design:
+We'll examine the spatial distribution of the overall sensitivity of our post-control surveillance design:
+
+```{r example_4_3, message = FALSE, fig.align = "center"}
+# Surveillance design overall sensitivity
+terra::plot(terra::rast("sensitivity.tif"),
+            main = "Post-control overall sensitivity",
+            colNA = "black")
+```
+
+Now we'll also examine the system-wide summary of our post-control surveillance design:
 
 ```{r example_4_3, message = FALSE, fig.align = "center"}
 # Post-control surveillance design summary
