@@ -753,27 +753,23 @@ probabilities and efficacy (*lambda*) values.
 
 #### Establishment probability layer
 
-The establishment or occurrence layer utilised in Hauser & McCarthy
-(2009) was based on the output of a simulated spread model (or
-“dispersal-constrained habitat suitability”) described in Williams et
-al. (2008). In our population spread simulation example described in the
-[bsspread package](https://github.com/cebra-analytics/bsspread), we
-approximately reproduced the model presented in Williams et al. (2008).
+The establishment or occurrence probability layer utilised in Hauser &
+McCarthy (2009) was the “dispersal-constrained habitat suitability”
+described in Williams et al. (2008). In our population spread simulation
+example described in the [bsspread
+package](https://github.com/cebra-analytics/bsspread), we approximately
+reproduced the spread distribution of the Williams et al. (2008) model.
 Here we utilise the mean occupancy output (at time step 2) from our
 example spread model simulations, which may be downloaded from
 [here](https://github.com/cebra-analytics/bsdesign/tree/main/data) and
 copied into a *data* directory.
 
-In Williams et al. (2008) model simulations were initialised from
-numerous locations where the threat had been previously detected and
-locally eradicated. Their “dispersal-constrained habitat suitability”
-model contains values of no more than 0.1, which presumably accounts for
-unsuccessful detections/eradications, and potentially new threat
-incursions to the region. In our example spread model, however, we
-initialised every simulation with an established threat presence,
-thereby exaggerating the resulting likelihood of occupancy. We thus
-scale our mean occupancy output to make it consistent with that
-presented in Williams et al. (2008).
+The Williams et al. (2008) “dispersal-constrained habitat suitability”
+model contains values of no more than 0.1. In our example spread model,
+however, we initialised every simulation with an established threat
+presence, resulting in a spread distribution containing mean occupancies
+greater than 0.1. We thus scale our mean occupancy output to make it
+consistent with that presented in Williams et al. (2008).
 
 ``` r
 # Load the mean occupancy from the spread simulation example
@@ -796,18 +792,22 @@ surveyed 20 metre grid cell. Firstly, we will scale these values for our
 model, in which we utilise 100 metre grid cells and hourly survey effort
 allocations, by $60/25$. We then distribute these scaled efficacy values
 across the region based on the vegetation type from our cropped NVIS
-(NVIS, 2025) raster from step 2.
+(NVIS, 2025) raster from step 2. We will utilise the mean of these two
+values for other vegetation
 
 ``` r
-# Set efficacy (lambda) for grass and shrubby vegetation only
-efficacy_rast <- terra::classify(region_nvis_rast,
-                                 matrix(c(
-                                   17, 0.6020*60/25, # Shrublands
-                                   18, 0.6020*60/25, # Heathlands
-                                   19, 2.3714*60/25, # Tussock Grasslands
-                                   21, 2.3714*60/25  # Other Grasslands, etc.
-                                 ), ncol = 2, byrow = TRUE),
-                                 others = 0)
+# Set efficacy (lambda) for grass and shrubby vegetation
+efficacy_rast <- terra::classify(
+  region_nvis_rast,
+  matrix(c(
+    17, 0.6020*60/25, # Shrublands
+    18, 0.6020*60/25, # Heathlands
+    19, 2.3714*60/25, # Tussock Grasslands
+    21, 2.3714*60/25, # Other Grasslands, etc.
+    25, mean(c(0.6020, 2.3714))*60/25, # Cleared, non-native vegetation, buildings
+    26, mean(c(0.6020, 2.3714))*60/25 # Unclassified native vegetation
+  ), ncol = 2, byrow = TRUE),
+  others = 0)
 terra::plot(efficacy_rast, main = "Hawkweed surveillance efficacy (per hour)",
             colNA = "black")
 ```
@@ -848,7 +848,7 @@ of detection when present) is also saved with the design:
 ``` r
 # Surveillance design sensitivity (without budget)
 terra::plot(terra::rast("sensitivity.tif"),
-            main = "Hawkweed survey sensitivity - no budget",
+            main = "Surveillance sensitivity - no budget",
             colNA = "black")
 ```
 
@@ -862,13 +862,15 @@ the system-wide sensitivity:
 # Surveillance design summary (without budget)
 read.csv("summary.csv")
 #>   total_allocation mgmt_cost total_cost system_sens
-#> 1         16581.52  83252.81   99834.33           1
+#> 1         15869.79  56574.99   72444.78           1
 ```
 
 #### Surveillance design with a budget
 
 We will now re-run our surveillance design with a budget constraint of
-1125 hours (as per Hauser & McCarthy, 2009).
+1125 hours (as per Hauser & McCarthy, 2009). However, this time we will
+constrain our allocation to a minimum of 15 minutes (0.25 hours) to
+avoid impractically low survey allocations.
 
 ``` r
 output <- file.remove(c("allocation.tif", "sensitivity.tif", "summary.csv"))
@@ -881,10 +883,11 @@ surv_design_with_budget <- bsdesign::SpatialSurvDesign(
   optimal = "cost",
   mgmt_cost = list(undetected = 400*25,
                    detected = 40*25), # hours
-  budget = 1125)
+  budget = 1125,
+  min_alloc = 0.25)
 output <- surv_design_with_budget$save_design()
 terra::plot(terra::rast("allocation.tif"),
-            main = "Hawkweed survey allocation - 1125 hour budget",
+            main = "Hawkweed survey allocation - with budget",
             colNA = "black")
 ```
 
@@ -902,15 +905,21 @@ terra::plot(terra::rast("sensitivity.tif"),
 
 <img src="man/figures/README-example_3_4_2-1.png" width="100%" style="display: block; margin: auto;" />
 
-We’ll also examine our the system-wide summary of the budget-constrained
-design:
+We will also examine our the system-wide summary of the
+budget-constrained design:
 
 ``` r
 # Surveillance design summary (with budget)
 read.csv("summary.csv")
 #>   total_allocation mgmt_cost total_cost system_sens
-#> 1             1125  278978.8   280103.8           1
+#> 1             1125  218628.6   219753.6           1
 ```
+
+Note that our surveillance design for Orange Hawkweed produces a
+system-wide sensitivity, or probability of detection when present
+somewhere in the region, near to 1 due to the extensiveness of our
+design, which aimed to contain or eradicate the Hawkweed threat,
+assuming an almost certain probability of occurrence across the region.
 
 ## Area freedom example
 
