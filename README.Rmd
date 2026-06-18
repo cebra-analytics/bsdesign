@@ -416,7 +416,7 @@ Before building and running our surveillance designs (with and without a budget)
 
 #### Establishment probability layer
 
-The establishment or occurrence probability layer utilised in Hauser & McCarthy (2009) was the "dispersal-constrained habitat suitability" described in Williams et al\. (2008). In our population spread simulation example described in the [bsspread package](https://github.com/cebra-analytics/bsspread), we approximately reproduced the spread distribution of the Williams et al\. (2008) model. Here we utilise the mean occupancy output (at time step 2) from our example spread model simulations, which may be downloaded from [here](https://github.com/cebra-analytics/bsdesign/tree/main/data) and copied into a *data* directory.
+The establishment or occurrence probability layer utilised in Hauser & McCarthy (2009) was the "dispersal-constrained habitat suitability" described in Williams et al\. (2008). In our population spread simulation example described in the [bsspread](https://github.com/cebra-analytics/bsspread) package, we approximately reproduced the spread distribution of the Williams et al\. (2008) model. Here we utilise the mean occupancy output (at time step 2) from our example spread model simulations, which may be downloaded from [here](https://github.com/cebra-analytics/bsdesign/tree/main/data) and copied into a *data* directory.
 
 The Williams et al\. (2008) "dispersal-constrained habitat suitability" model contains values of no more than 0.1. In our example spread model, however, we initialised every simulation with an established threat presence, resulting in a spread distribution containing mean occupancies greater than 0.1. We thus scale our mean occupancy output to make it consistent with that presented in Williams et al\. (2008).
 
@@ -526,7 +526,7 @@ We will also examine our the system-wide summary of the budget-constrained desig
 # Surveillance design summary (with budget)
 read.csv("summary.csv")
 ```
-Note that our surveillance design for Orange Hawkweed produces a system-wide sensitivity, or probability of detection when present somewhere in the region, near to 1 due to the extensiveness of our design, which aimed to contain or eradicate the Hawkweed threat, assuming an almost certain probability of occurrence across the region.
+Note that our surveillance design for Orange Hawkweed produces a system-wide sensitivity, or probability of detection when present somewhere in the region, near to 1 due to the extensiveness of our design, which aimed to contain or eradicate the Hawkweed threat, assuming an almost certain probability of occurrence within the region.
 
 ## Area freedom example
 

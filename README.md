@@ -756,11 +756,11 @@ probabilities and efficacy (*lambda*) values.
 The establishment or occurrence probability layer utilised in Hauser &
 McCarthy (2009) was the “dispersal-constrained habitat suitability”
 described in Williams et al. (2008). In our population spread simulation
-example described in the [bsspread
-package](https://github.com/cebra-analytics/bsspread), we approximately
-reproduced the spread distribution of the Williams et al. (2008) model.
-Here we utilise the mean occupancy output (at time step 2) from our
-example spread model simulations, which may be downloaded from
+example described in the
+[bsspread](https://github.com/cebra-analytics/bsspread) package, we
+approximately reproduced the spread distribution of the Williams et al.
+(2008) model. Here we utilise the mean occupancy output (at time step 2)
+from our example spread model simulations, which may be downloaded from
 [here](https://github.com/cebra-analytics/bsdesign/tree/main/data) and
 copied into a *data* directory.
 
@@ -919,7 +919,7 @@ Note that our surveillance design for Orange Hawkweed produces a
 system-wide sensitivity, or probability of detection when present
 somewhere in the region, near to 1 due to the extensiveness of our
 design, which aimed to contain or eradicate the Hawkweed threat,
-assuming an almost certain probability of occurrence across the region.
+assuming an almost certain probability of occurrence within the region.
 
 ## Area freedom example
 
