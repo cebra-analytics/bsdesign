@@ -324,12 +324,15 @@ includes configuration for:
       - $s(n) = 1 – exp(–pnaD)$
 - Finding an effective or optimal sampling design based on:
   - An optimisation strategy, either:
-    - Minimum cost
-    - Maximum saving
-    - Maximum benefit
-    - Maximum number of detections
-    - Maximum overall system-wide sensitivity
-    - None for representing existing surveillance designs (see below)
+    - Minimum cost.
+    - Maximum saving.
+    - Maximum benefit.
+    - Maximum number of detections.
+    - Maximum overall system-wide sensitivity.
+    - None for representing existing surveillance designs (see below).
+  - Note that actual (not relative) establishment or occurrence
+    probabilities must be specified for cost, saving, or
+    sensitivity-based optimisation.
   - Optimisation parameters, including:
     - Estimated management costs for when the incursion is detected and
       undetected at each location or other division. Used for optimal
@@ -397,12 +400,15 @@ configuration for:
 - Finding an effective or optimal surveillance resource allocation
   design based on:
   - An optimisation strategy, either:
-    - Minimum cost
-    - Maximum saving
-    - Maximum benefit
-    - Maximum number of detections
-    - Maximum overall system-wide sensitivity
-    - None for representing existing surveillance designs (see below)
+    - Minimum cost.
+    - Maximum saving.
+    - Maximum benefit.
+    - Maximum number of detections.
+    - Maximum overall system-wide sensitivity.
+    - None for representing existing surveillance designs (see below).
+  - Note that actual (not relative) establishment or occurrence
+    probabilities must be specified for cost, saving, or
+    sensitivity-based optimisation.
   - Optimisation parameters, including:
     - Estimated management costs for when the incursion is detected and
       undetected at each location (or other division). Used for optimal
@@ -862,7 +868,7 @@ the system-wide sensitivity:
 # Surveillance design summary (without budget)
 read.csv("summary.csv")
 #>   total_allocation mgmt_cost total_cost system_sens
-#> 1         15869.79  56574.99   72444.78           1
+#> 1         17103.15  65184.79   82287.94           1
 ```
 
 #### Surveillance design with a budget
@@ -912,7 +918,7 @@ budget-constrained design:
 # Surveillance design summary (with budget)
 read.csv("summary.csv")
 #>   total_allocation mgmt_cost total_cost system_sens
-#> 1             1125  218628.6   219753.6           1
+#> 1             1125  265744.9   266869.9           1
 ```
 
 Note that our surveillance design for Orange Hawkweed produces a
@@ -966,7 +972,7 @@ Epanchin-Niell, R. S., Haight, R. G., Berec, L., Kean, J. M., &
 Liebhold, A. M. (2012). ‘Optimal surveillance and eradication of
 invasive species in heterogeneous landscapes’. *Ecology Letters*, 15(8),
 803–812.
-\[<doi:10.1111/j.14610248.2012.01800.x>\](<https://doi.org/10.1111/j.14610248.2012.01800.x>\]
+[doi:10.1111/j.14610248.2012.01800.x](https://doi.org/10.1111/j.14610248.2012.01800.x)
 
 Hauser, C. E., Giljohann, K. M., Rigby, M., Herbert, K., Curran, I.,
 Pascoe, C., Williams, N. S. G., Cousens, R. D., & Moore, J. L. (2016).

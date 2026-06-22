@@ -196,12 +196,14 @@ The *SamplingSurvDesign* object class implements an extended surveillance design
             - $s(n) = 1 – exp(–pnaD)$
 - Finding an effective or optimal sampling design based on:
     - An optimisation strategy, either:
-        - Minimum cost
-        - Maximum saving
-        - Maximum benefit
-        - Maximum number of detections
-        - Maximum overall system-wide sensitivity
-        - None for representing existing surveillance designs (see below)
+        - Minimum cost.
+        - Maximum saving.
+        - Maximum benefit.
+        - Maximum number of detections.
+        - Maximum overall system-wide sensitivity.
+        - None for representing existing surveillance designs (see below).
+    - Note that actual (not relative) establishment or occurrence probabilities
+  must be specified for cost, saving, or sensitivity-based optimisation.
     - Optimisation parameters, including:
         - Estimated management costs for when the incursion is detected and undetected at each location or other division. Used for optimal minimum cost.
         - Estimated savings (cost-based benefit) at each location or other division. Used for optimal maximum saving.
@@ -231,12 +233,14 @@ The *SpatialSurvDesign* object class implements an extended surveillance design 
 - The cell-level design *prevalence* indicating the minimum number of location cells that are expected to be infected with the invasive species if the region of interest is infected. Values greater than 1 can be used as a proxy to population growth over time. Used when *divisions* specifies a cell-based (raster) region.
 - Finding an effective or optimal surveillance resource allocation design based on:
     - An optimisation strategy, either:
-        - Minimum cost
-        - Maximum saving
-        - Maximum benefit
-        - Maximum number of detections
-        - Maximum overall system-wide sensitivity
-        - None for representing existing surveillance designs (see below)
+        - Minimum cost.
+        - Maximum saving.
+        - Maximum benefit.
+        - Maximum number of detections.
+        - Maximum overall system-wide sensitivity.
+        - None for representing existing surveillance designs (see below).
+    - Note that actual (not relative) establishment or occurrence probabilities
+  must be specified for cost, saving, or sensitivity-based optimisation.
     - Optimisation parameters, including:
         - Estimated management costs for when the incursion is detected and undetected at each location (or other division). Used for optimal minimum cost.
         - Estimated savings (cost-based benefit) at each location (or other division). Used for optimal maximum saving.
@@ -530,93 +534,7 @@ Note that our surveillance design for Orange Hawkweed produces a system-wide sen
 
 ## Area freedom example
 
-The following example builds a post-control area freedom design for our endemic Orange Hawkweed (*Hieracium aurantiacum*) threat (see above) for the Falls Creek area. In the following steps we build and run a post-control surveillance design and a subsequent area freedom design for the Hawkweed species, and examine the area freedom results.
-
-### Step 1: Post-control surveillance design
-
-Again, we build our surveillance design model for allocating survey efforts across the grid-based region using the *SpatialSurvDesign* object class with configuration for:
-
-- The surveillance context via a *Context* class object (as above).
-- The spatial locations for the design via a *Divisions* class object (as above).
-- Establishment or occurrence probabilities of the threat at each location (see below).
-- The efficacy ($\lambda$) or *lambda* (as above).
-- Finding an effective or optimal survey effort allocation design for post-control surveillance:
-    - A minimum cost optimisation strategy.
-    - Estimated management costs (as before) of 400$\times$25 hours for undetected threat incursions and 40$\times$25 hours for detected incursions.
-    - A target minimum system-wide sensitivity of 0.4.
-    - A minimum allocation time of 0.25 hours.
-    - A existing sensitivity of 0.9 in the Falls Creek township area.
-
-Before building and running our post-control surveillance design, we will create an updated raster layer for the establishment probabilities.
-
-#### Updated establishment probability layer
-
-Our initial establishment or occurrence probability $Pr(establish) _{initial}$ layer (as above) approximately reproduced the model presented in Williams et al\. (2008) via our population spread simulation example described in the [bsspread package](https://github.com/cebra-analytics/bsspread). Once our "search and destroy" surveillance (and control) has been applied, the occurrence probability for subsequent years $Pr(establish) _{post}$ will be approximately reduced such that:\
-$Pr(establish) _{post} = Pr(establish) _{initial}\cdot (1 - sensitivity)$\
-Here we assume that detected threats are locally eradicated with a probability corresponding to the local $sensitivity$ of the original "search and destroy" surveillance design.
-
-```{r example_4_1, message = FALSE, fig.align = "center"}
-# Updated establishment probability layer
-new_establish_pr_rast <- establish_pr_rast*(1 - terra::rast("sensitivity.tif"))
-terra::plot(log(new_establish_pr_rast, base = 10), colNA = "black",
-            main = "Post-control establishment probability (log)")
-```
-
-#### Updated surveillance design
-
-We will now build and run our post-control surveillance design.
-
-```{r example_4_2, message = FALSE, fig.align = "center"}
-output <- file.remove(c("allocation.tif", "alloc_sens.tif",
-                        "sensitivity.tif", "summary.csv"))
-# Updated post-control surveillance design
-surv_design_updated <- bsdesign::SpatialSurvDesign(
-  context = context,
-  divisions = divisions,
-  establish_pr = establish_pr_rast[divisions$get_indices()][,1], # as vector
-  lambda = efficacy_rast[divisions$get_indices()][,1], # as vector
-  optimal = "cost",
-  mgmt_cost = list(undetected = 400*25,
-                   detected = 40*25), # hours
-  system_sens = 0.9,
-  min_alloc = 0.25,
-  exist_sens = exist_sens_rast[divisions$get_indices()][,1]) # as vector
-output <- surv_design_updated$save_design()
-terra::plot(terra::rast("allocation.tif"),
-            main = "Hawkweed post-control survey allocation",
-            colNA = "black")
-```
-
-We'll examine the spatial distribution of the overall sensitivity of our post-control surveillance design:
-
-```{r example_4_3, message = FALSE, fig.align = "center"}
-# Surveillance design overall sensitivity
-terra::plot(terra::rast("sensitivity.tif"),
-            main = "Post-control overall sensitivity",
-            colNA = "black")
-```
-
-Now we'll also examine the system-wide summary of our post-control surveillance design:
-
-```{r example_4_3, message = FALSE, fig.align = "center"}
-# Post-control surveillance design summary
-read.csv("summary.csv")
-```
-... (in progress)
-
-```{r example_4_, message = FALSE, fig.align = "center"}
-# Hawkweed Bayesian area freedom design
-freedom_design <- bsdesign::BayesianFreedomDesign(context = context,
-                                                  detected = FALSE,
-                                                  pr_detect = 1,
-                                                  pr_persist = 1,
-                                                  prior_freedom = 0.5,
-                                                  pr_intro = 0,
-                                                  iterations = NULL,
-                                                  target_freedom = NULL)
-
-```
-
+(coming soon)
 
 ## References
 
@@ -640,7 +558,7 @@ CRC (2003). Orange Hawkweed Weed Management Guide (2003) CRC for Weed Management
 
 Epanchin-Niell, R. S., Haight, R. G., Berec, L., Kean, J. M., & Liebhold, A. M. (2012). 'Optimal
 surveillance and eradication of invasive species in heterogeneous landscapes'. *Ecology Letters*,
-15(8), 803–812. [doi:10.1111/j.14610248.2012.01800.x](https://doi.org/10.1111/j.14610248.2012.01800.x]
+15(8), 803–812. [doi:10.1111/j.14610248.2012.01800.x](https://doi.org/10.1111/j.14610248.2012.01800.x)
 
 Hauser, C. E., Giljohann, K. M., Rigby, M., Herbert, K., Curran, I., Pascoe, C., Williams, N. S. G., Cousens, R. D., & Moore, J. L. (2016). 'Practicable methods for delimiting a plant invasion'. *Diversity and Distributions*, 22(1/2), 136–147. [doi:10.1111/ddi.12388](https://doi.org/10.1111/ddi.12388)
 
