@@ -30,10 +30,24 @@ test_that("initializes with context, divisions, and valid parameters", {
                      ">= 0 and <= 1."))
   expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
                                     divisions = divisions,
+                                    establish_pr = 2,
+                                    optimal = "cost"),
+               paste("Actual (not relative) establishment probabilities must",
+                     "be specified for cost-based optimisation."),
+               fixed = TRUE)
+  expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
+                                    divisions = divisions,
                                     optimal = "cost",
                                     mgmt_cost = list()),
                paste("The management cost parameter must be specified for",
                      "optimal cost."))
+  expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
+                                                 divisions = divisions,
+                                                 establish_pr = 2,
+                                                 optimal = "saving"),
+               paste("Actual (not relative) establishment probabilities must",
+                     "be specified for saving-based optimisation."),
+               fixed = TRUE)
   expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
                                                  divisions = divisions,
                                                  optimal = "saving",
@@ -59,6 +73,13 @@ test_that("initializes with context, divisions, and valid parameters", {
                                                  system_sens = NULL),
                paste("Either the budget or system sensitivity parameter",
                      "must be specified for optimal detections."))
+  expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
+                                                 divisions = divisions,
+                                                 establish_pr = 2,
+                                                 optimal = "sensitivity"),
+               paste("Actual (not relative) establishment probabilities must",
+                     "be specified for sensitivity-based optimisation."),
+               fixed = TRUE)
   expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
                                                  divisions = divisions,
                                                  optimal = "sensitivity",

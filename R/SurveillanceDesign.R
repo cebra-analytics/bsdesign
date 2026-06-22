@@ -176,6 +176,14 @@ SurveillanceDesign.Context <- function(context,
   # Match optimal arguments
   optimal <- match.arg(optimal)
 
+  # Ensure actual establishment probabilities where appropriate
+  if (optimal %in% c("cost", "saving", "sensitivity") &&
+      relative_establish_pr) {
+    stop(paste0("Actual (not relative) establishment probabilities must be ",
+               "specified for ", optimal, "-based optimisation."),
+         call. = FALSE)
+  }
+
   # Check mgmt_cost, benefit, and system_sens
   if (!is.list(mgmt_cost) ||
       (length(mgmt_cost) > 0 &&
