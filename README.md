@@ -759,10 +759,12 @@ probabilities and efficacy (*lambda*) values.
 
 #### Establishment probability layer
 
-The establishment or occurrence probability layer utilised in Hauser &
-McCarthy (2009) was the “dispersal-constrained habitat suitability”
-described in Williams et al. (2008). In our population spread simulation
-example described in the
+The establishment or occurrence probability layer utilised in the Hauser
+& McCarthy (2009) surveillance design was the “dispersal-constrained
+habitat suitability” model described in Williams et al. (2008) for
+predicting the relative likelihood of arrival and establishment of
+Orange Hawkweed across the Boyong High Plains area. In our population
+spread simulation example described in the
 [bsspread](https://github.com/cebra-analytics/bsspread) package, we
 approximately reproduced the spread distribution of the Williams et al.
 (2008) model. Here we utilise the mean occupancy output (at time step 2)
@@ -771,7 +773,10 @@ from our example spread model simulations, which may be downloaded from
 copied into a *data* directory.
 
 The Williams et al. (2008) “dispersal-constrained habitat suitability”
-model contains values of no more than 0.1. In our example spread model,
+model contains values of no more than 0.1. In demonstrating their
+surveillance design method via cost-based optimisation, Hauser &
+McCarthy (2009) utilised the Williams et al. (2008) model as actual (not
+relative) probabilities of threat presence. In our example spread model,
 however, we initialised every simulation with an established threat
 presence, resulting in a spread distribution containing mean occupancies
 greater than 0.1. We thus scale our mean occupancy output to make it
@@ -875,8 +880,8 @@ read.csv("summary.csv")
 
 We will now re-run our surveillance design with a budget constraint of
 1125 hours (as per Hauser & McCarthy, 2009). However, this time we will
-constrain our allocation to a minimum of 15 minutes (0.25 hours) to
-avoid impractically low survey allocations.
+constrain our allocation to a minimum of 30 minutes (0.5 hours) to avoid
+impractically low survey allocations.
 
 ``` r
 output <- file.remove(c("allocation.tif", "sensitivity.tif", "summary.csv"))
@@ -890,7 +895,7 @@ surv_design_with_budget <- bsdesign::SpatialSurvDesign(
   mgmt_cost = list(undetected = 400*25,
                    detected = 40*25), # hours
   budget = 1125,
-  min_alloc = 0.25)
+  min_alloc = 0.5)
 output <- surv_design_with_budget$save_design()
 terra::plot(terra::rast("allocation.tif"),
             main = "Hawkweed survey allocation - with budget",
@@ -918,14 +923,30 @@ budget-constrained design:
 # Surveillance design summary (with budget)
 read.csv("summary.csv")
 #>   total_allocation mgmt_cost total_cost system_sens
-#> 1             1125  265744.9   266869.9           1
+#> 1             1125  274837.6   275962.6           1
 ```
 
 Note that our surveillance design for Orange Hawkweed produces a
 system-wide sensitivity, or probability of detection when present
-somewhere in the region, near to 1 due to the extensiveness of our
-design, which aimed to contain or eradicate the Hawkweed threat,
-assuming an almost certain probability of occurrence within the region.
+somewhere within the region, near to 1. This is due to the extensiveness
+of our design and the actual (not relative) occurrence probabilities
+used in our model, which infer that the Hawkweed is almost certain to be
+present somewhere within the region.
+
+It was necessary to provide actual (not relative) occurrence
+probabilities, so as to perform cost-based optimisation for our
+surveillance design. We scaled our spread model output to be consistent
+with the relative probability values of the Williams et al. (2008)
+“dispersal-constrained habitat suitability” model, which was used in the
+Hauser & McCarthy (2009) cost-based design for demonstrative purposes.
+Given that actual occurrence probabilities are often unknown,
+surveillance designs may instead utilise relative occurrence
+probabilities with optimisation for maximising non-monetary benefits or
+maximising the number of detections. The estimated system-wide
+sensitivity for surveillance designs utilising relative occurrence
+probabilities will generally underestimate the actual sensitivity, but
+becomes a more accurate estimate when actual occurrence probabilities
+are likely to be very small.
 
 ## Area freedom example
 
