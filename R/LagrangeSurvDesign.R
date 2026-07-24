@@ -194,7 +194,7 @@ LagrangeSurvDesign.Context <- function(context,
   }
 
   # Resolve min_alloc
-  if (!is.null(min_alloc)) { # LATER -> discrete ####
+  if (!is.null(min_alloc)) {
     if (length(min_alloc) == 1) {
       min_alloc <- rep(min_alloc, parts)
     }

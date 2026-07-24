@@ -214,6 +214,7 @@ The *SamplingSurvDesign* object class implements an extended surveillance design
         - The cost budget or maximum number of samples available.
         - The desired (minimum) system-wide sensitivity or detection probability of the surveillance design (e.g\. 0.95).
         - The minimum permissible sampling allocation at each location or other division, to avoid impractically low sampling allocations.
+        - The maximum permissible sampling allocation at each location or other division, to avoid impractically high sampling allocations.
         - An indication of whether the sampling allocation at each location or other division should be discrete integers (e.g\. samples or devices), or continuous quantities (e.g\. sampled areas or batches).
 - Calculating sensitivities for existing sampling designs based on:
     - Existing surveillance resource quantities (e.g\. samples or devices) at each location or other division. Used when the optimisation strategy is specified as "none".
@@ -251,6 +252,7 @@ The *SpatialSurvDesign* object class implements an extended surveillance design 
         - The cost budget or maximum number of surveillance resources available.
         - The desired (minimum) system-wide sensitivity or detection probability of the surveillance design (e.g\. 0.95).
         - The minimum permissible surveillance resource allocation at each location (or other division), to avoid impractically low resource allocations.
+        - The maximum permissible surveillance resource allocation at each location (or other division), to avoid impractically high resource allocations.
         - An indication of whether the resource allocation at each location (or other division) should be discrete integers (e.g\. traps or detectors), or continuous quantities (e.g\. survey hours).
 - Calculating sensitivities for existing surveillance designs based on:
     - Existing surveillance resource quantities (e.g\. survey hours or devices) at each location (or other division). Used when the optimisation strategy is specified as "none".

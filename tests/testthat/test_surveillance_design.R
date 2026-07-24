@@ -117,6 +117,13 @@ test_that("initializes with context, divisions, and valid parameters", {
                                                  divisions = divisions,
                                                  optimal = "detections",
                                                  budget = 1,
+                                                 max_alloc = 1:5),
+               paste("The maximum allocation parameter must be a numeric",
+                     "vector with values for each division part."))
+  expect_error(surv_design <- SurveillanceDesign(context = Context("test"),
+                                                 divisions = divisions,
+                                                 optimal = "detections",
+                                                 budget = 1,
                                                  discrete_alloc = NULL),
                "The discrete allocation indicator parameter must be logical.")
   expect_error(surv_design <- SurveillanceDesign(context = Context("test"),

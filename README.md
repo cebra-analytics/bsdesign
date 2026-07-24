@@ -350,6 +350,8 @@ includes configuration for:
       probability of the surveillance design (e.g. 0.95).
     - The minimum permissible sampling allocation at each location or
       other division, to avoid impractically low sampling allocations.
+    - The maximum permissible sampling allocation at each location or
+      other division, to avoid impractically high sampling allocations.
     - An indication of whether the sampling allocation at each location
       or other division should be discrete integers (e.g. samples or
       devices), or continuous quantities (e.g. sampled areas or
@@ -428,6 +430,9 @@ configuration for:
       probability of the surveillance design (e.g. 0.95).
     - The minimum permissible surveillance resource allocation at each
       location (or other division), to avoid impractically low resource
+      allocations.
+    - The maximum permissible surveillance resource allocation at each
+      location (or other division), to avoid impractically high resource
       allocations.
     - An indication of whether the resource allocation at each location
       (or other division) should be discrete integers (e.g. traps or

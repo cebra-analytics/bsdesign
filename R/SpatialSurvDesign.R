@@ -66,6 +66,10 @@
 #'   resource quantities at each spatial location specified by
 #'   \code{divisions}. Used to avoid impractically low allocation quantities.
 #'   Default is \code{NULL}.
+#' @param max_alloc A vector of maximum permissible allocated surveillance
+#'   resource quantities at each spatial location specified by
+#'   \code{divisions}. Used to avoid impractically high allocation quantities.
+#'   Default is \code{NULL}.
 #' @param discrete_alloc A logical to indicate that the allocated surveillance
 #'   resource quantities at each division part (location, category, etc.)
 #'   specified by \code{divisions} should be discrete integers. Used to
@@ -152,6 +156,7 @@ SpatialSurvDesign <- function(context,
                               budget = NULL,
                               system_sens = NULL,
                               min_alloc = NULL,
+                              max_alloc = NULL,
                               discrete_alloc = FALSE,
                               exist_alloc = NULL,
                               exist_sens = NULL,
@@ -176,6 +181,7 @@ SpatialSurvDesign.Context <- function(context,
                                       budget = NULL,
                                       system_sens = NULL,
                                       min_alloc = NULL,
+                                      max_alloc = NULL,
                                       discrete_alloc = FALSE,
                                       exist_alloc = NULL,
                                       exist_sens = NULL,
@@ -193,6 +199,7 @@ SpatialSurvDesign.Context <- function(context,
                              budget = budget,
                              system_sens = system_sens,
                              min_alloc = min_alloc,
+                             max_alloc = max_alloc,
                              discrete_alloc = discrete_alloc,
                              exist_alloc = exist_alloc,
                              exist_sens = exist_sens,
@@ -229,7 +236,7 @@ SpatialSurvDesign.Context <- function(context,
   output_cost <- list(alloc_cost = is.numeric(alloc_cost),
                       fixed_cost = is.numeric(fixed_cost))
 
-  # Resolve alloc_cost, fixed_cost, min_alloc, and exist_sens
+  # Resolve alloc_cost, fixed_cost, min/max_alloc, and exist_sens
   if (length(alloc_cost) == 1) {
     alloc_cost <- rep(alloc_cost, parts)
   } else if (is.null(alloc_cost)) {
@@ -241,11 +248,25 @@ SpatialSurvDesign.Context <- function(context,
     fixed_cost <- rep(0, parts)
   }
   if (!is.null(min_alloc)) {
+    if (discrete_alloc) {
+      min_alloc <- ceiling(min_alloc)
+      if (FALSE && all(min_alloc) == 1) { # REVISIT ####
+        min_alloc <- 0 # allow discrete to handle
+      }
+    }
     if (length(min_alloc) == 1) {
       min_alloc <- rep(min_alloc, parts)
     }
   } else {
     min_alloc <- rep(0, parts)
+  }
+  if (!is.null(max_alloc)) {
+    if (discrete_alloc) {
+      max_alloc <- floor(max_alloc)
+    }
+    if (length(max_alloc) == 1) {
+      max_alloc <- rep(max_alloc, parts)
+    }
   }
   if (is.null(exist_sens)) {
     exist_sens <- rep(0, parts)
@@ -328,6 +349,9 @@ SpatialSurvDesign.Context <- function(context,
     # Pseudo-inverse of derivative given marginal benefit alpha
     f_pos <<- function(alpha) {
       values <- lambda/alloc_cost*benefit*establish_pr*(1 - exist_sens)
+      if (!is.null(max_alloc)) {
+        values <- values*(max_alloc > 0)
+      }
       idx <- which(values > 0)
       if (length(idx) && optimal == "sensitivity" && !relative_establish_pr) {
 
@@ -430,12 +454,13 @@ SpatialSurvDesign.Context <- function(context,
   self$get_allocation <- function() {
     if (optimal != "none" && is.null(qty_alloc)) {
 
-      if (discrete_alloc) {
+      if (discrete_alloc || !is.null(max_alloc)) {
 
         # Make a copy of altered parameters
         fixed_cost_orig <- fixed_cost
         budget_orig <- budget
         min_alloc_orig <- min_alloc
+        max_alloc_orig <- max_alloc
         exist_sens_orig <- exist_sens
 
         # Initial allocation
@@ -446,12 +471,17 @@ SpatialSurvDesign.Context <- function(context,
       add_allocation <- TRUE
       while (add_allocation) {
 
-        # Calculate minimum cost allocation
+        # Calculate minimum and maximum cost allocation
         if (any(min_alloc > 0)) {
           min_x_alloc <- min_alloc*alloc_cost + (min_alloc > 0)*fixed_cost
         } else {
           min_x_alloc <- min_alloc
         }
+        # if (any(max_alloc > 0)) {
+        #   max_x_alloc <- max_alloc*alloc_cost + (max_alloc > 0)*fixed_cost
+        # } else {
+        #   max_x_alloc <- max_alloc
+        # }
 
         # Get cost allocation x_alloc via Lagrange surveillance design
         lagrangeSurvDesign <-
@@ -468,21 +498,36 @@ SpatialSurvDesign.Context <- function(context,
                              budget = budget,
                              system_sens = system_sens,
                              min_alloc = min_x_alloc,
+                             # max_alloc = max_x_alloc,
                              search_alpha = search_alpha)
         x_alloc <- lagrangeSurvDesign$get_cost_allocation()
 
         # Optimal resource allocation
-        if (discrete_alloc) {
+        if (discrete_alloc || !is.null(max_alloc)) {
 
-          # Add discrete allocation
-          n_alloc <- floor((x_alloc >= fixed_cost)*
-                             (x_alloc - fixed_cost)/alloc_cost)
+          # Allocation quantity
+          n_alloc <- (x_alloc >= fixed_cost)*(x_alloc - fixed_cost)/alloc_cost
+
+          # Further allocation required
+          add_allocation <- (sum(n_alloc) > 0)
+
+          # Discrete allocation
+          if (discrete_alloc) {
+            n_alloc <- floor(n_alloc)
+          }
+
+          # Limit to maximum allocation and reduce maximum
+          if (!is.null(max_alloc)) {
+            n_alloc <- pmin(n_alloc, max_alloc)
+            max_alloc <<- max_alloc - n_alloc
+          }
+
+          # Add allocation
           qty_alloc <<- qty_alloc + n_alloc
 
-          # Alter parameters and indicate further allocation required
+          # Alter parameters and update further allocation required
           fixed_cost[which(qty_alloc > 0)] <<- 0
           exist_sens <<- calculate_sensitivity(n_alloc)
-          add_allocation <- (sum(n_alloc) > 0 || all(min_alloc < 1))
           if (is.numeric(budget)) {
             total_x_alloc <- sum(qty_alloc*alloc_cost +
                                    (qty_alloc > 0)*fixed_cost_orig)
@@ -494,8 +539,15 @@ SpatialSurvDesign.Context <- function(context,
               (calculate_system_sens(exist_sens) < system_sens &&
                  add_allocation)
           }
-          min_alloc <<- pmax(ceiling(min_alloc), 1)
-          min_alloc[which(qty_alloc > 0)] <<- 1
+          if (!is.null(max_alloc)) {
+            add_allocation <- (add_allocation && sum(max_alloc) > 0)
+          }
+
+          # Set minimum discrete allocation to 1
+          if (discrete_alloc) {
+            min_alloc <<- pmax(min_alloc, 1)
+            min_alloc[which(qty_alloc > 0)] <<- 1
+          }
 
           # Reset Lagrange parameters
           set_lagrange_params()
@@ -510,10 +562,11 @@ SpatialSurvDesign.Context <- function(context,
       }
 
       # Return altered parameters to their original values
-      if (discrete_alloc) {
+      if (discrete_alloc || !is.null(max_alloc)) {
         fixed_cost <<- fixed_cost_orig
         budget <<- budget_orig
         min_alloc <<- min_alloc_orig
+        max_alloc <<- max_alloc_orig
         exist_sens <<- exist_sens_orig
       }
     }

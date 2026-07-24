@@ -17,6 +17,7 @@ SurveillanceDesign(
   budget = NULL,
   system_sens = NULL,
   min_alloc = NULL,
+  max_alloc = NULL,
   discrete_alloc = FALSE,
   exist_alloc = NULL,
   exist_sens = NULL,
@@ -36,6 +37,7 @@ SurveillanceDesign(
   budget = NULL,
   system_sens = NULL,
   min_alloc = NULL,
+  max_alloc = NULL,
   discrete_alloc = FALSE,
   exist_alloc = NULL,
   exist_sens = NULL,
@@ -100,6 +102,11 @@ probability of the surveillance design (e.g. 0.95). Default is
 \item{min_alloc}{A vector of minimum permissible allocated surveillance
 resource quantities at each division part (location, category, etc.)
 specified by \code{divisions}. Used to avoid impractically low allocation
+quantities. Default is \code{NULL}.}
+
+\item{max_alloc}{A vector of maximum permissible allocated surveillance
+resource quantities at each division part (location, category, etc.)
+specified by \code{divisions}. Used to avoid impractically high allocation
 quantities. Default is \code{NULL}.}
 
 \item{discrete_alloc}{A logical to indicate that the allocated surveillance

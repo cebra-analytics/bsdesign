@@ -233,7 +233,7 @@ test_that("allocates with fixed costs with and without budget", {
                round(test_ref$surv_effort$no_budget*mask, 8))
 })
 
-test_that("allocates with minimum allocation", {
+test_that("allocates with minimum or maximum allocation", {
   TEST_DIRECTORY <- test_path("test_inputs")
   template <- terra::rast(file.path(TEST_DIRECTORY, "template.tif"))
   divisions <- Divisions(template)
@@ -262,6 +262,23 @@ test_that("allocates with minimum allocation", {
     optimal = "cost",
     mgmt_cost = list(undetected = test_ref$cost_undetected,
                      detected = test_ref$cost_detected),
+    budget = NULL,
+    min_alloc = 0.06,
+    max_alloc = 0.10))
+  expect_silent(alloc_no_budget <- surv_design$get_allocation())
+  idx <- which(test_ref$surv_effort$no_budget > 0.06 &
+                 test_ref$surv_effort$no_budget < 0.10)
+  expect_equal(round(alloc_no_budget[idx], 6),
+               round(test_ref$surv_effort$no_budget[idx], 6))
+  expect_true(all(alloc_no_budget[-idx] %in% c(0, 0.06, 0.10)))
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "cost",
+    mgmt_cost = list(undetected = test_ref$cost_undetected,
+                     detected = test_ref$cost_detected),
     budget = test_ref$budget,
     min_alloc = 0.04))
   expect_silent(min_alloc_with_budget <- surv_design$get_allocation())
@@ -272,6 +289,24 @@ test_that("allocates with minimum allocation", {
   expect_true(all(min_alloc_with_budget[below_idx] %in% c(0, 0.04)))
   above_idx <- which(test_ref$surv_effort$with_budget > 0.04)
   expect_true(all(min_alloc_with_budget[above_idx] >= 0.04))
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "cost",
+    mgmt_cost = list(undetected = test_ref$cost_undetected,
+                     detected = test_ref$cost_detected),
+    budget = test_ref$budget,
+    max_alloc = 0.06))
+  expect_silent(max_alloc_with_budget <- surv_design$get_allocation())
+  expect_equal(sum(max_alloc_with_budget), test_ref$budget)
+  expect_equal(max(max_alloc_with_budget[which(max_alloc_with_budget > 0)]),
+               0.06)
+  below_idx <- which(test_ref$surv_effort$with_budget < 0.06)
+  expect_true(all(max_alloc_with_budget[below_idx] <= 0.06))
+  above_idx <- which(test_ref$surv_effort$with_budget > 0.06)
+  expect_true(all(max_alloc_with_budget[above_idx] == 0.06))
 })
 
 test_that("allocates discrete integer allocations", {
@@ -293,6 +328,33 @@ test_that("allocates discrete integer allocations", {
   expect_true(all(discrete_alloc %in% 0:ceiling(max(continuous_alloc))))
   expect_true(all(discrete_alloc >= floor(continuous_alloc)))
   expect_true(all(discrete_alloc <= ceiling(continuous_alloc)))
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda/100,
+    optimal = "cost",
+    mgmt_cost = list(undetected = test_ref$cost_undetected*100,
+                     detected = test_ref$cost_detected*100),
+    min_alloc = 1,
+    discrete_alloc = TRUE))
+  expect_silent(discrete_alloc2 <- surv_design$get_allocation())
+  expect_equal(discrete_alloc, discrete_alloc2)
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda/100,
+    optimal = "cost",
+    mgmt_cost = list(undetected = test_ref$cost_undetected*100,
+                     detected = test_ref$cost_detected*100),
+    min_alloc = 6,
+    max_alloc = 10,
+    discrete_alloc = TRUE))
+  expect_silent(discrete_alloc3 <- surv_design$get_allocation())
+  idx <- which(discrete_alloc < 6 | discrete_alloc > 10)
+  expect_true(all(discrete_alloc3[idx] %in% c(0, 6, 10)))
+  expect_true(all(abs(discrete_alloc3[-idx] - discrete_alloc[-idx]) <= 1))
   continuous_alloc <- test_ref$surv_effort$with_budget*100
   expect_silent(surv_design <- SpatialSurvDesign(
     context = Context("test"),

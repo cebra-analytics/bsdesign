@@ -53,6 +53,10 @@
 #'   resource quantities at each division part (location, category, etc.)
 #'   specified by \code{divisions}. Used to avoid impractically low allocation
 #'   quantities. Default is \code{NULL}.
+#' @param max_alloc A vector of maximum permissible allocated surveillance
+#'   resource quantities at each division part (location, category, etc.)
+#'   specified by \code{divisions}. Used to avoid impractically high allocation
+#'   quantities. Default is \code{NULL}.
 #' @param discrete_alloc A logical to indicate that the allocated surveillance
 #'   resource quantities at each division part (location, category, etc.)
 #'   specified by \code{divisions} should be discrete integers. Used to
@@ -119,6 +123,7 @@ SurveillanceDesign <- function(context,
                                budget = NULL,
                                system_sens = NULL,
                                min_alloc = NULL,
+                               max_alloc = NULL,
                                discrete_alloc = FALSE,
                                exist_alloc = NULL,
                                exist_sens = NULL,
@@ -141,6 +146,7 @@ SurveillanceDesign.Context <- function(context,
                                        budget = NULL,
                                        system_sens = NULL,
                                        min_alloc = NULL,
+                                       max_alloc = NULL,
                                        discrete_alloc = FALSE,
                                        exist_alloc = NULL,
                                        exist_sens = NULL,
@@ -226,7 +232,7 @@ SurveillanceDesign.Context <- function(context,
                "specified for optimal sensitivity."), call. = FALSE)
   }
 
-  # Check alloc_cost, fixed_cost, budget, min_alloc, exist_alloc, & exist_sens
+  # Check alloc/fixed_cost, budget, min/max_alloc, exist_alloc, & exist_sens
   if (!is.null(alloc_cost) &&
       (!is.numeric(alloc_cost) || !length(alloc_cost) %in% c(1, parts))) {
     stop(paste("The allocation cost parameter must be a numeric vector with",
@@ -243,6 +249,11 @@ SurveillanceDesign.Context <- function(context,
   if (!is.null(min_alloc) &&
       (!is.numeric(min_alloc) || !length(min_alloc) %in% c(1, parts))) {
     stop(paste("The minimum allocation parameter must be a numeric vector",
+               "with values for each division part."), call. = FALSE)
+  }
+  if (!is.null(max_alloc) &&
+      (!is.numeric(max_alloc) || !length(max_alloc) %in% c(1, parts))) {
+    stop(paste("The maximum allocation parameter must be a numeric vector",
                "with values for each division part."), call. = FALSE)
   }
   if (!is.logical(discrete_alloc)) {

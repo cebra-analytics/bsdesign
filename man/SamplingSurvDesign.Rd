@@ -23,6 +23,7 @@ SamplingSurvDesign(
   budget = NULL,
   system_sens = NULL,
   min_alloc = NULL,
+  max_alloc = NULL,
   discrete_alloc = TRUE,
   exist_alloc = NULL,
   exist_sens = NULL,
@@ -48,6 +49,7 @@ SamplingSurvDesign(
   budget = NULL,
   system_sens = NULL,
   min_alloc = NULL,
+  max_alloc = NULL,
   discrete_alloc = TRUE,
   exist_alloc = NULL,
   exist_sens = NULL,
@@ -141,6 +143,11 @@ probability of the surveillance design (e.g. 0.95). Default is
 \item{min_alloc}{A vector of minimum permissible sampling allocation at each
 division part (location, category, etc.) specified by \code{divisions}.
 Used to avoid impractically low sampling allocations. Default is
+\code{NULL}.}
+
+\item{max_alloc}{A vector of maximum permissible sampling allocation at each
+division part (location, category, etc.) specified by \code{divisions}.
+Used to avoid impractically high sampling allocations. Default is
 \code{NULL}.}
 
 \item{discrete_alloc}{A logical to indicate that the sampling allocation at
