@@ -308,7 +308,7 @@ SamplingSurvDesign.Context <- function(context,
   if (!is.null(min_alloc)) {
     if (discrete_alloc) {
       min_alloc <- ceiling(min_alloc)
-      if (FALSE && all(min_alloc) == 1) { # REVISIT ####
+      if (all(min_alloc %in% c(0, 1))) {
         min_alloc <- 0 # allow discrete to handle
       }
     }
