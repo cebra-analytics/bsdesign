@@ -477,11 +477,6 @@ SpatialSurvDesign.Context <- function(context,
         } else {
           min_x_alloc <- min_alloc
         }
-        # if (any(max_alloc > 0)) {
-        #   max_x_alloc <- max_alloc*alloc_cost + (max_alloc > 0)*fixed_cost
-        # } else {
-        #   max_x_alloc <- max_alloc
-        # }
 
         # Get cost allocation x_alloc via Lagrange surveillance design
         lagrangeSurvDesign <-
@@ -498,7 +493,6 @@ SpatialSurvDesign.Context <- function(context,
                              budget = budget,
                              system_sens = system_sens,
                              min_alloc = min_x_alloc,
-                             # max_alloc = max_x_alloc,
                              search_alpha = search_alpha)
         x_alloc <- lagrangeSurvDesign$get_cost_allocation()
 
