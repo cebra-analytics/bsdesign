@@ -588,6 +588,23 @@ test_that("allocates discrete integer allocations", {
   expect_true(all(discrete_alloc >= floor(continuous_alloc)))
   expect_true(all(discrete_alloc <= ceiling(continuous_alloc)))
   expect_equal(sum(discrete_alloc), test_ref$budget*100)
+  # Budget not a multiple of allocation cost
+  expect_silent(surv_design <- SamplingSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    sample_sens = 1,
+    sample_type = "continuous",
+    design_dens = test_ref$lambda/100,
+    sample_area = 1, # samples = area
+    optimal = "cost",
+    mgmt_cost = list(undetected = test_ref$cost_undetected*100,
+                     detected = test_ref$cost_detected*100),
+    sample_cost = 3,
+    budget = test_ref$budget*300 + 2,
+    discrete_alloc = TRUE))
+  expect_silent(discrete_alloc <- surv_design$get_allocation())
+  expect_equal(sum(discrete_alloc)*3, test_ref$budget*300)
 })
 
 test_that("handles establishment probabilities of one", {

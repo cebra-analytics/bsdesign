@@ -703,7 +703,8 @@ SamplingSurvDesign.Context <- function(context,
           n_alloc <- (x_alloc >= fixed_cost)*(x_alloc - fixed_cost)/sample_cost
 
           # Further allocation required
-          add_allocation <- (sum(n_alloc) > 0)
+          add_allocation <- (sum(n_alloc) > 0 &&
+                               sum(n_alloc) >= max(min_alloc))
 
           # Discrete allocation
           if (discrete_alloc) {
@@ -741,10 +742,12 @@ SamplingSurvDesign.Context <- function(context,
             add_allocation <- (add_allocation && sum(max_alloc) > 0)
           }
 
-          # Set minimum discrete allocation to 1
+          # Set minimum allocation
           if (discrete_alloc) {
             min_alloc <<- pmax(min_alloc, 1)
             min_alloc[which(qty_alloc > 0)] <<- 1
+          } else {
+            min_alloc[which(qty_alloc > 0)] <<- 0
           }
 
           # Reset Lagrange parameters
