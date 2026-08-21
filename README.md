@@ -674,7 +674,8 @@ The following example builds a surveillance design for Orange Hawkweed
 approximately reproduces the surveillance design described in Hauser &
 McCarthy (2009). In the following steps we build the workflow
 components, run the design model, and examine the surveillance design
-results.
+results. We will then build a post-management surveillance design for
+monitoring area freedom of the threat.
 
 ### Step 1: Context
 
@@ -921,8 +922,8 @@ terra::plot(terra::rast("sensitivity.tif"),
 
 <img src="man/figures/README-example_3_4_2-1.png" width="100%" style="display: block; margin: auto;" />
 
-We will also examine our the system-wide summary of the
-budget-constrained design:
+We will also examine the system-wide summary of our budget-constrained
+design:
 
 ``` r
 # Surveillance design summary (with budget)
@@ -952,6 +953,80 @@ sensitivity for surveillance designs utilising relative occurrence
 probabilities will generally underestimate the actual sensitivity, but
 becomes a more accurate estimate when actual occurrence probabilities
 are likely to be very small.
+
+The surveillance sensitivity from our budget-constrained design was
+utilised to simulate detections, along with simulated removals, in
+reruns of our population spread simulation example described in the
+[bsspread](https://github.com/cebra-analytics/bsspread) package (see
+*Step 8: Management Actions*). We will utilise the output of the managed
+simulations for our post-management surveillance design.
+
+#### Post-management surveillance design
+
+We will now build a post-management surveillance design for ongoing
+monitoring of the Hawkweed after “search and destroy” survey efforts no
+longer detect and remove the threat, so as to build and maintain
+confidence of its absence.
+
+For our post-management surveillance design we will utilise the final
+mean threat occupancy from our simulated managed population spread model
+(see *Step 8: Management Actions* of the
+[bsspread](https://github.com/cebra-analytics/bsspread) package example)
+as an approximation for the relative establishment or occurrence
+probability at each location, which may be downloaded from
+[here](https://github.com/cebra-analytics/bsdesign/tree/main/data) and
+copied into a *data* directory.
+
+``` r
+# Load the mean occupancy from the managed spread simulation example
+establish_pr_rast <- terra::rast("data/occupancy_t2_mean_managed.tif")
+relative_establish_pr = establish_pr_rast[divisions$get_indices()][,1] # as vector
+attr(relative_establish_pr, "relative") <- TRUE
+terra::plot(log(establish_pr_rast, base = 10), colNA = "black",
+            main = "Hawkweed post-managed establishment probability (log)",
+            range = c(-3, -0.1))
+```
+
+<img src="man/figures/README-example_3_5_1-1.png" width="100%" style="display: block; margin: auto;" />
+
+We will now run our post-management surveillance design with a lower
+budget constraint of 400 hours. We will again constrain our allocation
+to a minimum of 30 minutes (0.5 hours) to avoid impractically low survey
+allocations. This time we will optimise our surveillance allocation
+based on maximising the number of detections.
+
+``` r
+output <- file.remove(c("allocation.tif", "sensitivity.tif", "summary.csv"))
+# Post-management surveillance design
+post_manage_surv_design <- bsdesign::SpatialSurvDesign(
+  context = context,
+  divisions = divisions,
+  establish_pr = relative_establish_pr,
+  lambda = efficacy_rast[divisions$get_indices()][,1], # as vector
+  optimal = "detections",
+  budget = 400, # hours
+  min_alloc = 0.5)
+output <- post_manage_surv_design$save_design()
+terra::plot(terra::rast("allocation.tif"),
+            main = "Post-management Hawkweed survey allocation",
+            colNA = "black")
+```
+
+<img src="man/figures/README-example_3_5_2-1.png" width="100%" style="display: block; margin: auto;" />
+
+We will also examine the system-wide summary of our post-management
+design:
+
+``` r
+# Surveillance design summary (with budget)
+read.csv("summary.csv")
+#>   total_allocation system_sens
+#> 1              400   0.1744092
+```
+
+We can utilise the system-wide sensitivity value from our
+post-management design in the area freedom example that follows to build
+and maintain confidence of Hawkweed threat absence.
 
 ## Area freedom example
 
