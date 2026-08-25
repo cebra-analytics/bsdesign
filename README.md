@@ -879,7 +879,7 @@ the system-wide sensitivity:
 # Surveillance design summary (without budget)
 read.csv("summary.csv")
 #>   total_allocation mgmt_cost total_cost system_sens
-#> 1         17103.15  65184.79   82287.94           1
+#> 1         17059.87  64776.12   81835.98           1
 ```
 
 #### Surveillance design with a budget
@@ -929,7 +929,7 @@ design:
 # Surveillance design summary (with budget)
 read.csv("summary.csv")
 #>   total_allocation mgmt_cost total_cost system_sens
-#> 1             1125  274837.6   275962.6           1
+#> 1             1125  272612.7   273737.7           1
 ```
 
 Note that our surveillance design for Orange Hawkweed produces a
@@ -989,11 +989,35 @@ terra::plot(log(establish_pr_rast, base = 10), colNA = "black",
 
 <img src="man/figures/README-example_3_5_1-1.png" width="100%" style="display: block; margin: auto;" />
 
+In our population spread simulation example described in the
+[bsspread](https://github.com/cebra-analytics/bsspread) package, we
+estimated non-monetary environmental impacts of Hawkweed presence via a
+quantifiable loss in habitat condition using the the [CSIRO HCAS
+layer](https://data.csiro.au/collection/csiro:63571) (Valavi et al.,
+2025). Our monitoring surveillance design may also utilise habitat
+condition as an estimate of environmental impacts for maximising the
+benefit of detection and removal at locations where threat impacts are
+likely to be highest. The habitat condition layer may be downloaded and
+placed it in a suitable directory (e.g. *downloaded_data*).
+
+``` r
+# Surveillance benefit via habitat condition (HCAS)
+hcas_rast <- terra::rast("../downloaded_data/HCAS33_HCB_1988_2024.tif")
+hcas_rast <- terra::resample(
+  terra::project(terra::crop(hcas_rast,
+                             c(1354000, 1372000, -4120000, -4103000)),
+                 region_nvis_rast), region_nvis_rast)
+terra::plot(hcas_rast, colNA = "grey",
+            main = "Benefit via habitat condition (HCAS)")
+```
+
+<img src="man/figures/README-example_3_5_2-1.png" width="100%" style="display: block; margin: auto;" />
+
 We will now run our post-management surveillance design with a lower
-budget constraint of 400 hours. We will again constrain our allocation
+budget constraint of 600 hours. We will again constrain our allocation
 to a minimum of 30 minutes (0.5 hours) to avoid impractically low survey
 allocations. This time we will optimise our surveillance allocation
-based on maximising the number of detections.
+based on maximising benefit based on habitat condition.
 
 ``` r
 output <- file.remove(c("allocation.tif", "sensitivity.tif", "summary.csv"))
@@ -1003,8 +1027,9 @@ post_manage_surv_design <- bsdesign::SpatialSurvDesign(
   divisions = divisions,
   establish_pr = relative_establish_pr,
   lambda = efficacy_rast[divisions$get_indices()][,1], # as vector
-  optimal = "detections",
-  budget = 400, # hours
+  optimal = "benefit",
+  benefit = hcas_rast[divisions$get_indices()][,1], # as vector
+  budget = 600, # hours
   min_alloc = 0.5)
 output <- post_manage_surv_design$save_design()
 terra::plot(terra::rast("allocation.tif"),
@@ -1012,7 +1037,7 @@ terra::plot(terra::rast("allocation.tif"),
             colNA = "black")
 ```
 
-<img src="man/figures/README-example_3_5_2-1.png" width="100%" style="display: block; margin: auto;" />
+<img src="man/figures/README-example_3_5_3-1.png" width="100%" style="display: block; margin: auto;" />
 
 We will also examine the system-wide summary of our post-management
 design:
@@ -1021,7 +1046,7 @@ design:
 # Surveillance design summary (with budget)
 read.csv("summary.csv")
 #>   total_allocation system_sens
-#> 1              400   0.1744092
+#> 1              600   0.1889653
 ```
 
 We can utilise the system-wide sensitivity value from our
@@ -1030,7 +1055,55 @@ and maintain confidence of Hawkweed threat absence.
 
 ## Area freedom example
 
-(coming soon)
+The following example builds a post-management area freedom design for
+our endemic Orange Hawkweed (*Hieracium aurantiacum*) threat (see above)
+for the Falls Creek area, utilising the system-wide sensitivity of
+0.1889653 of our post-management surveillance design from the last
+section. We will utilise a Bayesian freedom design, as described in
+Anderson et al. (2013; 2017; 2022) and Magarey et al. (2019), with an
+uninformed prior probability of area freedom of 0.5, given that the
+probability of threat absence is unknown. We will assume that 90% of the
+Hawkweed threat will persist each year/season to account for removal not
+associated with delegated surveillance efforts. We estimate that there
+is a 0.1% chance that the Hawkweed will be re-introduced into the study
+region each year.
+
+``` r
+# Hawkweed Bayesian area freedom design
+freedom_design <- bsdesign::BayesianFreedomDesign(context = context,
+                                                  detected = FALSE,
+                                                  pr_detect = 0.1889653,
+                                                  pr_persist = 0.9,
+                                                  prior_freedom = 0.5,
+                                                  pr_intro = 0.001,
+                                                  iterations = NULL,
+                                                  target_freedom = 0.95)
+freedom_design$get_evidence()
+#>  [1] 0.5521705 0.6455994 0.7240946 0.7880216 0.8387772 0.8782676 0.9085121
+#>  [8] 0.9313966 0.9485539 0.9613291
+#> attr(,"evidence")
+#> [1] "Pr(freedom|undetected)"
+freedom_design$get_iterations()
+#> [1] 10
+output <- freedom_design$save_design()
+read.csv("evidence.csv")
+#>    iterations pr_freedom
+#> 1           1  0.5521705
+#> 2           2  0.6455994
+#> 3           3  0.7240946
+#> 4           4  0.7880216
+#> 5           5  0.8387772
+#> 6           6  0.8782676
+#> 7           7  0.9085121
+#> 8           8  0.9313966
+#> 9           9  0.9485539
+#> 10         10  0.9613291
+```
+
+Our Bayesian area freedom design allows us to estimate that 10 yearly
+applications of our post-management surveillance is necessary to achieve
+a 95% or greater confidence that the Hawkweed threat is absent if it is
+not detected during that time.
 
 ## References
 
@@ -1127,6 +1200,15 @@ University Press.
 Solow, A. R. (1993). ‘Inferring Extinction from Sighting Data’.
 *Ecology*, 74(3), 962–964.
 [doi:10.2307/1940821](https://doi.org/10.2307/1940821)
+
+Valavi R, Levick SR, Lehmann EA, Liu N, Giljohann KM, Williams KJ,
+Collings S, Johnson S, Botha EJ, Munroe SEM, Van Niel TG, Newnham G,
+Paget M, Malley C, Carlile P, Gunawardana D, Lyon P, Richards AE,
+Tetreault Campbell S and Ferrier S (2025) ‘HCAS 3.3 (1988-2024) base
+model estimate of habitat condition (90m grid), National Connectivity
+Index 2.0 (NCI) and annual time series for continental Australia’. Data
+collection 65549. *CSIRO*, Canberra, Australia. DOI:
+<https://data.csiro.au/collection/csiro:65549>.
 
 Williams, N. S. G., Hahs, A. K., & Morgan, J. W. (2008). ‘A
 Dispersal-Constrained Habitat Suitability Model for Predicting Invasion
