@@ -833,21 +833,30 @@ SamplingSurvDesign.Context <- function(context,
       }
     }
     if (divisions$get_type() == "grid") {
+      idx <- which(self$get_sensitivity() > 0)
+      design_df <- divisions$get_coords()[idx,]
       if (optimal != "none") {
         terra::writeRaster(divisions$get_rast(self$get_allocation()),
                            "allocation.tif", ...)
+        design_df$allocation <- self$get_allocation()[idx]
         if (exist_sens_present) {
           terra::writeRaster(
             divisions$get_rast(calculate_sensitivity(self$get_allocation(),
                                                      incl_exist = FALSE)),
             "alloc_sens.tif", ...)
+          design_df$alloc_sens <-
+            calculate_sensitivity(self$get_allocation(),
+                                  incl_exist = FALSE)[idx]
         }
       }
       terra::writeRaster(divisions$get_rast(self$get_sensitivity()),
                          "sensitivity.tif", ...)
+      design_df$sensitivity <- self$get_sensitivity()[idx]
       if (any(unlist(output_cost))) {
         terra::writeRaster(divisions$get_rast(cost), "surv_cost.tif", ...)
+        design_df$surv_cost <- cost[idx]
       }
+      write.csv(design_df, file = "design.csv", row.names = FALSE)
     } else if (divisions$get_type() == "patch") {
       design_df <- divisions$get_coords(extra_cols = TRUE)
       if (optimal == "none") {
