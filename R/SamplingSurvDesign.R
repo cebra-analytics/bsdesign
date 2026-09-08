@@ -854,7 +854,7 @@ SamplingSurvDesign.Context <- function(context,
       design_df$sensitivity <- self$get_sensitivity()[idx]
       if (any(unlist(output_cost))) {
         terra::writeRaster(divisions$get_rast(cost), "surv_cost.tif", ...)
-        design_df$surv_cost <- cost[idx]
+        design_df$surv_cost <- round(cost[idx], 2)
       }
       write.csv(design_df, file = "design.csv", row.names = FALSE)
     } else if (divisions$get_type() == "patch") {
