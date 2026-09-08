@@ -835,7 +835,11 @@ SamplingSurvDesign.Context <- function(context,
     if (divisions$get_type() == "grid") {
       idx <- which(self$get_sensitivity() > 0)
       design_df <- divisions$get_coords()[idx,]
-      if (optimal != "none") {
+      if (optimal == "none") {
+        if (!is.null(exist_alloc)) {
+          design_df$exist_alloc <- exist_alloc[idx]
+        }
+      } else {
         terra::writeRaster(divisions$get_rast(self$get_allocation()),
                            "allocation.tif", ...)
         design_df$allocation <- self$get_allocation()[idx]
