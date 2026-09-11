@@ -3,7 +3,7 @@ context("SamplingSurvDesign")
 test_that("initializes with context, divisions, and valid parameters", {
   TEST_DIRECTORY <- test_path("test_inputs")
   test_ref <- readRDS(file.path(TEST_DIRECTORY, "Cannon2009_C_test.rds"))
-  divisions <- Divisions(as.matrix(test_ref$part))
+  divisions <- Divisions(data.frame(id = test_ref$part))
   expect_error(surv_design <- SamplingSurvDesign(
     context = Context("test"),
     divisions = divisions,
@@ -95,7 +95,7 @@ test_that("initializes with context, divisions, and valid parameters", {
 test_that("allocates resources consistently with reference method", {
   TEST_DIRECTORY <- test_path("test_inputs")
   test_ref <- readRDS(file.path(TEST_DIRECTORY, "Cannon2009_C_test.rds"))
-  divisions <- Divisions(as.matrix(test_ref$part))
+  divisions <- Divisions(data.frame(id = test_ref$part))
   expect_silent(surv_design <- SamplingSurvDesign(
     context = Context("test"),
     divisions = divisions,
@@ -124,7 +124,7 @@ test_that("allocates resources consistently with reference method", {
                test_ref$budget$all_95)
   expect_equal(round(surv_design$get_system_sens(), 3), test_ref$system_sens$all)
   test_ref <- readRDS(file.path(TEST_DIRECTORY, "Cannon2009_D_test.rds"))
-  divisions <- Divisions(as.matrix(test_ref$part))
+  divisions <- Divisions(data.frame(id = test_ref$part))
   expect_silent(surv_design <- SamplingSurvDesign(
     context = Context("test"),
     divisions = divisions,
@@ -191,7 +191,7 @@ test_that("allocates resources consistently with reference method", {
 test_that("allocates appropriately when sample total individuals N supplied", {
   TEST_DIRECTORY <- test_path("test_inputs")
   test_ref <- readRDS(file.path(TEST_DIRECTORY, "Cannon2009_C_test.rds"))
-  divisions <- Divisions(as.matrix(test_ref$part))
+  divisions <- Divisions(data.frame(id = test_ref$part))
   total_indiv <- c(5000, 2000, 8000, 6000, 4000) # n/N < 0.1
   expect_silent(surv_design <- SamplingSurvDesign(
     context = Context("test"),
@@ -245,7 +245,7 @@ test_that("allocates appropriately when sample total individuals N supplied", {
 test_that("facilitates existing allocations and sensitivities", {
   TEST_DIRECTORY <- test_path("test_inputs")
   test_ref <- readRDS(file.path(TEST_DIRECTORY, "Cannon2009_C_test.rds"))
-  divisions <- Divisions(as.matrix(test_ref$part))
+  divisions <- Divisions(data.frame(id = test_ref$part))
   exist_alloc <- test_ref$expected_n$sensitivity*c(1, 1, 1, 0, 0)
   establish_pr <- test_ref$establish_pr
   expect_silent(surv_design <- SamplingSurvDesign(
@@ -264,6 +264,48 @@ test_that("facilitates existing allocations and sensitivities", {
   expect_equal(surv_design$get_system_sens(),
                ((1 - prod(1 - establish_pr*exist_sens))/
                   (1 - prod(1 - establish_pr))))
+  # temporal existing allocation
+  expected_sens <-
+    1 - (1 - 1*test_ref$prevalence)^test_ref$expected_n$sensitivity
+  temp_matrix <- matrix(c(1, 1, 0, 0, 0,
+                          1, 1, 1, 0, 0,
+                          1, 1, 1, 1, 0), nrow = 5, ncol = 3)
+  exist_alloc_temp <- test_ref$expected_n$sensitivity*temp_matrix
+  expect_silent(surv_design <- SamplingSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = establish_pr,
+    sample_sens = 1,
+    sample_type = "discrete",
+    prevalence = test_ref$prevalence,
+    optimal = "none",
+    sample_cost = 0.1,
+    fixed_cost = 10,
+    exist_alloc = exist_alloc_temp,
+    discrete_alloc = FALSE))
+  expect_silent(exist_sens_temp <- surv_design$get_sensitivity())
+  expect_equal(exist_sens_temp, expected_sens*temp_matrix)
+  expect_silent(system_sens <- surv_design$get_system_sens())
+  expect_equal(
+    system_sens, sapply(1:3, function(i)
+      ((1 - prod(1 - test_ref$establish_pr*exist_sens_temp[,i]))/
+         (1 - prod(1 - test_ref$establish_pr)))))
+  expect_silent(surv_design <- SamplingSurvDesign(
+    context = Context("test"),
+    divisions = Divisions(data.frame(id = 1)),
+    establish_pr = establish_pr[1],
+    sample_sens = 1,
+    sample_type = "discrete",
+    prevalence = test_ref$prevalence[1],
+    optimal = "none",
+    sample_cost = 0.1,
+    fixed_cost = 10,
+    exist_alloc = exist_alloc_temp[1,,drop = FALSE],
+    discrete_alloc = FALSE))
+  expect_silent(exist_sens_temp <- surv_design$get_sensitivity())
+  expect_equal(exist_sens_temp, expected_sens[1]*temp_matrix[1,,drop = FALSE])
+  expect_silent(system_sens <- surv_design$get_system_sens())
+  expect_equal(system_sens, as.numeric(exist_sens_temp))
   expect_silent(surv_design <- SamplingSurvDesign(
     context = Context("test"),
     divisions = divisions,
@@ -295,7 +337,7 @@ test_that("facilitates existing allocations and sensitivities", {
 test_that("allocates budget with fixed costs", {
   TEST_DIRECTORY <- test_path("test_inputs")
   test_ref <- readRDS(file.path(TEST_DIRECTORY, "Cannon2009_C_test.rds"))
-  divisions <- Divisions(as.matrix(test_ref$part))
+  divisions <- Divisions(data.frame(id = test_ref$part))
   expect_silent(surv_design <- SamplingSurvDesign(
     context = Context("test"),
     divisions = divisions,
@@ -428,7 +470,7 @@ test_that("allocates with minimum or maximum allocation", {
 test_that("allocates discrete integer allocations", {
   TEST_DIRECTORY <- test_path("test_inputs")
   test_ref <- readRDS(file.path(TEST_DIRECTORY, "Cannon2009_C_test.rds"))
-  divisions <- Divisions(as.matrix(test_ref$part))
+  divisions <- Divisions(data.frame(id = test_ref$part))
   expect_silent(surv_design <- SamplingSurvDesign(
     context = Context("test"),
     divisions = divisions,
@@ -464,7 +506,7 @@ test_that("allocates discrete integer allocations", {
   max_idx <- which(test_ref$expected_n$sensitivity > 180)
   expect_true(all(surv_design$get_allocation()[max_idx] == 180))
   test_ref <- readRDS(file.path(TEST_DIRECTORY, "Cannon2009_C_test.rds"))
-  divisions <- Divisions(as.matrix(test_ref$part))
+  divisions <- Divisions(data.frame(id = test_ref$part))
   total_indiv <- c(5000, 2000, 8000, 6000, 4000) # n/N < 0.1
   expect_silent(surv_design <- SamplingSurvDesign(
     context = Context("test"),
@@ -610,7 +652,7 @@ test_that("allocates discrete integer allocations", {
 test_that("handles establishment probabilities of one", {
   TEST_DIRECTORY <- test_path("test_inputs")
   test_ref <- readRDS(file.path(TEST_DIRECTORY, "Cannon2009_C_test.rds"))
-  divisions <- Divisions(as.matrix(test_ref$part))
+  divisions <- Divisions(data.frame(id = test_ref$part))
   establish_pr = test_ref$establish_pr/max(test_ref$establish_pr)
   expect_silent(surv_design <- SamplingSurvDesign(
     context = Context("test"),

@@ -75,8 +75,9 @@
 #'   specified by \code{divisions} should be discrete integers. Used to
 #'   allocate discrete surveillance units, such as traps or detectors. Default
 #'   is \code{FALSE} for continuous resources quantities, such as survey hours.
-#' @param exist_alloc A vector of existing surveillance resource quantities at
-#'   each spatial location specified by \code{divisions}. Should only be used
+#' @param exist_alloc A vector or matrix (containing temporal columns) of
+#'   existing surveillance resource quantities at each division part (location,
+#'   category, etc.) (rows) specified by \code{divisions}. Should only be used
 #'   to represent existing surveillance designs when \code{optimal = "none"}.
 #'   Default is \code{NULL}.
 #' @param exist_sens A vector, or list of vectors, of detection sensitivity
@@ -267,6 +268,9 @@ SpatialSurvDesign.Context <- function(context,
     if (length(max_alloc) == 1) {
       max_alloc <- rep(max_alloc, parts)
     }
+  }
+  if (is.numeric(exist_alloc)) {
+    exist_alloc <- as.matrix(exist_alloc)
   }
   if (is.null(exist_sens)) {
     exist_sens <- rep(0, parts)
@@ -578,7 +582,13 @@ SpatialSurvDesign.Context <- function(context,
       if (optimal != "none" && !is.null(qty_alloc)) {
         sensitivity <<- calculate_sensitivity(qty_alloc)
       } else if (optimal == "none" && !is.null(exist_alloc)) {
-        sensitivity <<- calculate_sensitivity(exist_alloc)
+        if (ncol(exist_alloc) > 1) {
+          sensitivity <<- matrix(apply(exist_alloc, 2,
+                                       function(a) calculate_sensitivity(a)),
+                                 ncol = ncol(exist_alloc))
+        } else {
+          sensitivity <<- as.numeric(calculate_sensitivity(exist_alloc))
+        }
       } else if (optimal == "none") {
         sensitivity <<- super$get_sensitivity()
       }
@@ -594,13 +604,28 @@ SpatialSurvDesign.Context <- function(context,
 
       # Calculate base system sensitivity
       if (parts == 1) {
-        system_sens_vect <- sensitivity
+        system_sens_vect <- as.numeric(sensitivity)
       } else if (!is.null(establish_pr)) {
-        system_sens_vect <- calculate_system_sens(sensitivity)
+        if (is.matrix(sensitivity) && ncol(sensitivity) > 1) {
+          system_sens_vect <- apply(sensitivity, 2,
+                                    function(s) calculate_system_sens(s))
+        } else {
+          system_sens_vect <- calculate_system_sens(sensitivity)
+        }
       }
 
       # Apply prevalence with growth if present
       if (is.numeric(growth)) {
+
+        # Align growth with temporal existing allocation
+        if (length(system_sens_vect) > 1) {
+          if (length(system_sens_vect) > length(growth)) {
+            growth <- c(growth, rep(growth[length(growth)],
+                                    length(system_sens_vect) - length(growth)))
+          } else if (length(system_sens_vect) < length(growth)) {
+            length(growth) <- length(system_sens_vect)
+          }
+        }
         prevalence <- prevalence*growth
       }
       system_sens_vect <- 1 - (1 - system_sens_vect)^prevalence
@@ -613,111 +638,192 @@ SpatialSurvDesign.Context <- function(context,
   self$save_design <- function(...) {
 
     # Save allocation, sensitivity, and cost (when applicable)
-    if (any(unlist(output_cost))) {
-      cost <- (self$get_allocation() > 0)*fixed_cost
-      if (output_cost$alloc_cost) {
-        cost <- cost + self$get_allocation()*alloc_cost
-      }
-    }
     if (divisions$get_type() == "grid") {
-      idx <- which(self$get_sensitivity() > 0)
-      design_df <- divisions$get_coords()[idx,]
-      if (optimal == "none") {
-        if (!is.null(exist_alloc)) {
-          design_df$exist_alloc <- exist_alloc[idx]
-        }
+      if (!is.null(exist_alloc)) {
+        idx <- which(rowSums(as.matrix(self$get_sensitivity())) > 0 |
+                       rowSums(exist_alloc) > 0)
       } else {
+        idx <- which(rowSums(as.matrix(self$get_sensitivity())) > 0)
+      }
+      design_df <- divisions$get_coords()[idx,]
+    } else if (divisions$get_type() == "patch") {
+      idx <- 1:parts
+      design_df <- divisions$get_coords(extra_cols = TRUE)
+    } else if (divisions$get_type() == "other") {
+      idx <- 1:parts
+      design_df <- divisions$get_data()
+    }
+    if (optimal == "none") {
+      if (!is.null(exist_alloc)) {
+        if (ncol(exist_alloc) > 1) {
+          for (i in 1:ncol(exist_alloc)) {
+            if (divisions$get_type() == "grid") {
+              terra::writeRaster(divisions$get_rast(exist_alloc[,i]),
+                                 sprintf("exist_alloc_%s.tif", i), ...)
+            }
+            design_df[[sprintf("exist_alloc_%s", i)]] <- exist_alloc[idx, i]
+            if (exist_sens_present) {
+              if (divisions$get_type() == "grid") {
+                terra::writeRaster(divisions$get_rast(
+                  calculate_sensitivity(exist_alloc[,i], incl_exist = FALSE)),
+                  sprintf("alloc_sens_%s.tif", i), ...)
+              }
+              design_df[[sprintf("alloc_sens_%s", i)]] <-
+                calculate_sensitivity(exist_alloc[,i], incl_exist = FALSE)[idx]
+            }
+          }
+        } else {
+          if (divisions$get_type() == "grid") {
+            terra::writeRaster(divisions$get_rast(exist_alloc),
+                               "exist_alloc.tif", ...)
+          }
+          design_df$exist_alloc <- exist_alloc[idx,]
+          if (exist_sens_present) {
+            if (divisions$get_type() == "grid") {
+              terra::writeRaster(divisions$get_rast(
+                calculate_sensitivity(exist_alloc, incl_exist = FALSE)),
+                "alloc_sens.tif", ...)
+            }
+            design_df$alloc_sens <-
+              calculate_sensitivity(exist_alloc, incl_exist = FALSE)[idx]
+          }
+        }
+      }
+    } else {
+      if (divisions$get_type() == "grid") {
         terra::writeRaster(divisions$get_rast(self$get_allocation()),
                            "allocation.tif", ...)
-        design_df$allocation <- self$get_allocation()[idx]
-        if (exist_sens_present) {
-          terra::writeRaster(
-            divisions$get_rast(calculate_sensitivity(self$get_allocation(),
-                                                     incl_exist = FALSE)),
-            "alloc_sens.tif", ...)
-          design_df$alloc_sens <-
-            calculate_sensitivity(self$get_allocation(),
-                                  incl_exist = FALSE)[idx]
-        }
       }
-      terra::writeRaster(divisions$get_rast(self$get_sensitivity()),
-                         "sensitivity.tif", ...)
+      design_df$allocation <- self$get_allocation()[idx]
+      if (exist_sens_present) {
+        if (divisions$get_type() == "grid") {
+          terra::writeRaster(divisions$get_rast(
+            calculate_sensitivity(self$get_allocation(), incl_exist = FALSE)),
+            "alloc_sens.tif", ...)
+        }
+        design_df$alloc_sens <-
+          calculate_sensitivity(self$get_allocation(), incl_exist = FALSE)[idx]
+      }
+    }
+    if (is.matrix(self$get_sensitivity()) &&
+        ncol(self$get_sensitivity()) > 1) {
+      for (i in 1:ncol(self$get_sensitivity())) {
+        if (divisions$get_type() == "grid") {
+          terra::writeRaster(
+            divisions$get_rast(self$get_sensitivity()[,i]),
+            sprintf("sensitivity_%s.tif", i), ...)
+        }
+        design_df[[sprintf("sensitivity_%s", i)]] <-
+          self$get_sensitivity()[idx, i]
+      }
+    } else {
+      if (divisions$get_type() == "grid") {
+        terra::writeRaster(divisions$get_rast(self$get_sensitivity()),
+                           "sensitivity.tif", ...)
+      }
       design_df$sensitivity <- self$get_sensitivity()[idx]
-      if (any(unlist(output_cost))) {
-        terra::writeRaster(divisions$get_rast(cost), "surv_cost.tif", ...)
+    }
+    if (any(unlist(output_cost))) {
+      if (optimal == "none") {
+        if (!is.null(exist_alloc)) {
+          if (ncol(exist_alloc) > 1) {
+            for (i in 1:ncol(exist_alloc)) {
+              cost <- (exist_alloc[,i] > 0)*fixed_cost
+              if (output_cost$alloc_cost) {
+                cost <- cost + exist_alloc[,i]*alloc_cost
+              }
+              if (divisions$get_type() == "grid") {
+                terra::writeRaster(divisions$get_rast(cost),
+                                   sprintf("surv_cost_%s.tif", i), ...)
+              }
+              design_df[[sprintf("surv_cost_%s", i)]] <- round(cost[idx], 2)
+            }
+          } else {
+            cost <- (exist_alloc[,1] > 0)*fixed_cost
+            if (output_cost$alloc_cost) {
+              cost <- cost + exist_alloc[,1]*alloc_cost
+            }
+            if (divisions$get_type() == "grid") {
+              terra::writeRaster(divisions$get_rast(cost),
+                                 "surv_cost.tif", ...)
+            }
+            design_df$surv_cost <- round(cost[idx], 2)
+          }
+        }
+      } else {
+        cost <- (self$get_allocation() > 0)*fixed_cost
+        if (output_cost$alloc_cost) {
+          cost <- cost + self$get_allocation()*alloc_cost
+        }
+        if (divisions$get_type() == "grid") {
+          terra::writeRaster(divisions$get_rast(cost), "surv_cost.tif", ...)
+        }
         design_df$surv_cost <- round(cost[idx], 2)
       }
-      write.csv(design_df, file = "design.csv", row.names = FALSE)
-    } else if (divisions$get_type() == "patch") {
-      design_df <- divisions$get_coords(extra_cols = TRUE)
-      if (optimal == "none") {
-        if (!is.null(exist_alloc)) {
-          design_df$exist_alloc <- exist_alloc
-        }
-      } else {
-        design_df$allocation <- self$get_allocation()
-        if (exist_sens_present) {
-          design_df$alloc_sens <- calculate_sensitivity(self$get_allocation(),
-                                                        incl_exist = FALSE)
-        }
-      }
-      design_df$sensitivity <- self$get_sensitivity()
-      if (any(unlist(output_cost))) {
-        design_df$surv_cost <- round(cost, 2)
-      }
-      write.csv(design_df, file = "design.csv", row.names = FALSE)
-    } else if (divisions$get_type() == "other") {
-      design_df <- divisions$get_data()
-      if (optimal == "none") {
-        if (!is.null(exist_alloc)) {
-          design_df$exist_alloc <- exist_alloc
-        }
-      } else {
-        design_df$allocation <- self$get_allocation()
-        if (exist_sens_present) {
-          design_df$alloc_sens <- calculate_sensitivity(self$get_allocation(),
-                                                        incl_exist = FALSE)
-        }
-      }
-      design_df$sensitivity <- self$get_sensitivity()
-      if (any(unlist(output_cost))) {
-        design_df$surv_cost <- round(cost, 2)
-      }
-      write.csv(design_df, file = "design.csv", row.names = FALSE)
     }
+    write.csv(design_df, file = "design.csv", row.names = FALSE)
 
     # Save summary
     if (optimal == "none") {
       if (!is.null(exist_alloc)) {
-        total_allocation <- sum(exist_alloc)
+        if (ncol(exist_alloc) > 1) {
+          summary_data <- data.frame(interval = 1:ncol(exist_alloc),
+                                     total_allocation = colSums(exist_alloc))
+
+        } else {
+          summary_data <- data.frame(total_allocation = sum(exist_alloc))
+        }
       } else {
-        total_allocation <- 0
+        summary_data <- data.frame(total_allocation = 0)
       }
     } else {
-      total_allocation <- sum(self$get_allocation())
+      summary_data <- data.frame(total_allocation = sum(self$get_allocation()))
     }
-    summary_data <- data.frame(total_allocation = total_allocation)
-    if (!all(alloc_cost == 1)) {
-      summary_data$allocation_cost <- sum(self$get_allocation()*alloc_cost)
-    }
-    if (!all(fixed_cost == 0)) {
-      summary_data$fixed_cost <- sum((self$get_allocation() > 0)*fixed_cost)
+    if (any(unlist(output_cost))) {
+      if (optimal == "none") {
+        if (!is.null(exist_alloc)) {
+          summary_data$allocation_cost <-
+            round(colSums(exist_alloc*alloc_cost), 2)
+          if (!all(fixed_cost == 0)) {
+            summary_data$fixed_cost <-
+              round(colSums((exist_alloc > 0)*fixed_cost), 2)
+          }
+        }
+      } else {
+        summary_data$allocation_cost <-
+          round(sum(self$get_allocation()*alloc_cost), 2)
+        if (!all(fixed_cost == 0)) {
+          summary_data$fixed_cost <-
+            round(sum((self$get_allocation() > 0)*fixed_cost), 2)
+        }
+      }
     }
     if (optimal == "cost") {
       summary_data$mgmt_cost <- sum(
         establish_pr*(mgmt_cost$detected*self$get_sensitivity() +
                         mgmt_cost$undetected*(1 - self$get_sensitivity())))
-      summary_data$total_cost <-
+      summary_data$total_cost <- round(
         (summary_data$mgmt_cost +  sum(self$get_allocation()*alloc_cost) +
-           sum((self$get_allocation() > 0)*fixed_cost))
+           sum((self$get_allocation() > 0)*fixed_cost)), 2)
+      summary_data$mgmt_cost <- round(summary_data$mgmt_cost, 2)
     }
     if (optimal == "saving") {
-      summary_data$total_saving <- sum(establish_pr*benefit*
-                                         self$get_sensitivity())
+      summary_data$total_saving <- round(sum(establish_pr*benefit*
+                                               self$get_sensitivity()), 2)
     }
-    if (optimal != "none" && exist_sens_present) {
-      summary_data$alloc_sens <- calculate_system_sens(
-        calculate_sensitivity(self$get_allocation(), incl_exist = FALSE))
+    if (exist_sens_present) {
+      if (optimal == "none") {
+        if (!is.null(exist_alloc)) {
+          summary_data$alloc_sens <-
+            sapply(1:ncol(exist_alloc),
+                   function (i) calculate_system_sens(
+                     calculate_sensitivity(exist_alloc[,i],
+                                           incl_exist = FALSE)))
+        }
+      } else {
+        summary_data$alloc_sens <- calculate_system_sens(
+          calculate_sensitivity(self$get_allocation(), incl_exist = FALSE))
+      }
     }
     summary_data$system_sens <- self$get_system_sens()
     write.csv(summary_data, file = "summary.csv", row.names = FALSE)

@@ -151,6 +151,52 @@ test_that("facilitates existing allocations and sensitivities", {
     exist_alloc = exist_alloc))
   expect_silent(exist_sens <- surv_design$get_sensitivity())
   expect_equal(exist_sens, c(expected_sensitivity[1:198], rep(0, 199)))
+
+  expect_silent(system_sens <- surv_design$get_system_sens())
+  expect_equal(system_sens,
+               ((1 - prod(1 - test_ref$establish_pr*exist_sens))/
+                  (1 - prod(1 - test_ref$establish_pr))))
+  # temporal existing allocation
+  exist_alloc <- cbind(c(test_ref$surv_effort$no_budget[1:198], rep(0, 199)),
+                       c(test_ref$surv_effort$no_budget[1:148], rep(0, 249)),
+                       c(test_ref$surv_effort$no_budget[1:98], rep(0, 299)))
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = divisions,
+    establish_pr = test_ref$establish_pr,
+    lambda = test_ref$lambda,
+    optimal = "none",
+    mgmt_cost = list(),
+    alloc_cost = 1,
+    fixed_cost = 1,
+    budget = NULL,
+    exist_alloc = exist_alloc))
+  expect_silent(exist_sens_temp <- surv_design$get_sensitivity())
+  expect_equal(exist_sens_temp,
+               cbind(c(expected_sensitivity[1:198], rep(0, 199)),
+                     c(expected_sensitivity[1:148], rep(0, 249)),
+                     c(expected_sensitivity[1:98], rep(0, 299))))
+  expect_silent(system_sens <- surv_design$get_system_sens())
+  expect_equal(system_sens,
+               sapply(1:3, function(i)
+                 ((1 - prod(1 - test_ref$establish_pr*exist_sens_temp[,i]))/
+                    (1 - prod(1 - test_ref$establish_pr)))))
+  expect_silent(surv_design <- SpatialSurvDesign(
+    context = Context("test"),
+    divisions = Divisions(data.frame(id = 1)),
+    establish_pr = test_ref$establish_pr[1],
+    lambda = test_ref$lambda[1],
+    optimal = "none",
+    mgmt_cost = list(),
+    alloc_cost = 1,
+    fixed_cost = 1,
+    budget = NULL,
+    exist_alloc = exist_alloc[1,,drop = FALSE]))
+  expect_silent(exist_sens_temp <- surv_design$get_sensitivity())
+  expect_equal(exist_sens_temp,
+               matrix(rep(expected_sensitivity[1], 3), ncol = 3))
+  expect_silent(system_sens <- surv_design$get_system_sens())
+  expect_equal(system_sens, as.numeric(exist_sens_temp))
   expect_silent(surv_design <- SpatialSurvDesign(
     context = Context("test"),
     divisions = divisions,

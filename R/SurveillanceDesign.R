@@ -62,10 +62,11 @@
 #'   specified by \code{divisions} should be discrete integers. Used to
 #'   allocate discrete surveillance units, such as traps or detectors. Default
 #'   is \code{FALSE} for continuous resources quantities, such as survey hours.
-#' @param exist_alloc A vector of existing surveillance resource quantities at
-#'   each division part (location, category, etc.) specified by
-#'   \code{divisions}. Should only be used to represent existing surveillance
-#'   designs when \code{optimal = "none"}. Default is \code{NULL}.
+#' @param exist_alloc A vector or matrix (containing temporal columns) of
+#'   existing surveillance resource quantities at each division part (location,
+#'   category, etc.) (rows) specified by \code{divisions}. Should only be used
+#'   to represent existing surveillance designs when \code{optimal = "none"}.
+#'   Default is \code{NULL}.
 #' @param exist_sens A vector, or list of vectors, of detection sensitivity
 #'   values of existing surveillance present at each division part (location,
 #'   category, etc.) specified by \code{divisions}. Multiple existing
@@ -265,9 +266,10 @@ SurveillanceDesign.Context <- function(context,
                "when the optimal parameter is 'none'."), call. = FALSE)
   }
   if (!is.null(exist_alloc) &&
-      (!is.numeric(exist_alloc) || !length(exist_alloc) == parts)) {
-    stop(paste("The existing allocation parameter must be a numeric vector",
-               "with values for each division part."), call. = FALSE)
+      (!is.numeric(exist_alloc) || nrow(as.matrix(exist_alloc)) != parts)) {
+    stop(paste("The existing allocation parameter should be a vector or",
+               "matrix with a value or row for each division part."),
+         call. = FALSE)
   }
   if (!is.null(exist_sens) &&
       (!(is.numeric(exist_sens) || is.list(exist_sens)) ||

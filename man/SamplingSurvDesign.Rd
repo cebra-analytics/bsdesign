@@ -156,10 +156,11 @@ each division part (location, category, etc.) specified by
 to allocate discrete samples. Set to \code{FALSE} for continuous
 quantities if applicable within a sampling design, such as sample batches.}
 
-\item{exist_alloc}{A vector of existing surveillance resource quantities at
-each division part (location, category, etc.) specified by
-\code{divisions}. Should only be used to represent existing surveillance
-designs when \code{optimal = "none"}. Default is \code{NULL}.}
+\item{exist_alloc}{A vector or matrix (containing temporal columns) of
+existing surveillance resource quantities at each division part (location,
+category, etc.) (rows) specified by \code{divisions}. Should only be used
+to represent existing surveillance designs when \code{optimal = "none"}.
+Default is \code{NULL}.}
 
 \item{exist_sens}{A vector, or list of vectors, of detection sensitivity
 values of existing surveillance present at each division part (location,
