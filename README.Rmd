@@ -86,7 +86,7 @@ Several surveillance design approaches have been encapsulated in object classes 
 - Sampling surveillance design
 - Spatial surveillance design
 
-These surveillance design design approaches and their implemented object classes are further described in the sections that follow.
+These surveillance design approaches and their implemented object classes are further described in the sections that follow.
 
 #### Area growth surveillance design
 
