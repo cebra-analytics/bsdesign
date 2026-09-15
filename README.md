@@ -116,7 +116,7 @@ different design approaches, including:
 - Sampling surveillance design
 - Spatial surveillance design
 
-These surveillance design design approaches and their implemented object
+These surveillance design approaches and their implemented object
 classes are further described in the sections that follow.
 
 #### Area growth surveillance design
