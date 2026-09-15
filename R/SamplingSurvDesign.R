@@ -869,7 +869,9 @@ SamplingSurvDesign.Context <- function(context,
                                  sprintf("exist_alloc_%s.tif", i), ...)
             }
             design_df[[sprintf("exist_alloc_%s", i)]] <- exist_alloc[idx, i]
-            if (exist_sens_present) {
+          }
+          if (exist_sens_present) {
+            for (i in 1:ncol(exist_alloc)) {
               if (divisions$get_type() == "grid") {
                 terra::writeRaster(divisions$get_rast(
                   calculate_sensitivity(exist_alloc[,i], incl_exist = FALSE)),
