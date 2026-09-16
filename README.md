@@ -871,11 +871,26 @@ terra::plot(terra::rast("sensitivity.tif"),
 
 <img src="man/figures/README-example_3_3_2-1.png" width="100%" style="display: block; margin: auto;" />
 
-The saved design also provides a system-wide summary, including the
-total survey allocation, the total management cost, the total cost, and
-the system-wide sensitivity:
+The saved design also provides a point-based CSV table indicating the
+survey allocation and its sensitivity at each location with applied
+surveillance. A system-wide summary table is also provided, including
+the total survey allocation, the total management cost, the total cost,
+and the system-wide sensitivity:
 
 ``` r
+# Surveillance design table (without budget)
+head(read.csv("design.csv"), 10)
+#>         lon       lat allocation sensitivity
+#> 1  147.3008 -36.79526  0.3040889   0.3555433
+#> 2  147.3685 -36.78866  0.5707696   0.8695221
+#> 3  147.2244 -36.80359  0.9218724   0.9627206
+#> 4  147.3686 -36.78956  0.3765062   0.7390442
+#> 5  147.3697 -36.78945  0.6844063   0.9130147
+#> 6  147.2256 -36.80438  0.9218724   0.9627206
+#> 7  147.3000 -36.79716  0.3040889   0.3555433
+#> 8  147.3011 -36.79705  1.0644794   0.7851811
+#> 9  147.3022 -36.79695  1.4180409   0.8711086
+#> 10 147.3055 -36.79662  1.0644794   0.7851811
 # Surveillance design summary (without budget)
 read.csv("summary.csv")
 #>   total_allocation mgmt_cost total_cost system_sens
