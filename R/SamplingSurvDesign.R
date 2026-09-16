@@ -851,7 +851,12 @@ SamplingSurvDesign.Context <- function(context,
 
     # Save allocation, sensitivity, and cost (when applicable)
     if (divisions$get_type() == "grid") {
-      idx <- which(rowSums(as.matrix(self$get_sensitivity())) > 0)
+      if (!is.null(exist_alloc)) {
+        idx <- which(rowSums(as.matrix(self$get_sensitivity())) > 0 |
+                       rowSums(exist_alloc) > 0)
+      } else if (!is.null(self$get_allocation())) {
+        idx <- which(rowSums(as.matrix(self$get_sensitivity())) > 0)
+      }
       design_df <- divisions$get_coords()[idx,]
     } else if (divisions$get_type() == "patch") {
       idx <- 1:parts

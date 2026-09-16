@@ -707,12 +707,12 @@ context <- bsdesign::Context(species_name = "Hieracium aurantiacum",
 ### Step 2: Divisions
 
 In our example we will allocate surveillance resources across grid-based
-spatial divisions. The region of interest for our Hawkweed spread model
-is the Bogong High Plains area surrounding the ski-resort township of
-Falls Creek in Victoria, Australia. We derive template raster (GeoTIFF)
-for the region from the National Vegetation Information System (NVIS)
-V7.0 (NVIS, 2025) raster layers. We also use the NVIS data in step 2.
-Users may download [NVIS Raster
+spatial divisions. The region of interest for our Hawkweed surveillance
+model is the Bogong High Plains area surrounding the ski-resort township
+of Falls Creek in Victoria, Australia. We derive template raster
+(GeoTIFF) for the region from the National Vegetation Information System
+(NVIS) V7.0 (NVIS, 2025) raster layers. We also use the NVIS data in
+step 3. Users may download [NVIS Raster
 Geodatabases](https://www.dcceew.gov.au/environment/environment-information-australia/national-vegetation-information-system/data-products)
 and place them in a suitable directory (e.g. *downloaded_data*) before
 loading and transforming the NVIS layer. We build our *Divisions* class
@@ -751,11 +751,11 @@ with configuration for:
 - Finding an effective or optimal survey effort allocation design based
   on those described in Hauser & McCarthy (2009):
   - A minimum cost optimisation strategy.
-  - Estimated management costs per (20 metre) grid-cell location were
-    estimated in Hauser & McCarthy (2009) as 400 hours for undetected
-    threat incursions and 40 hours for detected incursions. Since our
-    example model uses a different spatial resolution (100 metre) we
-    scale these management costs by 25.
+  - Management costs per (20 metre) grid-cell location were estimated in
+    Hauser & McCarthy (2009) as 400 hours for undetected threat
+    incursions and 40 hours for detected incursions. Since our example
+    model uses a different spatial resolution (100 metre) we scale these
+    management costs by 25.
   - As per Hauser & McCarthy (2009), we will find survey allocations
     with and without a cost budget of 1125 hours.
 

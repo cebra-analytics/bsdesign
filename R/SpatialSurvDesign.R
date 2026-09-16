@@ -642,7 +642,7 @@ SpatialSurvDesign.Context <- function(context,
       if (!is.null(exist_alloc)) {
         idx <- which(rowSums(as.matrix(self$get_sensitivity())) > 0 |
                        rowSums(exist_alloc) > 0)
-      } else {
+      } else if (!is.null(self$get_allocation())) {
         idx <- which(rowSums(as.matrix(self$get_sensitivity())) > 0)
       }
       design_df <- divisions$get_coords()[idx,]
