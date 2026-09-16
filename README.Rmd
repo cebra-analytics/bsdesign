@@ -282,7 +282,7 @@ The *LagrangeSurvDesign* object class encapsulates an implementation of generali
 3. Derive the pseudo-inverse $f^+(\alpha)$ of the derivative function via algebraic rearrangement of the derivative (if possible), such that given an *alpha* value ($\alpha$) the function generates allocations ($n_i$) for each location/division ($i$).
 4. Perform an iterative search for the *alpha* value that corresponds to the optimal solution for the objective function $f(n)$, given any budget or other constraints (e.g\. desired minimum system-wide sensitivity). Note that budget or other constraints are optional for cost or saving-based optimisation.
 
-The *LagrangeSurvDesign* object class is utilise within both the *SamplingSurvDesign* and *SpatialSurvDesign* object classes (see previous sections), and includes configuration for:
+The *LagrangeSurvDesign* object class is utilised within both the *SamplingSurvDesign* and *SpatialSurvDesign* object classes (see previous sections), and includes configuration for:
 
 - The surveillance context via a *Context* class object.
 - The spatial locations or other divisions for the design via a *Divisions* class object.

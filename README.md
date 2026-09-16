@@ -496,7 +496,7 @@ Moore, McCarthy, & Lecomte, 2016 - Appendix S3):
     sensitivity). Note that budget or other constraints are optional for
     cost or saving-based optimisation.
 
-The *LagrangeSurvDesign* object class is utilise within both the
+The *LagrangeSurvDesign* object class is utilised within both the
 *SamplingSurvDesign* and *SpatialSurvDesign* object classes (see
 previous sections), and includes configuration for:
 
