@@ -479,8 +479,8 @@ Moore, McCarthy, & Lecomte, 2016 - Appendix S3):
       $f(n) = \sum_ip_if_i(n_i)/\sum_ip_i$  
       Except for the objective function for maximum system-wide
       sensitivity ($s_{system}$) where:  
-      $s_{system}(n) = 1 - \prod_i(1-p_is(n_i))$ is utilised in the
-      formulation of $f(n)$.
+      $s_{system}(n) = 1 - \prod_i(1-p_is(n_i))$\
+      is utilised in the formulation of $f(n)$.
 2.  Derive the (partial) derivative(s) $f'(n)$ (or marginal benefit) of
     the objective function. The optimal solution occurs when the
     marginal benefit is constant ($\alpha$) across locations/divisions
