@@ -3,6 +3,12 @@
 
 # bsdesign: Biosecurity Surveillance and Area Freedom Design
 
+> **Archived.** This package repository is archived and has been
+> migrated to GitLab:
+> <https://gitlab.com/biosecuritycommons/packages/bsdesign>. The content
+> below may be outdated; please refer to the GitLab repository for the
+> current documentation.
+
 <!-- badges: start -->
 
 [![Last
